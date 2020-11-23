@@ -15,6 +15,8 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#include <array>
+
 
 class FFlPMAT2D : public FFlAttributeBase
 {		
@@ -31,12 +33,8 @@ public:
   FFL_FE_ATTRIBUTE_SPEC(FFlPMAT2D);
   FFL_TYPE_INFO(FFlPMAT2D);
 
-  FFlField<double> C11;
-  FFlField<double> C12;
-  FFlField<double> C13;
-  FFlField<double> C22;
-  FFlField<double> C23;
-  FFlField<double> C33;
+  std::array<FFlField<double>,6> C; //!< Upper triangle of 3x3 matrix
+
   FFlField<double> materialDensity;
 };
 

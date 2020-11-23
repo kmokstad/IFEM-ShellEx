@@ -15,7 +15,7 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
-#define PSPRING_size 21
+#include <array>
 
 
 class FFlPSPRING : public FFlAttributeBase
@@ -35,8 +35,9 @@ public:
 
   enum SpringType { TRANS_SPRING = 1, ROT_SPRING = 2 };
 
-  FFlField<double> K[PSPRING_size];
-  FFlField<int>    type; // needed to determine correct unit conversion
+  std::array<FFlField<double>,21> K; //!< Upper triangle of 6x6 matrix
+
+  FFlField<int> type; //!< Needed to determine correct unit conversion
 };
 
 

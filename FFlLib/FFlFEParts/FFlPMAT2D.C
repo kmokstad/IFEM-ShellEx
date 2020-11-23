@@ -5,67 +5,49 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlPMAT2D.H"
+#include "FFlLib/FFlFEParts/FFlPMAT2D.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
 
-//TODO,bh: use lower triangle here. Similar to other matrices
 FFlPMAT2D::FFlPMAT2D(int id) : FFlAttributeBase(id)
 {
-  this->addField(C11);
-  this->addField(C12);
-  this->addField(C13);
-  this->addField(C22);
-  this->addField(C23);
-  this->addField(C33);
+  for (FFlField<double>& field : C)
+    this->addField(field);
+
   this->addField(materialDensity);
 
   // default values - Typical for steel
-  double E  = 205.00E+9;
-  double nu =   0.29E+0;
-  double f1 = E / ( 1.0+nu*nu );
-  double f2 = f1 * nu;
-  double f3 = f1 * (1.0-nu) / 2.0;
+  double E  = 205.0e9;
+  double nu = 0.29;
+  double f0 = E / (1.0-nu*nu);
 
-  C11 = f1;
-  C12 = f2;
-  C13 = 0.0;
-  C22 = f1;
-  C23 = 0.0;
-  C33 = f3;
-  materialDensity =   7.85E+3;
+  C[0].setValue(f0);            // C(1,1)
+  C[1].setValue(f0*nu);         // C(1,2)
+  C[3].setValue(f0);            // C(2,2)
+  C[5].setValue(f0*(1-nu)*0.5); // C(3,3)
+
+  materialDensity.setValue(7850.0);
 }
 
 
 FFlPMAT2D::FFlPMAT2D(const FFlPMAT2D& obj) : FFlAttributeBase(obj)
 {
-  this->addField(C11);
-  this->addField(C12);
-  this->addField(C13);
-  this->addField(C22);
-  this->addField(C23);
-  this->addField(C33);
-  this->addField(materialDensity);
+  for (size_t i = 0; i < C.size(); i++)
+  {
+    this->addField(C[i]);
+    C[i].setValue(obj.C[i].getValue());
+  }
 
-  C11 = obj.C11;
-  C12 = obj.C12;
-  C13 = obj.C13;
-  C22 = obj.C22;
-  C23 = obj.C23;
-  C33 = obj.C33;
-  materialDensity = obj.materialDensity;
+  this->addField(materialDensity);
+  materialDensity.setValue(obj.materialDensity.getValue());
 }
 
 
 void FFlPMAT2D::convertUnits(const FFaUnitCalculator* convCal)
 {
   // Round to 10 significant digits
-  convCal->convert(C11.data(),"FORCE/AREA",10);
-  convCal->convert(C12.data(),"FORCE/AREA",10);
-  convCal->convert(C13.data(),"FORCE/AREA",10);
-  convCal->convert(C22.data(),"FORCE/AREA",10);
-  convCal->convert(C23.data(),"FORCE/AREA",10);
-  convCal->convert(C33.data(),"FORCE/AREA",10);
+  for (FFlField<double>& field : C)
+    convCal->convert(field.data(),"FORCE/AREA",10);
   convCal->convert(materialDensity.data(),"MASS/VOLUME",10);
 }
 

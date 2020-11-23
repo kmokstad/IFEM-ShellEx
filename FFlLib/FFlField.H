@@ -8,7 +8,7 @@
 #ifndef FFL_FIELD_H
 #define FFL_FIELD_H
 
-#include "FFlFieldBase.H"
+#include "FFlLib/FFlFieldBase.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 
@@ -41,7 +41,7 @@ public:
                      const std::vector<std::string>::const_iterator& end);
 
 protected:
-  virtual void write(std::ostream& os) const { os << myData; }
+  void write(std::ostream& os) const { os << myData; }
 
   bool isEqual(const FFlField& ref) const { return myData == ref.myData; }
 

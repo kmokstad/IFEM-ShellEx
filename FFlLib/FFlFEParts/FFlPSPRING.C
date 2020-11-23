@@ -12,34 +12,33 @@
 FFlPSPRING::FFlPSPRING(int id) : FFlAttributeBase(id)
 {
   this->addField(type);
-  type = TRANS_SPRING;
-  for (int i = 0; i < PSPRING_size; i++)
-  {
-    this->addField(K[i]);
-    K[i] = 0.0;
-  }
+  type.setValue(TRANS_SPRING);
+
+  for (FFlField<double>& field : K)
+    this->addField(field);
 }
 
 
 FFlPSPRING::FFlPSPRING(const FFlPSPRING& obj) : FFlAttributeBase(obj)
 {
   this->addField(type);
-  type = obj.type;
-  for (int i = 0; i < PSPRING_size; i++)
+  type.setValue(obj.type.getValue());
+
+  for (size_t i = 0; i < K.size(); i++)
   {
     this->addField(K[i]);
-    K[i] = obj.K[i];
+    K[i].setValue(obj.K[i].getValue());
   }
 }
 
 
 void FFlPSPRING::convertUnits(const FFaUnitCalculator* convCal)
 {
-  const std::string unit = (type.data() == TRANS_SPRING ? "FORCE/LENGTH" : "FORCE*LENGTH");
+  const char* unit = type.getValue() == TRANS_SPRING ? "FORCE/LENGTH" : "FORCE*LENGTH";
 
   // Round to 10 significant digits
-  for (int i = 0; i < PSPRING_size; i++)
-    convCal->convert(K[i].data(),unit,10);
+  for (FFlField<double>& field : K)
+    convCal->convert(field.data(),unit,10);
 }
 
 

@@ -2387,23 +2387,19 @@ bool FFlNastranReader::process_MAT2 (std::vector<std::string>& entry)
   START_TIMER("process_MAT2")
 
   int    MID = 0;
-  double G11 = 0.0, G12 = 0.0, G13 = 0.0;
-  double G22 = 0.0, G23 = 0.0;
-  double G33 = 0.0, RHO = 0.0;
+  double RHO = 0.0;
+
+  std::vector<double> C(6,0.0);
 
   if (entry.size() < 8) entry.resize(8,"");
 
   CONVERT_ENTRY ("MAT2",
 		 fieldValue(entry[0],MID) &&
-		 fieldValue(entry[1],G11) &&
-		 fieldValue(entry[2],G12) &&
-		 fieldValue(entry[3],G13) &&
-		 fieldValue(entry[4],G22) &&
-		 fieldValue(entry[5],G23) &&
-		 fieldValue(entry[6],G33) &&
 		 fieldValue(entry[7],RHO));
+  for (size_t i = 0; i < C.size(); i++)
+    CONVERT_ENTRY ("MAT2",fieldValue(entry[1+i],C[i]));
 
-  if (G11 <= 0.0 || G22 <= 0.0 || G33 <= 0.0)
+  if (C[0] <= 0.0 || C[3] <= 0.0 || C[5] <= 0.0)
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: Material "<< MID
@@ -2419,12 +2415,8 @@ bool FFlNastranReader::process_MAT2 (std::vector<std::string>& entry)
   }
 
   FFlPMAT2D* myAtt = CREATE_ATTRIBUTE(FFlPMAT2D,"PMAT2D",MID);
-  myAtt->C11 = round(G11,10);
-  myAtt->C12 = round(G12,10);
-  myAtt->C13 = round(G13,10);
-  myAtt->C22 = round(G22,10);
-  myAtt->C23 = round(G23,10);
-  myAtt->C33 = round(G33,10);
+  for (size_t i = 0; i < C.size(); i++)
+    myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
   if (lastComment.first > 0)
@@ -2512,42 +2504,20 @@ bool FFlNastranReader::process_MAT9 (std::vector<std::string>& entry)
   START_TIMER("process_MAT9")
 
   int    MID = 0;
-  double G11 = 0.0, G12 = 0.0, G13 = 0.0, G14 = 0.0, G15 = 0.0, G16 = 0.0;
-  double G22 = 0.0, G23 = 0.0, G24 = 0.0, G25 = 0.0, G26 = 0.0;
-  double G33 = 0.0, G34 = 0.0, G35 = 0.0, G36 = 0.0;
-  double G44 = 0.0, G45 = 0.0, G46 = 0.0;
-  double G55 = 0.0, G56 = 0.0;
-  double G66 = 0.0, RHO = 0.0;
+  double RHO = 0.0;
+
+  std::vector<double> C(21,0.0);
 
   if (entry.size() < 23) entry.resize(23,"");
 
   CONVERT_ENTRY ("MAT9",
 		 fieldValue(entry[ 0],MID) &&
-		 fieldValue(entry[ 1],G11) &&
-		 fieldValue(entry[ 2],G12) &&
-		 fieldValue(entry[ 3],G13) &&
-		 fieldValue(entry[ 4],G14) &&
-		 fieldValue(entry[ 5],G15) &&
-		 fieldValue(entry[ 6],G16) &&
-		 fieldValue(entry[ 7],G22) &&
-		 fieldValue(entry[ 8],G23) &&
-		 fieldValue(entry[ 9],G24) &&
-		 fieldValue(entry[10],G25) &&
-		 fieldValue(entry[11],G26) &&
-		 fieldValue(entry[12],G33) &&
-		 fieldValue(entry[13],G34) &&
-		 fieldValue(entry[14],G35) &&
-		 fieldValue(entry[15],G36) &&
-		 fieldValue(entry[16],G44) &&
-		 fieldValue(entry[17],G45) &&
-		 fieldValue(entry[18],G46) &&
-		 fieldValue(entry[19],G55) &&
-		 fieldValue(entry[20],G56) &&
-		 fieldValue(entry[21],G66) &&
 		 fieldValue(entry[22],RHO));
+  for (size_t i = 0; i < C.size(); i++)
+    CONVERT_ENTRY ("MAT2",fieldValue(entry[1+i],C[i]));
 
-  if (G11 <= 0.0 || G22 <= 0.0 || G33 <= 0.0 ||
-      G44 <= 0.0 || G55 <= 0.0 || G66 <= 0.0)
+  if (C[ 0] <= 0.0 || C[ 6] <= 0.0 || C[11] <= 0.0 ||
+      C[15] <= 0.0 || C[18] <= 0.0 || C[20] <= 0.0)
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: Material "<< MID
@@ -2563,27 +2533,8 @@ bool FFlNastranReader::process_MAT9 (std::vector<std::string>& entry)
   }
 
   FFlPMAT3D* myAtt = CREATE_ATTRIBUTE(FFlPMAT3D,"PMAT3D",MID);
-  myAtt->C11 = round(G11,10);
-  myAtt->C12 = round(G12,10);
-  myAtt->C13 = round(G13,10);
-  myAtt->C14 = round(G14,10);
-  myAtt->C15 = round(G15,10);
-  myAtt->C16 = round(G16,10);
-  myAtt->C22 = round(G22,10);
-  myAtt->C23 = round(G23,10);
-  myAtt->C24 = round(G24,10);
-  myAtt->C25 = round(G25,10);
-  myAtt->C26 = round(G26,10);
-  myAtt->C33 = round(G33,10);
-  myAtt->C34 = round(G34,10);
-  myAtt->C35 = round(G35,10);
-  myAtt->C36 = round(G36,10);
-  myAtt->C44 = round(G44,10);
-  myAtt->C45 = round(G45,10);
-  myAtt->C46 = round(G46,10);
-  myAtt->C55 = round(G55,10);
-  myAtt->C56 = round(G56,10);
-  myAtt->C66 = round(G66,10);
+  for (size_t i = 0; i < C.size(); i++)
+    myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
   if (lastComment.first > 0)

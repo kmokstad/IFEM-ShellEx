@@ -15,6 +15,8 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#include <array>
+
 
 class FFlPBUSHCOEFF : public FFlAttributeBase
 {
@@ -31,7 +33,7 @@ public:
   FFL_FE_ATTRIBUTE_SPEC(FFlPBUSHCOEFF);
   FFL_TYPE_INFO(FFlPBUSHCOEFF);
 
-  FFlField<double> K[6];
+  std::array<FFlField<double>,6> K; //!< Diagonal 6x6 matrix
 };
 
 

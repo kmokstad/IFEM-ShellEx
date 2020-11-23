@@ -11,13 +11,10 @@
 FFlPWAVGM::FFlPWAVGM(int id) : FFlAttributeBase(id)
 {
   this->addField(refC);
-  refC = 0;
 
-  for (int i = 0; i < 6; i++)
-  {
-    this->addField(indC[i]);
-    indC[i] = 0;
-  }
+  for (FFlField<int>& field : indC)
+    this->addField(field);
+
   this->addField(weightMatrix);
 }
 
@@ -25,16 +22,16 @@ FFlPWAVGM::FFlPWAVGM(int id) : FFlAttributeBase(id)
 FFlPWAVGM::FFlPWAVGM(const FFlPWAVGM& obj) : FFlAttributeBase(obj)
 {
   this->addField(refC);
-  refC = obj.refC;
+  refC.setValue(obj.refC.getValue());
 
-  for (int i = 0; i < 6; i++)
+  for (size_t i = 0; i < indC.size(); i++)
   {
     this->addField(indC[i]);
-    indC[i] = obj.indC[i];
+    indC[i].setValue(obj.indC[i].getValue());
   }
 
   this->addField(weightMatrix);
-  weightMatrix = obj.weightMatrix;
+  weightMatrix.setValue(obj.weightMatrix.getValue());
 }
 
 
@@ -45,7 +42,7 @@ bool FFlPWAVGM::isIdentic(const FFlAttributeBase* otherAttrib) const
 
   if (this->refC != other->refC) return false;
 
-  for (int i = 0; i < 6; i++)
+  for (size_t i = 0; i < indC.size(); i++)
     if (this->indC[i] != other->indC[i]) return false;
 
   if (this->weightMatrix != other->weightMatrix) return false;
@@ -66,20 +63,20 @@ void FFlPWAVGM::init()
 }
 
 
-FFlAttributeBase* FFlPWAVGM::removeWeights (const std::vector<int>& nodeIndices, size_t nNod)
+FFlAttributeBase* FFlPWAVGM::removeWeights (const std::vector<int>& nodes, size_t nNod)
 {
   FFlAttributeBase* newAtt = AttributeFactory::instance()->create("PWAVGM",this->getID());
   FFlPWAVGM* myAtt = static_cast<FFlPWAVGM*>(newAtt);
 
   // Scale the remaining weights such that they maintain the same sum
   size_t nRow = weightMatrix.getValue().size() / (nNod-1);
-  size_t newNod = nNod-1 - nodeIndices.size();
-  std::vector<double> newW, remW(nRow,0.0);
+  size_t newNod = nNod-1 - nodes.size();
+  DoubleVec newW, remW(nRow,0.0);
   newW.reserve(nRow*newNod);
   size_t i, j, k = 0;
-  std::vector<double>::const_iterator wit = weightMatrix.getValue().begin();
+  DoubleVec::const_iterator wit = weightMatrix.getValue().begin();
   for (i = 1; i < nNod; i++, wit += nRow)
-    if (k >= nodeIndices.size() || (int)i < nodeIndices[k])
+    if (k >= nodes.size() || (int)i < nodes[k])
       newW.insert(newW.end(),wit,wit+nRow);
     else for (++k, j = 0; j < nRow; j++)
       remW[j] += *(wit+j);
@@ -92,11 +89,11 @@ FFlAttributeBase* FFlPWAVGM::removeWeights (const std::vector<int>& nodeIndices,
 
   // Compute new component indices
   int iC;
-  for (j = 0; j < 6; j++)
+  for (j = 0; j < indC.size(); j++)
     if ((iC = indC[j].getValue()) > 0)
-      myAtt->indC[j] = (iC-1)*newNod/nNod + 1;
+      myAtt->indC[j].setValue((iC-1)*newNod/nNod + 1);
 
-  myAtt->refC = refC.getValue();
+  myAtt->refC.setValue(refC.getValue());
 
   return newAtt;
 }

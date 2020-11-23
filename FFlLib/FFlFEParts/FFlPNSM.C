@@ -5,7 +5,7 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlPNSM.H"
+#include "FFlLib/FFlFEParts/FFlPNSM.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
 
@@ -13,9 +13,6 @@ FFlPNSM::FFlPNSM(int id) : FFlAttributeBase(id)
 {
   this->addField(NSM);
   this->addField(isShell);
-
-  NSM = 0.0;
-  isShell = 0;
 }
 
 
@@ -24,14 +21,14 @@ FFlPNSM::FFlPNSM(const FFlPNSM& obj) : FFlAttributeBase(obj)
   this->addField(NSM);
   this->addField(isShell);
 
-  NSM = obj.NSM;
-  isShell = obj.isShell;
+  NSM.setValue(obj.NSM.getValue());
+  isShell.setValue(obj.isShell.getValue());
 }
 
 
 void FFlPNSM::convertUnits(const FFaUnitCalculator* convCal)
 {
-  if (isShell.data() == 1)
+  if (isShell.getValue() == 1)
     convCal->convert(NSM.data(),"MASS/AREA",10);
   else
     convCal->convert(NSM.data(),"MASS/LENGTH",10);

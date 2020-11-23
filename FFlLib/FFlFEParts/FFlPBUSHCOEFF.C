@@ -11,20 +11,17 @@
 
 FFlPBUSHCOEFF::FFlPBUSHCOEFF(int id) : FFlAttributeBase(id)
 {
-  for (int i = 0; i < 6; i++)
-  {
-    this->addField(K[i]);
-    K[i] = 0.0;
-  }
+  for (FFlField<double>& field : K)
+    this->addField(field);
 }
 
 
 FFlPBUSHCOEFF::FFlPBUSHCOEFF(const FFlPBUSHCOEFF& obj) : FFlAttributeBase(obj)
 {
-  for (int i = 0; i < 6; i++)
+  for (size_t i = 0; i < K.size(); i++)
   {
     this->addField(K[i]);
-    K[i] = obj.K[i];
+    K[i].setValue(obj.K[i].getValue());
   }
 }
 

@@ -13,10 +13,11 @@ FFlPBEAMSECTION::FFlPBEAMSECTION(int id) : FFlAttributeBase(id)
 {
   this->setupFields();
 
-  crossSectionArea = 1.963E-3;
-  Iy = Iz = 3.068E-7;
-  It = 6.136E-7;
-  Kxy = Kxz = Sy = Sz = 0.0;
+  // Default values: Circular bar with radius R=0.025
+  crossSectionArea.setValue(0.001963);
+  Iy.setValue(3.068e-7);
+  Iz.setValue(3.068e-7);
+  It.setValue(6.136e-7);
 }
 
 
@@ -25,14 +26,14 @@ FFlPBEAMSECTION::FFlPBEAMSECTION(const FFlPBEAMSECTION& obj)
 {
   this->setupFields();
 
-  crossSectionArea = obj.crossSectionArea;
-  Iy = obj.Iy ;
-  Iz = obj.Iz;
-  It = obj.It;
-  Kxy = obj.Kxy;
-  Kxz = obj.Kxz;
-  Sy = obj.Sy;
-  Sz = obj.Sz;
+  crossSectionArea.setValue(obj.crossSectionArea.getValue());
+  Iy.setValue(obj.Iy.getValue());
+  Iz.setValue(obj.Iz.getValue());
+  It.setValue(obj.It.getValue());
+  Kxy.setValue(obj.Kxy.getValue());
+  Kxz.setValue(obj.Kxz.getValue());
+  Sy.setValue(obj.Sy.getValue());
+  Sz.setValue(obj.Sz.getValue());
 }
 
 

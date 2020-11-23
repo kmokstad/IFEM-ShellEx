@@ -15,6 +15,8 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#include <array>
+
 
 class FFlPWAVGM : public FFlAttributeBase
 {
@@ -27,15 +29,17 @@ public:
 
   static void init();
 
-  FFlAttributeBase* removeWeights(const std::vector<int>& nodeIndices, size_t nNod);
+  FFlAttributeBase* removeWeights(const std::vector<int>& nodes, size_t nNod);
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPWAVGM);
   FFL_FE_ATTRIBUTE_SPEC(FFlPWAVGM);
   FFL_TYPE_INFO(FFlPWAVGM);
 
-  FFlField<int> refC;    // component numbers at the reference point
-  FFlField<int> indC[6]; // indices into weightMatrix for each component
-  FFlField< std::vector<double> > weightMatrix;
+  typedef std::vector<double> DoubleVec;
+
+  FFlField<int>               refC; // component numbers at the reference point
+  std::array<FFlField<int>,6> indC; // indices into the weightMatrix
+  FFlField<DoubleVec> weightMatrix; // master DOF weighting factors
 };
 
 

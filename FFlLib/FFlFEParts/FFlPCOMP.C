@@ -5,7 +5,7 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlPCOMP.H"
+#include "FFlLib/FFlFEParts/FFlPCOMP.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
 
@@ -23,18 +23,16 @@ FFlPCOMP::FFlPCOMP(int id) : FFlAttributeBase(id)
 {
   this->addField(Z0);
   this->addField(plySet);
-  Z0 = 0.0;
 }
 
 
 FFlPCOMP::FFlPCOMP(const FFlPCOMP& obj) : FFlAttributeBase(obj)
 {
   this->addField(Z0);
-  this->addField(plySet);
-  Z0 = obj.Z0;
+  Z0.setValue(obj.Z0.getValue());
 
-  for (const Ply& ply : obj.plySet.getValue())
-    plySet.data().push_back(ply);
+  this->addField(plySet);
+  plySet.setValue(obj.plySet.getValue());
 }
 
 

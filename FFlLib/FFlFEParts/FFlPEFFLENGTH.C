@@ -14,14 +14,13 @@
 FFlPEFFLENGTH::FFlPEFFLENGTH(int id) : FFlAttributeBase(id)
 {
   this->addField(length);
-  length = 0.0;
 }
 
 
 FFlPEFFLENGTH::FFlPEFFLENGTH(const FFlPEFFLENGTH& obj) : FFlAttributeBase(obj)
 {
   this->addField(length);
-  length = obj.length;
+  length.setValue(obj.length.getValue());
 }
 
 
