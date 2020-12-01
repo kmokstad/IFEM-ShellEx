@@ -13,9 +13,6 @@
 #include "FFlLib/FFlPartBase.H"
 
 
-class FFaCheckSum;
-
-
 class FFlNamedPartBase : public FFlPartBase
 {
 public:

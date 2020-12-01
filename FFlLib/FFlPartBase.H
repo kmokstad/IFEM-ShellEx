@@ -28,7 +28,7 @@ protected:
 public:
   virtual ~FFlPartBase() {}
 
-  virtual FFlTypeInfoSpec* getTypeInfoSpec() const { return NULL; }
+  virtual FFlTypeInfoSpec* getTypeInfoSpec() const = 0;
 
   int getID() const { return myID; }
   void setID(int newID) { myID = newID; }

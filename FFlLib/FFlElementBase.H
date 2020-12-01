@@ -47,7 +47,6 @@ public:
 
   virtual void calculateChecksum(FFaCheckSum* cs, int cstype) const;
   virtual FFlElementBase* clone() const = 0;
-  virtual FFlTypeInfoSpec* getTypeInfoSpec() const = 0;
 
   const std::string& getTypeName() const
   { return this->getTypeInfoSpec()->getTypeName(); }
