@@ -46,3 +46,6 @@ TARGET_LINK_LIBRARIES(ShellEx Elasticity ${IFEM_LIBRARIES})
 IF(TARGET FFlLib)
   TARGET_LINK_LIBRARIES(ShellEx FFlLib)
 ENDIF(TARGET FFlLib)
+
+add_executable(ShellSim main.C)
+target_link_libraries(ShellSim ShellEx)
