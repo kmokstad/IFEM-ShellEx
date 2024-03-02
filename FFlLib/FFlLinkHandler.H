@@ -100,7 +100,9 @@ public:
 
   // Getting count of entities
 
-  enum { FFL_ALL = 0, FFL_FEM = 1, FFL_STRC = 2 };
+  enum { FFL_ALL = FFlTypeInfoSpec::OTHER_ELM+1,
+         FFL_FEM = FFlTypeInfoSpec::OTHER_ELM+2,
+         FFL_STRC = FFlTypeInfoSpec::STRC_ELM };
 
   const ElmTypeCount& getElmTypeCount() const;
   int getElementCount(const std::string& type) const;
@@ -118,8 +120,10 @@ public:
   FFlNode*          getFENode(int inod) const;
   FFlGroup*         getGroup(int ID) const;
   FFlAttributeBase* getAttribute(const std::string& type, int ID) const;
+#ifdef FT_USE_VISUALS
   FFlVDetail*       getDetail(int ID) const;
   FFlVAppearance*   getAppearance(int ID) const;
+#endif
 
   bool getRefNodes(std::vector<FFlNode*>& refNodes) const;
   bool getLoads(int ID, LoadsVec& loads) const;
@@ -192,14 +196,14 @@ public:
   void getMassProperties(double& M, FaVec3& Xcg, FFaTensor3& I) const;
 
   NodesCIter findFreeNodeAtPoint(const FaVec3& point, double tol,
-				 int dofFilter = -1) const;
+                                 int dofFilter = -1) const;
   NodesCIter findClosestNode(const FaVec3& point) const;
 
   FFlNode* createAttachableNode(FFlNode* fromNode, const FaVec3& nodePos,
-				FFlConnectorItems& cItems);
+                                FFlConnectorItems* cItems = NULL);
 
   ElementsCIter findClosestElement(const FaVec3& point,
-				   const std::vector<FFlTypeInfoSpec::Cathegory>&) const;
+                                   const std::vector<FFlTypeInfoSpec::Cathegory>&) const;
   FFlElementBase* findClosestElement(const FaVec3& point, const FFlGroup& group) const;
   FFlElementBase* findClosestElement(const FaVec3& point, FFlGroup* group = NULL) const;
 
@@ -266,6 +270,7 @@ public:
 
   FFlNode* createNodeAtPoint(const FaVec3& nodePos, int DOFs = 0);
 
+#ifdef FT_USE_CONNECTORS
   int createConnector(const FFaCompoundGeometry& compound,
                       const FaVec3& nodePos, int spiderType,
                       FFlConnectorItems& cItems);
@@ -273,6 +278,7 @@ public:
   int deleteConnectorProperties(const std::vector<int>& propertiesID);
   int deleteConnectorElements(const std::vector<int>& elementsID);
   int deleteConnectorNodes(const std::vector<int>& nodesID);
+#endif
 
 protected:
   typedef NodesVec::iterator    NodesIter;

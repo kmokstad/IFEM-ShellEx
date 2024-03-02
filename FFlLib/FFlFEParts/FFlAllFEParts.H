@@ -56,8 +56,10 @@
 #include "FFlPHEIGHT.H"
 #include "FFlPTHICKREF.H"
 #include "FFlPFATIGUE.H"
+#ifdef FT_USE_VISUALS
 #include "FFlVAppearance.H"
 #include "FFlVDetail.H"
+#endif
 #include "FFlLib/FFlGroup.H"
 
 #endif

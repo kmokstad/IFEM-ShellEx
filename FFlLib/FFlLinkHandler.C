@@ -16,17 +16,21 @@
 #endif
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFlLib/FFlGroup.H"
+#include "FFlLib/FFlMemPool.H"
 #include "FFlLib/FFlLoadBase.H"
 #include "FFlLib/FFlAttributeBase.H"
+#ifdef FT_USE_VISUALS
 #include "FFlLib/FFlFEParts/FFlVDetail.H"
 #include "FFlLib/FFlFEParts/FFlVAppearance.H"
+#endif
 #include "FFlLib/FFlFEParts/FFlPCOORDSYS.H"
 #include "FFlLib/FFlFEParts/FFlPWAVGM.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
 #include "FFlLib/FFlFEResultBase.H"
+#ifdef FT_USE_CONNECTORS
 #include "FFlLib/FFlConnectorItems.H"
-#include "FFlLib/FFlMemPool.H"
 #include "FFaLib/FFaGeometry/FFaCompoundGeometry.H"
+#endif
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaAlgebra/FFaTensor3.H"
@@ -1046,7 +1050,7 @@ int FFlLinkHandler::getElementCount(int types, bool checkCF) const
         nfem++;
       else if (isStrainCoat(elm))
         nstrc++;
-      else
+      else if (types == FFL_FEM || types == elm->getCathegory())
         nfem++;
     }
 
@@ -1461,7 +1465,7 @@ int FFlLinkHandler::buildBUSHelementSet() const
 
 FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
 					      const FaVec3& nodePos,
-					      FFlConnectorItems& cItems)
+					      FFlConnectorItems* cItems)
 {
   if (!fromNode) return NULL;
 
@@ -1469,7 +1473,12 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
   FFlNode* newNode = new FFlNode(this->getNewNodeID(),nodePos);
   ListUI <<"  -> Creating FE node "<< newNode->getID() <<"\n";
   this->addNode(newNode,true);
-  cItems.addNode(newNode->getID());
+  if (cItems)
+#ifdef FT_USE_CONNECTORS
+    cItems->addNode(newNode->getID());
+#else
+    std::cerr <<"*** FFlLinkHandler::createAttachableNode: Logic error\n";
+#endif
 
   newElm = ElementFactory::instance()->create("BUSH",this->getNewElmID());
   newElm->setNode(1,newNode);
@@ -1478,8 +1487,12 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
          <<" between nodes "<< newNode->getID()
          <<" and "<< fromNode->getID() <<"\n";
   this->addElement(newElm,true);
-  cItems.addElement(newElm->getID());
-  if (myBushElements.empty()) this->buildBUSHelementSet();
+#ifdef FT_USE_CONNECTORS
+  if (cItems)
+    cItems->addElement(newElm->getID());
+#endif
+  if (myBushElements.empty())
+    this->buildBUSHelementSet();
   myBushElements.insert(newElm);
 
   newElm = ElementFactory::instance()->create("CMASS",this->getNewElmID());
@@ -1487,7 +1500,10 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
   ListUI <<"  -> Creating CMASS element "<< newElm->getID()
          <<" on node "<< fromNode->getID() <<"\n";
   this->addElement(newElm,true);
-  cItems.addElement(newElm->getID());
+#ifdef FT_USE_CONNECTORS
+  if (cItems)
+    cItems->addElement(newElm->getID());
+#endif
 
   return newNode;
 }
@@ -2157,6 +2173,8 @@ FFlNode* FFlLinkHandler::createNodeAtPoint(const FaVec3& nodePos, int DOFs)
 }
 
 
+#ifdef FT_USE_CONNECTORS
+
 /*!
   Creates a connector based on input geometry and the nodal position.
   The elements, properties and nodes are returned through \a cItems.
@@ -2204,7 +2222,7 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
 
   if (spiderType == 3)
     // Create an attachable node co-located with the reference node
-    this->createAttachableNode(nodes.front(),nodes.front()->getPos(),cItems);
+    this->createAttachableNode(nodes.front(),nodes.front()->getPos(),&cItems);
 
   // We do not need to create a property for the WAVGM element.
   // The FE reducer will assign a default property with unit weights.
@@ -2286,6 +2304,7 @@ int FFlLinkHandler::deleteConnectorNodes(const std::vector<int>& nodesID)
   this->sortNodes();
   return nDeleted;
 }
+#endif
 
 
 int FFlLinkHandler::splitElement(FFlElementBase* elm)
