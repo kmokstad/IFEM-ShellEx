@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(ShellEx)
+message(STATUS "Configuring project ${PROJECT_NAME}")
 
 if(NOT IFEM_CONFIGURED)
   list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../../cmake/Modules)
@@ -46,3 +47,10 @@ TARGET_LINK_LIBRARIES(ShellEx Elasticity ${IFEM_LIBRARIES})
 IF(TARGET FFlLib)
   TARGET_LINK_LIBRARIES(ShellEx FFlLib)
 ENDIF(TARGET FFlLib)
+
+# Building executable
+add_executable(ShellSim main.C)
+target_link_libraries(ShellSim ShellEx)
+
+# Installation
+install(TARGETS ShellSim DESTINATION bin COMPONENT bin)

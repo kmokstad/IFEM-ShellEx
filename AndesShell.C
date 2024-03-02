@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "AndesShell.h"
+#include "ASMu2DNastran.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
 #include "Vec3Oper.h"
@@ -43,14 +44,22 @@ AndesShell::AndesShell (unsigned short int n)
   Emod  = 2.1e11;
   Rny   = 0.3;
   Thick = 0.1;
+
+  currentPatch = nullptr;
 }
 
 
 void AndesShell::printLog () const
 {
-  IFEM::cout <<"Formulation: ANDES shell"<< std::endl;
+  IFEM::cout <<"Formulation: ANDES shell";
+  IFEM::cout << std::endl;
 }
 
+
+void AndesShell::initForPatch (const ASMbase* pch)
+{
+  currentPatch = dynamic_cast<const ASMu2DNastran*>(pch);
+}
 
 
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
@@ -79,11 +88,27 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
       break;
 
     default:
-      ;
+      std::cerr <<" *** AndesShell::getLocalIntegral: Mode flag "<< m_mode
+                <<" is not yet supported."<< std::endl;
+      delete result;
+      return nullptr;
   }
 
   result->redim(6*nen);
   return result;
+}
+
+
+bool AndesShell::initElement (const std::vector<int>& MNPC,
+                              const FiniteElement& fe, const Vec3&, size_t,
+                              LocalIntegral& elmInt)
+{
+  if (!this->initElement(MNPC,elmInt))
+    return false;
+  else if (currentPatch)
+    return currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
+  else
+    return false;
 }
 
 
