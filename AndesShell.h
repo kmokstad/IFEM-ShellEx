@@ -16,6 +16,8 @@
 
 #include "ElasticBase.h"
 
+class ASMu2DNastran;
+
 
 /*!
   \brief Class representing the integrand of an ANDES shell.
@@ -33,10 +35,22 @@ public:
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
 
+  //! \brief Initialization of integrand with patch-specific data.
+  virtual void initForPatch(const ASMbase* pch);
+
   using ElasticBase::getLocalIntegral;
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t, bool) const;
+
+  using ElasticBase::initElement;
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] fe Nodal and integration point data for current element
+  //! \param elmInt The local integral object for current element
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const FiniteElement& fe, const Vec3&, size_t,
+                           LocalIntegral& elmInt);
 
   using ElasticBase::finalizeElement;
   //! \brief Finalizes the element matrices after the numerical integration.
@@ -50,6 +64,8 @@ private:
   double Emod;  //!< Current Young's modules
   double Rny;   //!< Current Poisson's ratio
   double Rho;   //!< Current mass density
+
+  const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
 };
 
 #endif
