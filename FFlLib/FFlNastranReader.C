@@ -10,7 +10,6 @@
 #include <cctype>
 
 #include "FFlLib/FFlIOAdaptors/FFlNastranReader.H"
-#include "FFlLib/FFlIOAdaptors/FFlReaders.H"
 #include "FFlLib/FFlLinkHandler.H"
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlGroup.H"
@@ -21,7 +20,6 @@
 #ifdef FFL_TIMER
 #include "FFaLib/FFaProfiler/FFaProfiler.H"
 #endif
-#include "Admin/FedemAdmin.H"
 
 #if _MSC_VER > 1300
 #define strncasecmp _strnicmp
@@ -126,19 +124,6 @@ FFlNastranReader::~FFlNastranReader ()
   myProfiler->report();
   delete myProfiler;
 #endif
-}
-
-
-void FFlNastranReader::init ()
-{
-  FFlReaders::instance()->registerReader("Nastran Bulk Data","nas",
-					 FFaDynCB2S(FFlNastranReader::readerCB,const std::string&,FFlLinkHandler*),
-					 FFaDynCB2S(FFlNastranReader::identifierCB,const std::string&,int&),
-					 "Nastran Bulk Data reader v2.0",
-					 FedemAdmin::getCopyrightString());
-
-  FFlReaders::instance()->addExtension("Nastran Bulk Data","bdf");
-  FFlReaders::instance()->setDefaultReader("Nastran Bulk Data");
 }
 
 

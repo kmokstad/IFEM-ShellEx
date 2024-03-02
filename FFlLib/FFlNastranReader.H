@@ -129,8 +129,10 @@ private:
   FFaCheckSum*                             attChkSum;
   std::map<unsigned int,FFlAttributeBase*> uniqueAtts;
 
+protected:
   static int nWarnings, nNotes; // Accumulates the number of warnings and notes
 
+private:
   mutable std::pair<int,std::string> lastComment;
 
   int lineCounter;
@@ -144,7 +146,6 @@ public:
 
   FFlNastranReader& operator= (const FFlNastranReader&) = delete;
 
-  static void init ();
   static void identifierCB (const std::string& fileName, int& positiveIdent);
   static void readerCB     (const std::string& fileName, FFlLinkHandler* link);
 
