@@ -16,17 +16,21 @@
 #endif
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFlLib/FFlGroup.H"
+#include "FFlLib/FFlMemPool.H"
 #include "FFlLib/FFlLoadBase.H"
 #include "FFlLib/FFlAttributeBase.H"
+#ifdef FT_USE_VISUALS
 #include "FFlLib/FFlFEParts/FFlVDetail.H"
 #include "FFlLib/FFlFEParts/FFlVAppearance.H"
+#endif
 #include "FFlLib/FFlFEParts/FFlPCOORDSYS.H"
 #include "FFlLib/FFlFEParts/FFlPWAVGM.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
 #include "FFlLib/FFlFEResultBase.H"
+#ifdef FT_USE_CONNECTORS
 #include "FFlLib/FFlConnectorItems.H"
-#include "FFlLib/FFlMemPool.H"
 #include "FFaLib/FFaGeometry/FFaCompoundGeometry.H"
+#endif
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaAlgebra/FFaTensor3.H"
@@ -1046,7 +1050,7 @@ int FFlLinkHandler::getElementCount(int types, bool checkCF) const
         nfem++;
       else if (isStrainCoat(elm))
         nstrc++;
-      else
+      else if (types == FFL_FEM || types == elm->getCathegory())
         nfem++;
     }
 
@@ -1453,6 +1457,8 @@ int FFlLinkHandler::buildBUSHelementSet() const
 }
 
 
+#ifdef FT_USE_CONNECTORS
+
 /*!
   Creates a new node at \a nodePos, a BUSH element between \a fromNode and the
   new node, and a CMASS element at \a fromNode. The new node is returned.
@@ -1491,6 +1497,7 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
 
   return newNode;
 }
+#endif
 
 
 /*!
@@ -2157,6 +2164,8 @@ FFlNode* FFlLinkHandler::createNodeAtPoint(const FaVec3& nodePos, int DOFs)
 }
 
 
+#ifdef FT_USE_CONNECTORS
+
 /*!
   Creates a connector based on input geometry and the nodal position.
   The elements, properties and nodes are returned through \a cItems.
@@ -2286,6 +2295,7 @@ int FFlLinkHandler::deleteConnectorNodes(const std::vector<int>& nodesID)
   this->sortNodes();
   return nDeleted;
 }
+#endif
 
 
 int FFlLinkHandler::splitElement(FFlElementBase* elm)
