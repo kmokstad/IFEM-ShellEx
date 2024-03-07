@@ -25,11 +25,11 @@ extern "C" {
   //! \brief Interface to ANDES 3-noded shell element routine (FORTRAN-90 code).
   void ifem_andes3_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
-                    double* Ekt, int& iERR);
+                    double* Ekt, double* Em, int& iERR);
   //! \brief Interface to ANDES 4-noded shell element routine (FORTRAN-90 code).
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
-                    double* Ekt, int& iERR);
+                    double* Ekt, double* Em, int& iERR);
 }
 #endif
 
@@ -118,11 +118,14 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 #ifdef HAS_ANDES
   // Invoke the Fortran wrapper
   Matrix& Kmat = static_cast<ElmMats&>(elmInt).A[eKm-1];
+  Matrix& Mmat = static_cast<ElmMats&>(elmInt).A[eM > 0 ? eM-1 : eKm-1];
   size_t nenod = fe.Xn.cols();
   if (nenod == 3)
-    ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, Rho, Kmat.ptr(), iERR);
+    ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
+                 Kmat.ptr(), Mmat.ptr(), iERR);
   else if (nenod == 4)
-    ifem_andes4_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, Rho, Kmat.ptr(), iERR);
+    ifem_andes4_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
+                 Kmat.ptr(), Mmat.ptr(), iERR);
   else
   {
     iERR = -98;

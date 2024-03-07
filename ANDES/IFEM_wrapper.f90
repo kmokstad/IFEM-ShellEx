@@ -7,8 +7,8 @@
 !>
 !> $date Feb 20 2024
 
-!> @brief Calculates the stiffness matrix for a 3-noded shell element.
-subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
+!> @brief Calculates the stiffness- and mass matrix for a 3-noded shell element.
+subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
 
   use KindModule        , only : dp
   use Andes3ShellModule , only : Andes3shell_stiffmat
@@ -19,7 +19,7 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
   integer , parameter   :: nelnod = 3, neldof = 6*nelnod
   integer , intent(in)  :: iEL
   real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny, Rho
-  real(dp), intent(out) :: ek(neldof,neldof)
+  real(dp), intent(out) :: ek(neldof,neldof), em(neldof,neldof)
   integer , intent(out) :: ierr
 
   !! Local variables
@@ -30,8 +30,8 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
 
   integer  :: i, j
   real(dp) :: X21, Y21, Z21, X31, Y31, Z31, SL21, SL31, COSG, SING
-  real(dp) :: Kmat(neldof,neldof), Cmat(6,6)
-  real(dp) :: Xl(nelnod), Yl(nelnod), Trel(3,4), Tel(3,3), TelT(3,3)
+  real(dp) :: Kmat(neldof,neldof), Cmat(6,6), Tmp(neldof)
+  real(dp) :: Xl(nelnod), Yl(nelnod), Zl(nelnod), Trel(3,4), Tel(3,3), TelT(3,3)
 
 
   !! --- Logic section ---
@@ -102,11 +102,29 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
      end do
   end do
 
+  if (Rho <= 0.0_dp) return
+
+  !! Compute lumped mass matrix
+  Xl = X0(1,:)
+  Yl = X0(2,:)
+  Zl = X0(3,:)
+  call TMRF35 (Tmp(1),Xl(1),Yl(1),Zl(1),Thick,Rho)
+  call TEBA35 (Tmp(10),Xl(1),Yl(1),Zl(1),Thick,Rho)
+  Tmp(6)   = Tmp(3)
+  Tmp(3:5) = Tmp(10:12)
+  do i = 1, 6
+     do j = 6, 12, 6
+        Tmp(i+j) = Tmp(i)
+     end do
+  end do
+  call DCOPY (NELDOF*NELDOF,0.0_dp,0,EM(1,1),1)
+  call DCOPY (NELDOF,Tmp(1),1,EM(1,1),NELDOF+1)
+
 end subroutine IFEM_ANDES3
 
 
-!> @brief Calculates the stiffness matrix for a 4-noded shell element.
-subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
+!> @brief Calculates the stiffness- and mass matrix for a 4-noded shell element.
+subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
 
   use KindModule       , only : dp
   use Andes4ShellModule, only : Andes4shell_stiffmat
@@ -118,7 +136,7 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
   integer , parameter   :: nelnod = 4, neldof = 6*nelnod
   integer , intent(in)  :: iEL
   real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny, Rho
-  real(dp), intent(out) :: ek(neldof,neldof)
+  real(dp), intent(out) :: ek(neldof,neldof), em(neldof, neldof)
   integer , intent(out) :: ierr
 
   !! Local variables
@@ -193,6 +211,17 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, IERR)
        &      PMAT(1,1), NELDOF, KMAT(1,1), NELDOF, 0.0_dp, TMP(1), NELDOF)
   call DGEMM ('N','N', NELDOF, NELDOF, NELDOF, 1.0_dp, &
        &      TMP(1), NELDOF, PMAT(1,1), NELDOF, 0.0_dp, EK(1,1), NELDOF)
+
+  if (Rho <= 0.0_dp) return
+
+  !! Compute lumped mass matrix
+  Xl = X0(1,:)
+  Yl = X0(2,:)
+  Zl = X0(3,:)
+  call QMRF35 (Tmp(1),Xl(1),Yl(1),Zl(1),Thick,Rho)
+  call QBEK35 (Tmp(1),Xl(1),Yl(1),Zl(1),Thick,Rho)
+  call DCOPY (NELDOF*NELDOF,0.0_dp,0,EM(1,1),1)
+  call DCOPY (NELDOF,Tmp(1),1,EM(1,1),NELDOF+1)
 
   return
 
