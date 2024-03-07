@@ -11,27 +11,25 @@
 #include <string>
 #include <vector>
 #include <map>
+#if FFA_DEBUG
+#include <iostream>
+#endif
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 #include "FFaLib/FFaDynCalls/FFaDynCB.H"
 
 
-// TODO: Create doxygen documentation
-// TODO: Create copy constructor creator
-// TODO: Change class T to be a specific type, not a mix of pointer and type.
-//       This will affect all users - beware...
-
 template <class T, class Key = std::string, class ArgType = int>
 class FFaGenericFactory : public FFaSingelton< FFaGenericFactory<T,Key,ArgType> >
 {
-  typedef std::map<Key, FFaDynCB2<ArgType,T*&> > CreatorType;
-  typedef typename CreatorType::const_iterator   CreatorTypeCIter;
+  typedef FFaDynCB2<ArgType,T*&>  CreatorCB;
+  typedef std::map<Key,CreatorCB> CreatorType;
 
 public:
   FFaGenericFactory() {}
   virtual ~FFaGenericFactory() {}
 
-  bool registerCreator(const Key& key, const FFaDynCB2<ArgType,T*&>& creator)
+  bool registerCreator(const Key& key, const CreatorCB& creator)
   {
     return myCreatorMap.insert(std::make_pair(key,creator)).second;
   }
@@ -42,6 +40,11 @@ public:
     typename CreatorType::iterator creator = myCreatorMap.find(key);
     if (creator != myCreatorMap.end())
       creator->second.invoke(id,retVal);
+#if FFA_DEBUG
+    else
+      std::cerr <<"\n *** FFaGenericFactory: No creator defined for "
+                << key << std::endl;
+#endif
     return retVal;
   }
 
@@ -49,8 +52,8 @@ public:
   {
     keys.clear();
     keys.reserve(myCreatorMap.size());
-    for (CreatorTypeCIter it = myCreatorMap.begin(); it != myCreatorMap.end(); ++it)
-      keys.push_back(it->first);
+    for (const typename CreatorType::value_type& creator : myCreatorMap)
+      keys.push_back(creator.first);
   }
 
   void clear() { myCreatorMap.clear(); this->removeInstance(); }
