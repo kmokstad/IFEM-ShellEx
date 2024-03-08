@@ -20,9 +20,9 @@ C
       IMPLICIT NONE
 C
       DOUBLE PRECISION  EM(24),EMM(2,9),X(4),Y(4),Z(4),THK,RHO
-      DOUBLE PRECISION  AUX1,COSG,SING,SL21,SL31
+      DOUBLE PRECISION  COSG,SING,SL21,SL31
       DOUBLE PRECISION  X1,X2,X3,Y1,Y2,Y3,Z1,Z2,Z3,XL(4),YL(4)
-      DOUBLE PRECISION  AREA,XTP,YTP,H,B,B1,B2,S1,S2,SL
+      DOUBLE PRECISION  AREA,XTP,YTP,H,B,B1,B2,S1,S2
       DOUBLE PRECISION  IXX,IYY1,IYY2,IYY,IZZ1,IZZ2,IZZ
       DOUBLE PRECISION  IX,IY,IZ,M,GAMMA,TR(3,3)
       INTEGER           I
@@ -30,7 +30,6 @@ C
 C ---------------------------- Local coordinates -------------------
 C
       DO 10 I=1,2
-C
 C
       X1 = 0.
       Y1 = 0.
@@ -48,14 +47,13 @@ C
       SL31 = DSQRT(X3*X3 + Y3*Y3 + Z3*Z3)
 C
       COSG = (X3*X2 + Y3*Y2 + Z3*Z2)/(SL31*SL21)
-      AUX1 = 1.-COSG*COSG
+      IF (DABS(COSG) .GE. 1.0D0) THEN
+         SING = 0.0D0
+      ELSE
+         SING = DSQRT(1.0D0 - COSG*COSG)
+      END IF
 C
-      IF (AUX1) 40,40,50
-   40 SING = 0.
-      GO TO 60
-   50 SING = DSQRT(AUX1)
-C
-   60 XL(1) = 0.
+      XL(1) = 0.
       XL(2) = SL21
       XL(3) = SL31*COSG
       YL(1) = 0.
@@ -66,11 +64,11 @@ C ---------------------------- Element area ------------------------
 C
       AREA = (XL(2)*YL(3))/2.
 C
-      IF (AREA) 80,80,70
+      IF (AREA .LE. 0.0D0) GOTO 80
 C
 C ---------------------------- Koordinates for TP ------------------
 C
-   70 XTP = ((XL(3)+((XL(2)-XL(3))/2.)))*(2./3.)
+      XTP = ((XL(3)+((XL(2)-XL(3))/2.)))*(2./3.)
       YTP = (YL(3))/3.
 C
 C ------------------------------------------------------------------
@@ -116,10 +114,10 @@ C ---------------------------- V1 ----------------------------------
       TR(1,1) = X2-X1
       TR(2,1) = Y2-Y1
       TR(3,1) = Z2-Z1
-      SL = DSQRT(TR(1,1)**2+TR(2,1)**2+TR(3,1)**2)
-      TR(1,1) = TR(1,1)/SL
-      TR(2,1) = TR(2,1)/SL
-      TR(3,1) = TR(3,1)/SL
+      S1 = DSQRT(TR(1,1)**2+TR(2,1)**2+TR(3,1)**2)
+      TR(1,1) = TR(1,1)/S1
+      TR(2,1) = TR(2,1)/S1
+      TR(3,1) = TR(3,1)/S1
 C ---------------------------- V3 ----------------------------------
       TR(1,2) = X3-X1
       TR(2,2) = Y3-Y1
@@ -128,10 +126,10 @@ C ---------------------------- V3 ----------------------------------
       TR(2,3) = (TR(1,2)*TR(3,1)-TR(1,1)*TR(3,2))
       TR(3,3) = (TR(1,1)*TR(2,2)-TR(1,2)*TR(2,1))
 C
-      SL = DSQRT(TR(1,3)**2+TR(2,3)**2+TR(3,3)**2)
-      TR(1,3) = TR(1,3)/SL
-      TR(2,3) = TR(2,3)/SL
-      TR(3,3) = TR(3,3)/SL
+      S1 = DSQRT(TR(1,3)**2+TR(2,3)**2+TR(3,3)**2)
+      TR(1,3) = TR(1,3)/S1
+      TR(2,3) = TR(2,3)/S1
+      TR(3,3) = TR(3,3)/S1
 C ---------------------------- V2 ----------------------------------
       TR(1,2) = TR(2,3)*TR(3,1)-TR(2,1)*TR(3,3)
       TR(2,2) = TR(1,1)*TR(3,3)-TR(1,3)*TR(3,1)
@@ -195,7 +193,5 @@ C
       EM(18) = EM(6)
       EM(24) = EM(6)
 C
-C ---------------------------- Return ------------------------------
    80 RETURN
-C
       END
