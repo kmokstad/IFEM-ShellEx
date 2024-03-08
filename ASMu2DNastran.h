@@ -38,7 +38,11 @@ public:
   virtual bool read(std::istream& is);
 
   //! \brief Retrieves the properties for element with index \a id.
-  bool getProps(int eid, double& E, double& nu, double& rho, double& t) const;
+  bool getProps(int eId, double& E, double& nu, double& rho, double& t) const;
+  //! \brief Retrieves the mass matrix for element with index \a id.
+  bool getMassMatrix(int eId, Matrix& eM) const;
+  //! \brief Retrieves the load vector for mass element with index \a id.
+  bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
 private:
   //! \brief Data type for shell element properties.
@@ -58,6 +62,7 @@ private:
   }
 
   std::map<int,ShellProps> myProps; //!< Shell element property container
+  std::map<int,Matrix>     myMass;  //!< Concentrated mass elements
 };
 
 #endif

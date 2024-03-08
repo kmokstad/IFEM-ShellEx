@@ -18,6 +18,7 @@
 #include "FFlElementBase.H"
 #include "FFlFEParts/FFlNode.H"
 #include "FFlFEParts/FFlPMAT.H"
+#include "FFlFEParts/FFlPMASS.H"
 #include "FFlFEParts/FFlPTHICK.H"
 
 
@@ -152,6 +153,33 @@ bool ASMu2DNastran::read (std::istream& is)
       this->addRigidCouplings((*e)->getNodeID(1),myCoord[mnpc.front()-1],
                               IntVec(mnpc.begin()+1,mnpc.end()));
     }
+    else if ((*e)->getTypeName() == "CMASS" && !mnpc.empty())
+    {
+      FFlPMASS* mass = dynamic_cast<FFlPMASS*>((*e)->getAttribute("PMASS"));
+      if (mass)
+      {
+        const std::vector<double>& Mvec = mass->M.getValue();
+        std::vector<double>::const_iterator m = Mvec.begin();
+
+#if INT_DEBUG > 1
+        std::cout <<"Mass element "<< myMLGE.size() <<" "<< eid
+                  <<": node = "<< MLGN[mnpc.front()] << std::endl;
+#endif
+        myMLGE.push_back(eid);
+        myMNPC.push_back({mnpc.front()});
+        Matrix& M = myMass[eid];
+        M.resize(6,6);
+        for (int i = 1; i <= 6; i++)
+          for (int j = 1; j <= i && m != Mvec.end(); j++)
+          {
+            M(i,j) = *(m++);
+            if (j < i) M(j,i) = M(i,j);
+          }
+      }
+      else
+        std::cout <<"  ** No mass property attached to mass element "<< eid
+                  <<" (ignored)"<< std::endl;
+    }
     else
       std::cout <<"  ** Ignored element "<< (*e)->getTypeName()
                 <<" "<< eid << std::endl;
@@ -176,6 +204,37 @@ bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
   nu  = it->second.Rny;
   rho = it->second.Rho;
   t   = it->second.Thick;
+
+  return true;
+}
+
+
+bool ASMu2DNastran::getMassMatrix (int eId, Matrix& M) const
+{
+  std::map<int,Matrix>::const_iterator it = myMass.find(eId);
+  if (it == myMass.end())
+  {
+    std::cerr <<" *** No mass matrix for element "<< eId << std::endl;
+    return false;
+  }
+
+  M = it->second;
+
+  return true;
+}
+
+
+bool ASMu2DNastran::getLoadVector (int eId, const Vec3& g, Vector& S) const
+{
+  std::map<int,Matrix>::const_iterator it = myMass.find(eId);
+  if (it == myMass.end())
+  {
+    std::cerr <<" *** No mass matrix for element "<< eId << std::endl;
+    return false;
+  }
+
+  for (size_t i = 1; i <= 3 && i < it->second.rows() && i <= S.size(); i++)
+    S(i) = it->second(i,1)*g.x + it->second(i,2)*g.y + it->second(i,3)*g.z;
 
   return true;
 }
