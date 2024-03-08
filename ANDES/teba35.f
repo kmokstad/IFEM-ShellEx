@@ -18,8 +18,10 @@ C     DATE/VERSION  :  08.11.85 / 1.0
 C
 C***********************************************************************
 C
+      IMPLICIT NONE
+C
       DOUBLE PRECISION  EM(9),X(3),Y(3),Z(3),THK,RHO
-      DOUBLE PRECISION  AUX1,COSG,SING,SL21,SL31
+      DOUBLE PRECISION  COSG,SING,SL21,SL31
       DOUBLE PRECISION  X21,X31,Y21,Y31,Z21,Z31,XL(3),YL(3)
       DOUBLE PRECISION  AREA,XTP,YTP,H,B,B1,B2,S1,S2
       DOUBLE PRECISION  IXX,IYY1,IYY2,IYY,IZZ1,IZZ2,IZZ
@@ -36,13 +38,13 @@ C
       SL21 = DSQRT(X21*X21 + Y21*Y21 + Z21*Z21)
       SL31 = DSQRT(X31*X31 + Y31*Y31 + Z31*Z31)
       COSG = (X31*X21 + Y31*Y21 + Z31*Z21)/(SL31*SL21)
-      AUX1 = 1.-COSG*COSG
-      IF (AUX1) 40,40,50
-   40 SING = 0.
-      GO TO 60
-   50 SING = DSQRT(AUX1)
+      IF (DABS(COSG) .GE. 1.0D0) THEN
+         SING = 0.0D0
+      ELSE
+         SING = DSQRT(1.0D0 - COSG*COSG)
+      END IF
 C
-   60 XL(1) = 0.
+      XL(1) = 0.
       XL(2) = SL21
       XL(3) = SL31*COSG
       YL(1) = 0.
@@ -53,11 +55,11 @@ C ---------------------------- Element area ------------------------
 C
       AREA = (XL(2)*YL(3))/2.
 C
-      IF (AREA) 80,80,70
+      IF (AREA .LE. 0.0D0) GOTO 80
 C
 C ---------------------------- Koordinates for TP ------------------
 C
-   70 XTP = ((XL(3)+((XL(2)-XL(3))/2.)))*(2./3.)
+      XTP = ((XL(3)+((XL(2)-XL(3))/2.)))*(2./3.)
       YTP = (YL(3))/3.
 C
 C ------------------------------------------------------------------
