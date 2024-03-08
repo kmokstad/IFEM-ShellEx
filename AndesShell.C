@@ -105,6 +105,8 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 {
   if (!this->initElement(MNPC,elmInt))
     return false;
+  else if (fe.Xn.cols() == 1)
+    return true;
   else if (currentPatch)
     return currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
   else
@@ -118,11 +120,21 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 {
   int iERR = -99;
 #ifdef HAS_ANDES
+  Vector vDummy(1);
   Matrix mDummy(1,1);
+  Vector& Svec = eS  > 0 ? static_cast<ElmMats&>(elmInt).b[eS-1]  : vDummy;
   Matrix& Kmat = eKm > 0 ? static_cast<ElmMats&>(elmInt).A[eKm-1] : mDummy;
   Matrix& Mmat = eM  > 0 ? static_cast<ElmMats&>(elmInt).A[eM-1 ] : mDummy;
   size_t nenod = fe.Xn.cols();
-  if (nenod == 3)
+  if (currentPatch && nenod == 1) // 1-noded concentrated mass element
+  {
+    iERR = 0;
+    if (eM > 0)
+      currentPatch->getMassMatrix(fe.iel, Mmat);
+    if (eS > 0)
+      currentPatch->getLoadVector(fe.iel, gravity, Svec);
+  }
+  else if (nenod == 3)
     ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
   else if (nenod == 4)
