@@ -470,8 +470,8 @@ contains
        if (present(ierr)) ierr = -1
        if (present(lpu)) then
           write(lpu,*) '*** trans3P: Point 1 and 2 are coinciding'
-          write(lpu,"(14X,'P1 = ',1P3E13.5)") P1
-          write(lpu,"(14X,'P2 = ',1P3E13.5)") P2
+          write(lpu,"(14X,'P1 =',1P3E13.5)") P1
+          write(lpu,"(14X,'P2 =',1P3E13.5)") P2
        else
           write(*,*) '*** trans3P: Point 1 and 2 are coinciding'
        end if
@@ -485,12 +485,12 @@ contains
        tr(:,2) = cross_product(tr(:,3),tr(:,1))
     else
        vlength = tr(1,2)*tr(1,2) + tr(2,2)*tr(2,2) + tr(3,2)*tr(3,2)
-       if (vlength > epsDiv0_p) then
+       if (vlength <= epsDiv0_p) then
           if (present(ierr)) ierr = -2
           if (present(lpu)) then
              write(lpu,*) '*** trans3P: Point 1 and 3 are coinciding'
-             write(lpu,"(14X,'P1 = ',1P3E13.5)") P1
-             write(lpu,"(14X,'P3 = ',1P3E13.5)") P3
+             write(lpu,"(14X,'P1 =',1P3E13.5)") P1
+             write(lpu,"(14X,'P3 =',1P3E13.5)") P3
           else
              write(*,*) '*** trans3P: Point 1 and 3 are coinciding'
           end if
@@ -498,12 +498,17 @@ contains
           if (present(ierr)) ierr = -3
           if (present(lpu)) then
              write(lpu,*) '*** trans3P: The three points are on a straight line'
-             write(lpu,"(14X,'P1 = ',1P3E13.5)") P1
-             write(lpu,"(14X,'P2 = ',1P3E13.5)") P2
-             write(lpu,"(14X,'P3 = ',1P3E13.5)") P3
+             write(lpu,"(14X,'P1 =',1P3E13.5)") P1
+             write(lpu,"(14X,'P2 =',1P3E13.5)") P2
+             write(lpu,"(14X,'P3 =',1P3E13.5)") P3
           else
              write(*,*) '*** trans3P: The three points are on a straight line'
           end if
+       end if
+       if (present(lpu)) then
+          write(lpu,"(11X,'P2-P1 =',1P3E13.5)") P2-P1
+          write(lpu,"(11X,'P3-P1 =',1P3E13.5)") P3-P1
+          write(lpu,"(' (P2-P1)x(P3-P1) =',1P3E13.5)") tr(:,3)
        end if
        tr = hugeVal_p
        return
