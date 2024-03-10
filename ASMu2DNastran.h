@@ -44,6 +44,12 @@ public:
   //! \brief Retrieves the load vector for mass element with index \a id.
   bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
+protected:
+  //! \brief Adds MPCs representing a flexible coupling to this patch.
+  void addFlexibleCoupling(int iel, int lDof, const int* indC,
+                           const std::vector<double>& weights,
+                           const IntVec& mnpc, const Matrix& Xnod);
+
 private:
   //! \brief Data type for shell element properties.
   struct ShellProps
