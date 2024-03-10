@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASMu2DNastran.h"
+#include "MPC.h"
 #ifdef HAS_FFLLIB
 #include "FFlLinkHandler.H"
 #include "FFlNastranReader.H"
@@ -20,6 +21,7 @@
 #include "FFlFEParts/FFlPMAT.H"
 #include "FFlFEParts/FFlPMASS.H"
 #include "FFlFEParts/FFlPTHICK.H"
+#include "FFlFEParts/FFlPWAVGM.H"
 
 
 class MyNastranReader : public FFlNastranReader
@@ -153,6 +155,46 @@ bool ASMu2DNastran::read (std::istream& is)
       this->addRigidCouplings((*e)->getNodeID(1),myCoord[mnpc.front()-1],
                               IntVec(mnpc.begin()+1,mnpc.end()));
     }
+    else if ((*e)->getTypeName() == "WAVGM" && mnpc.size() > 1)
+    {
+#if INT_DEBUG > 1
+      std::cout <<"Weighted average motion element "<< eid
+                <<": reference node = "<< MLGN[mnpc.front()]
+                <<"\n\tmasters =";
+      for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
+      std::cout << std::endl;
+#endif
+      int indC[6] = { -1, -1, -1, 0, 0, 0 };
+      std::set<int> refC;
+      std::vector<double> weights;
+      FFlPWAVGM* wavgm = dynamic_cast<FFlPWAVGM*>((*e)->getAttribute("PWAVGM"));
+      if (wavgm)
+      {
+        int div = 100000;
+        int dofIds = wavgm->refC.getValue();
+        if (dofIds > 0)
+          for (int i = 0; i < 6; i++)
+          {
+            int dof = dofIds/div;
+            if (dof > 0 && dof < 7) refC.insert(dof);
+            dofIds -= dof*div;
+            div    /= 10;
+          }
+        for (int i = 0; i < 6; i++)
+          indC[i] = wavgm->indC[i].getValue();
+        weights = wavgm->weightMatrix.getValue();
+      }
+      else
+        for (int lDof = 1; lDof <= 6; lDof++)
+          refC.insert(lDof);
+
+      size_t icol = 0;
+      Matrix Xnod(nsd,mnpc.size());
+      for (int inod : mnpc)
+        Xnod.fillColumn(++icol,this->getCoord(1+inod).ptr());
+      for (int lDof : refC)
+        this->addFlexibleCoupling(eid,lDof,indC,weights,mnpc,Xnod);
+    }
     else if ((*e)->getTypeName() == "CMASS" && !mnpc.empty())
     {
       FFlPMASS* mass = dynamic_cast<FFlPMASS*>((*e)->getAttribute("PMASS"));
@@ -237,4 +279,48 @@ bool ASMu2DNastran::getLoadVector (int eId, const Vec3& g, Vector& S) const
     S(i) = it->second(i,1)*g.x + it->second(i,2)*g.y + it->second(i,3)*g.z;
 
   return true;
+}
+
+
+#ifdef HAS_ANDES
+extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
+                                const int& nM, const int& nW, const int* indC,
+                                const double* tenc, const double* weight,
+                                const double& epsX, double* dX,
+                                double* work, double* omega,
+                                const int& ipsw, const int& lpu);
+#endif
+
+
+void ASMu2DNastran::addFlexibleCoupling (int iel, int lDof, const int* indC,
+                                         const std::vector<double>& weights,
+                                         const IntVec& mnpc, const Matrix& Xnod)
+{
+#ifdef HAS_ANDES
+  const int nM = Xnod.cols() - 1;
+  const int nW = weights.size();
+#if INT_DEBUG > 2
+  const int ips = INT_DEBUG;
+#else
+  const int ips = 0;
+#endif
+  const int lpu = 6;
+  const double epsX = 1.0e-4;
+  const double Zero = 1.0e-6;
+  double* rwork = new double[10*nM+3];
+  double* omega = rwork+4*nM+3;
+
+  //TODO: Convert this Fortran subroutine to C++
+  wavgmconstreqn_(iel,lDof,nM,nW,indC,Xnod.ptr(),weights.data(),epsX,
+                  rwork+nM,rwork,omega,ips,lpu);
+
+  MPC* cons = new MPC(MLGN[mnpc.front()],lDof);
+  if (this->addMPC(cons) && cons)
+    for (int iM = 1; iM <= nM; iM++)
+      for (int mDof = 1; mDof <= 6; mDof++, omega++)
+        if (*omega < -Zero || *omega > Zero)
+          cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
+
+  delete[] rwork;
+#endif
 }
