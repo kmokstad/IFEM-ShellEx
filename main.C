@@ -121,7 +121,7 @@ int main (int argc, char** argv)
   case 0:
     // Static solution: Assemble [Km] and {R}
     model->setMode(SIM::STATIC);
-    model->setQuadratureRule(-2);
+    model->setQuadratureRule(2);
     model->initSystem(model->opt.solver);
     if (!model->assembleSystem())
       terminate(4);
@@ -136,7 +136,7 @@ int main (int argc, char** argv)
   case 6:
     // Free vibration: Assemble [Km] and [M]
     model->setMode(SIM::VIBRATION);
-    model->setQuadratureRule(-2);
+    model->setQuadratureRule(2);
     model->initSystem(model->opt.solver,2,0);
     if (!model->assembleSystem())
       terminate(8);

@@ -25,7 +25,8 @@ extern "C" {
   //! \brief Interface to ANDES 3-noded shell element routine (FORTRAN-90 code).
   void ifem_andes3_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
-                    double* Ekt, double* Em, int& iERR);
+                    const double* Press, double* Ekt, double* Em, double* Es,
+                    int& iERR);
   //! \brief Interface to ANDES 4-noded shell element routine (FORTRAN-90 code).
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
@@ -110,6 +111,26 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 }
 
 
+bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
+                          const Vec3& X) const
+{
+  if (eS <= 0) return true; // No external load vector
+
+  if (Rho <= 0.0 || gravity.isZero()) return true; // No gravity load
+
+  // Equvivalent pressure load due to gravity
+  Vec3 p = gravity*(Rho*Thick);
+
+  // Integrate the external load vector
+  Vector& Svec = static_cast<ElmMats&>(elmInt).b[eS-1];
+  for (size_t a = 1; a <= fe.N.size(); a++)
+    for (unsigned short int i = 1; i <= 3; i++)
+      Svec(npv*(a-1)+i) += fe.N(a)*p(i)*fe.detJxW;
+
+  return true;
+}
+
+
 bool AndesShell::finalizeElement (LocalIntegral& elmInt,
                                   const FiniteElement& fe,
                                   const TimeDomain&, size_t)
@@ -122,7 +143,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   Matrix& Kmat = static_cast<ElmMats&>(elmInt).A[eKm-1];
   Matrix& Mmat = static_cast<ElmMats&>(elmInt).A[eM > 0 ? eM-1 : eKm-1];
   size_t nenod = fe.Xn.cols();
-  if (nenod == 1)
+  if (nenod == 1) // 1-noded concentrated mass element
   {
     if (currentPatch && eM > 0)
       currentPatch->getMassMatrix(fe.iel, Mmat);
@@ -130,12 +151,26 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       currentPatch->getLoadVector(fe.iel, gravity,
                                   static_cast<ElmMats&>(elmInt).b[eS-1]);
   }
-  else if (nenod == 3)
+  else if (nenod == 3) // 3-noded shell element
+  {
+    Matrix Press(3,nenod);
+    if (eS > 0 && Rho > 0.0 && !gravity.isZero())
+    {
+      // Equvivalent pressure load due to gravity
+      Vec3 p = gravity*(Rho*Thick);
+      for (size_t i = 1; i <= nenod; i++)
+        Press.fillColumn(i,p.ptr());
+    }
+    Vector vDummy;
+    Vector& Svec = eS > 0 ? static_cast<ElmMats&>(elmInt).b[eS-1] : vDummy;
     ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
-                 Kmat.ptr(), Mmat.ptr(), iERR);
-  else if (nenod == 4)
+                 Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
+  }
+  else if (nenod == 4) // 4-noded shell element
+  {
     ifem_andes4_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
+  }
   else
   {
     iERR = -98;
