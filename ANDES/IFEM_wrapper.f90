@@ -8,7 +8,7 @@
 !> $date Feb 20 2024
 
 !> @brief Calculates the stiffness- and mass matrix for a 3-noded shell element.
-subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
+subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, Press, EK, EM, ES, IERR)
 
   use KindModule        , only : dp
   use Andes3ShellModule , only : Andes3shell_stiffmat
@@ -18,8 +18,8 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
 
   integer , parameter   :: nelnod = 3, neldof = 6*nelnod
   integer , intent(in)  :: iEL
-  real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny, Rho
-  real(dp), intent(out) :: ek(neldof,neldof), em(neldof,neldof)
+  real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny, Rho, Press(3,nelnod)
+  real(dp), intent(out) :: ek(neldof,neldof), em(neldof,neldof), es(neldof)
   integer , intent(out) :: ierr
 
   !! Local variables
@@ -28,7 +28,7 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   real(dp), parameter :: alphaH = 0.5_dp
   real(dp), parameter :: thetaMaterial = 0.0_dp
 
-  integer  :: i, j
+  integer  :: i, j, k
   real(dp) :: X21, Y21, Z21, X31, Y31, Z31, SL21, SL31, COSG, SING
   real(dp) :: Kmat(neldof,neldof), Cmat(6,6), Tmp(neldof)
   real(dp) :: Xl(nelnod), Yl(nelnod), Zl(nelnod), Trel(3,4), Tel(3,3), TelT(3,3)
@@ -102,6 +102,8 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
      end do
   end do
 
+  if (any(Press /= 0.0_dp)) call T3_load (Press,ES)
+
   if (Rho <= 0.0_dp) return
 
   !! Compute lumped mass matrix
@@ -119,6 +121,28 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   end do
   call DCOPY (NELDOF*NELDOF,0.0_dp,0,EM(1,1),1)
   call DCOPY (NELDOF,Tmp(1),1,EM(1,1),NELDOF+1)
+
+contains
+
+  !> @brief Calculates consistent load vector for a 3-noded shell element.
+  subroutine T3_load (Pglob,ES)
+    real(dp), intent(in)  :: Pglob(:,:)
+    real(dp), intent(out) :: ES(:)
+    real(dp)              :: Ploc(3,nelnod), Ao12, b(3)
+    !! Transform from global to local load intensities
+    Ploc = matmul(TelT,Pglob)
+    !! Element area (divided by 12)
+    Ao12 = ((XL(1)*YL(2) + XL(2)*YL(3) + XL(3)*YL(1)) &
+         -  (XL(1)*YL(3) + XL(2)*YL(1) + XL(3)*YL(2))) / 24.0_dp
+    !! Determine non-zero terms of the local load vector,
+    !! transform to global and add into the element load vector
+    do i = 1, 3
+       j = 1 + mod(i,3)
+       k = 1 + mod(j,3)
+       b = Ao12*(2.0_dp*Ploc(:,i) + Ploc(:,j) + Ploc(:,k))
+       ES(6*i-5:6*i-3) = matmul(Tel,b)
+    end do
+  end subroutine T3_load
 
 end subroutine IFEM_ANDES3
 

@@ -52,6 +52,14 @@ public:
                            const FiniteElement& fe, const Vec3&, size_t,
                            LocalIntegral& elmInt);
 
+  using ElasticBase::evalInt;
+  //! \brief Evaluates the integrand at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
+                       const Vec3& X) const;
+
   using ElasticBase::finalizeElement;
   //! \brief Finalizes the element matrices after the numerical integration.
   //! \param elmInt The local integral object to receive the contributions

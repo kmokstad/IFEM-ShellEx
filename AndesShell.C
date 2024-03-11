@@ -25,7 +25,8 @@ extern "C" {
   //! \brief Interface to ANDES 3-noded shell element routine (FORTRAN-90 code).
   void ifem_andes3_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
-                    double* Ekt, double* Em, int& iERR);
+                    const double* Press, double* Ekt, double* Em, double* Es,
+                    int& iERR);
   //! \brief Interface to ANDES 4-noded shell element routine (FORTRAN-90 code).
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
@@ -114,12 +115,32 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 }
 
 
+bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
+                          const Vec3& X) const
+{
+  if (eS <= 0) return true; // No external load vector
+
+  Vec3 p;
+  if (Rho > 0.0 && !gravity.isZero())
+    p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
+
+  if (p.isZero()) return true; // No pressure load
+
+  // Integrate the external load vector
+  Vector& Svec = static_cast<ElmMats&>(elmInt).b[eS-1];
+  for (size_t a = 1; a <= fe.N.size(); a++)
+    for (unsigned short int i = 1; i <= 3; i++)
+      Svec(npv*(a-1)+i) += fe.N(a)*p(i)*fe.detJxW;
+
+  return true;
+}
+
+
 bool AndesShell::finalizeElement (LocalIntegral& elmInt,
                                   const FiniteElement& fe,
                                   const TimeDomain&, size_t)
 {
   int iERR = -99;
-#ifdef HAS_ANDES
   Vector vDummy(1);
   Matrix mDummy(1,1);
   Vector& Svec = eS  > 0 ? static_cast<ElmMats&>(elmInt).b[eS-1]  : vDummy;
@@ -134,18 +155,36 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     if (eS > 0)
       currentPatch->getLoadVector(fe.iel, gravity, Svec);
   }
-  else if (nenod == 3)
+  else if (nenod == 3) // 3-noded shell element
+  {
+    Matrix Press(3,nenod);
+    if (eS > 0 && Rho > 0.0 && !gravity.isZero())
+    {
+      // Equivalent pressure load due to gravity
+      Vec3 p = gravity*(Rho*Thick);
+      for (size_t i = 1; i <= nenod; i++)
+        Press.fillColumn(i,p.ptr());
+    }
+#ifdef HAS_ANDES
+    // Invoke Fortran wrapper for the 3-noded ANDES element
     ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
-                 Kmat.ptr(), Mmat.ptr(), iERR);
-  else if (nenod == 4)
+                 Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
+#endif
+  }
+  else if (nenod == 4) // 4-noded shell element
+  {
+#ifdef HAS_ANDES
+    // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_andes4_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
+#endif
+  }
   else
   {
     iERR = -98;
     std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
   }
-#endif
+
   if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
   return iERR >= 0;
