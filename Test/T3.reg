@@ -1,0 +1,46 @@
+T3.xinp
+
+Input file: T3.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Parsing input file T3.xinp
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file CTRIA03_.nas
+Total number of nodes:          27
+Number of shell elements:       32
+Number of constraint elements:  2
+Number of other elements:       0
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: ASET (1,1,4D)
+  Parsing <patchfile>
+  Parsing <topologysets>
+Parsing <elasticity>
+  Parsing <dirichlet>
+	Dirichlet code 1236: (fixed)
+	Gravitation vector: 0 -9.81 0
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 4
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 1236
+ >>> SAM model summary <<<
+Number of elements    32
+Number of nodes       27
+Number of dofs        162
+Number of constraints 24
+Number of unknowns    130
+Processing integrand associated with code 0
+Assembling interior matrix terms for P1
+Done.
+Solving the equation system ...
+	Condition number: 97088
+ >>> Solution summary <<<
+L2-norm            : 5\.6863.*e-06
+Max Y-displacement : 5\.7578.*e-06
+Max x-displacement : 1\.8069.*e-05
+Max z-displacement : 1\.4603.*e-06
