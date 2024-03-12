@@ -49,3 +49,23 @@ ENDIF(TARGET FFlLib)
 
 add_executable(ShellSim main.C)
 target_link_libraries(ShellSim ShellEx)
+
+# Regression tests
+enable_testing()
+include(IFEMTesting)
+
+file(GLOB SHELL_TESTFILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
+                                   ${PROJECT_SOURCE_DIR}/Test/*.reg)
+
+if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
+  foreach(TESTFILE ${SHELL_TESTFILES})
+    ifem_add_test(${TESTFILE} ShellSim)
+  endforeach()
+endif()
+
+list(APPEND TEST_APPS ShellSim)
+if(IFEM_COMMON_APP_BUILD)
+  set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
+else(IFEM_COMMON_APP_BUILD)
+  add_check_target()
+endif()
