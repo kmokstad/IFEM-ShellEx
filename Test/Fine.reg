@@ -1,0 +1,46 @@
+Fine.xinp -eig 4
+
+Input file: Fine.xinp
+Equation solver: 2
+Eigenproblem solver: 4
+Number of eigenvalues: 10
+Number of Arnoldi vectors: 20
+Shift value: 0
+Number of Gauss points: 4
+Solution component output zero tolerance: 1e-06
+Parsing input file Fine.xinp
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file FEM_Fine.nas
+Total number of nodes:          951
+Number of shell elements:       902
+Number of constraint elements:  0
+Number of other elements:       0
+	Reading patch 1
+  Parsing <patchfile>
+Parsing input file succeeded.
+Equation solver: 2
+Eigenproblem solver: 4
+Number of eigenvalues: 10
+Number of Arnoldi vectors: 20
+Shift value: 0
+Number of Gauss points: 4
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
+Number of elements    902
+Number of nodes       951
+Number of dofs        5706
+Number of unknowns    5706
+Processing integrand associated with code 0
+Assembling interior matrix terms for P1
+Done.
+Solving the eigenvalue problem ...
+ >>> Computed Eigenvalues <<<
+     Mode	Frequency \[Hz]
+     7		3752.97
+     8		4593.37
+     9		6518.96
+     10		8363.37

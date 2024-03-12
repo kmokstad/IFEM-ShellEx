@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">CTRIA03_.nas</patchfile>
+    <topologysets>
+      <set name="ASET" type="nodes">
+        <item patch="1"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <elasticity>
+    <boundaryconditions>
+      <dirichlet set="ASET" comp="1236"/>
+    </boundaryconditions>
+    <gravity y="-9.81"/>
+  </elasticity>
+
+</simulation>
