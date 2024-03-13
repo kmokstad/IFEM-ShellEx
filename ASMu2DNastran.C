@@ -113,6 +113,13 @@ bool ASMu2DNastran::read (std::istream& is)
       mnpc[i] = this->getNodeIndex((*e)->getNodeID(1+i)) - 1;
     if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
+      if (mnpc.size() == 4)
+      {
+        // Need to swap nodes 3 and 4 into IFEM order
+        std::swap(mnpc[2],mnpc[3]);
+        swapNode34 = true;
+      }
+
 #if INT_DEBUG > 1
       std::cout <<"Shell element "<< myMLGE.size() <<" "<< eid <<":";
       for (int node : mnpc) std::cout <<" "<< MLGN[node];

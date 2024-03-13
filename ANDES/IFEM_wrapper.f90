@@ -169,7 +169,7 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   real(dp), parameter :: beta  = 0.9_dp
 
   integer  :: i, j
-  real(dp) :: Tmp(neldof*neldof), Xtmp(3)
+  real(dp) :: Tmp(neldof*neldof), Xtmp(3), Xnod(3,nelnod)
   real(dp) :: Kmat(neldof,neldof), Pmat(neldof,neldof), Cmat(6,6)
   real(dp) :: Xl(nelnod), Yl(nelnod), Zl(nelnod), Trel(3,4), Tel(3,3), TelT(3,3)
 
@@ -201,6 +201,11 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
      return
   end if
 
+  !! Need to swap element nodes 3 and 4
+  Xnod(:,1:2) = X0(:,1:2)
+  Xnod(:,3)   = X0(:,4)
+  Xnod(:,4)   = X0(:,3)
+
   TelT = Trel(1:3,1:3)
   Tel  = transpose(TelT)
 
@@ -211,7 +216,7 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   Yl(1) = 0.0_dp
   Zl(1) = 0.0_dp
   do i = 2, nelnod
-     Xtmp  = X0(:,i) - X0(:,1)
+     Xtmp  = Xnod(:,i) - Xnod(:,1)
      Xl(i) = dot_product(Tel(1,:),Xtmp)
      Yl(i) = dot_product(Tel(2,:),Xtmp)
      Zl(i) = dot_product(Tel(3,:),Xtmp)
@@ -227,7 +232,7 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   end do
 
   !! Compute projection matrix that restores stress free rigid body motions
-  call pMatStiff (X0,PMAT,LPU,IERR)
+  call pMatStiff (Xnod,PMAT,LPU,IERR)
   if (ierr < 0) goto 999
 
   !! Project the stiffness matrix: K = P'*K*P
@@ -236,19 +241,40 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   call DGEMM ('N','N', NELDOF, NELDOF, NELDOF, 1.0_dp, &
        &      TMP(1), NELDOF, PMAT(1,1), NELDOF, 0.0_dp, EK(1,1), NELDOF)
 
+  !! Swap contributions from element nodes 3 and 4
+  do i = 13, 18
+     call swapRowCol (EK,i,i+6)
+  end do
+
   if (Rho <= 0.0_dp) return
 
   !! Compute lumped mass matrix
-  Xl = X0(1,:)
-  Yl = X0(2,:)
-  Zl = X0(3,:)
+  Xl = Xnod(1,:)
+  Yl = Xnod(2,:)
+  Zl = Xnod(3,:)
   call QMRF35 (Tmp(1),Xl(1),Yl(1),Zl(1),Thick,Rho)
   call QBEK35 (Tmp(1),Xl(1),Yl(1),Zl(1),Thick,Rho)
+  Tmp(25:30) = Tmp(13:18)
+  Tmp(13:24) = Tmp(19:30)
   call DCOPY (NELDOF*NELDOF,0.0_dp,0,EM(1,1),1)
   call DCOPY (NELDOF,Tmp(1),1,EM(1,1),NELDOF+1)
 
   return
 
 999 write(lpu,*) '*** Failed to compute stiffness matrix for element',iEL
+
+contains
+
+  !> @brief Swaps two rows and columns in the stiffness matrix
+  subroutine swapRowCol (A,i,j)
+    real(dp), intent(inout) :: A(:,:)
+    integer , intent(in)    :: i, j
+    Tmp(1:neldof) = A(:,i)
+    A(:,i) = A(:,j)
+    A(:,j) = Tmp(1:neldof)
+    Tmp(1:neldof) = A(i,:)
+    A(i,:) = A(j,:)
+    A(j,:) = Tmp(1:neldof)
+  end subroutine swapRowCol
 
 end subroutine IFEM_ANDES4
