@@ -3,7 +3,6 @@ T3.xinp
 Input file: T3.xinp
 Equation solver: 2
 Number of Gauss points: 4
-Solution component output zero tolerance: 1e-06
 Parsing input file T3.xinp
 Parsing <geometry>
   Parsing <patchfile>
