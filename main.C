@@ -40,6 +40,7 @@
   \arg -ncv \a ncv : Number of Arnoldi vectors to use in the eigenvalue analysis
   \arg -shift \a shf : Shift value to use in the eigenproblem solver
   \arg -check : Data check only, read model and output to VTF (no solution)
+  \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
 */
 
@@ -49,6 +50,7 @@ int main (int argc, char** argv)
   utl::profiler->start("Initialization");
 
   int iop = 0;
+  bool fixDup = false;
   char* infile = nullptr;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
@@ -58,6 +60,12 @@ int main (int argc, char** argv)
       ; // ignore the obsolete option
     else if (!strcmp(argv[i],"-check"))
       iop = 100;
+    else if (!strcmp(argv[i],"-fixDup"))
+    {
+      fixDup = true;
+      if (i+1 < argc && argv[i+1][0] != '-')
+        Vec3::comparisonTolerance = atof(argv[++i]);
+    }
     else if (!infile)
       infile = argv[i];
     else
@@ -68,13 +76,17 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-vtf <format>] [-check]\n";
+              <<"       [-fixDup [<tol>]] [-vtf <format>] [-check]\n";
     delete prof;
     return 0;
   }
 
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
+  if (fixDup)
+    IFEM::cout <<"\nCo-located nodes will be merged,"
+               <<" using comparison tolerance "<< Vec3::comparisonTolerance
+               << std::endl;
 
 #ifdef HAS_FFLLIB
   FFl::initAllElements();
@@ -104,7 +116,7 @@ int main (int argc, char** argv)
   utl::profiler->stop("Model input");
 
   // Establish the FE data structures
-  if (!model->preprocess())
+  if (!model->preprocess({},fixDup))
     terminate(2);
 
   Vectors displ(1);
