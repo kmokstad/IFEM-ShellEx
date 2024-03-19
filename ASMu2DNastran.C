@@ -103,6 +103,8 @@ bool ASMu2DNastran::read (std::istream& is)
     myCoord.push_back(Vec3(X.x(),X.y(),X.z()));
     if ((*n)->isExternal())
       this->getNodeSet("ASET",lCount).push_back(myMLGN.size());
+    else if ((*n)->isFixed())
+      this->getNodeSet("SPC",lCount).push_back(myMLGN.size());
   }
 
   for (ElementsCIter e = fem.elementsBegin(); e != fem.elementsEnd(); ++e)
