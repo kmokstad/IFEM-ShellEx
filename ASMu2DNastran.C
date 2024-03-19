@@ -107,6 +107,12 @@ bool ASMu2DNastran::read (std::istream& is)
 
     if ((*n)->isExternal()) // Create a node set for the supernodes
       this->getNodeSet("ASET",lCount).push_back(myMLGN.size());
+    else if ((*n)->isFixed())
+    {
+      // Create a node set for prescribed nodes - one for each DOF constellation
+      std::string cstat = std::to_string(-(*n)->getStatus(-64));
+      this->getNodeSet("SPC"+cstat,lCount).push_back(myMLGN.size());
+    }
   }
 
   // Extract the element data
