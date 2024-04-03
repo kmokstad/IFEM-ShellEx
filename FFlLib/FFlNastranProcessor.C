@@ -33,6 +33,7 @@
 #ifdef FFL_TIMER
 #include "FFaLib/FFaProfiler/FFaProfiler.H"
 #endif
+#include <cstring>
 
 #ifdef FFL_TIMER
 #define START_TIMER(func) myProfiler->startTimer(func);
@@ -2807,6 +2808,24 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
 {
   START_TIMER("process_PBEAM")
 
+  // Lambda function checking for presence of the Stress Output option field
+  auto&& isSOFIELD = [](const std::string& field) -> bool
+  {
+    return field == "YES" || field == "YESA" || field == "NO";
+  };
+
+  // Lambda function for averaging a cross section property
+  auto&& averageBS = [](double& A, double B, const char* s) -> short int
+  {
+    if (fabs(A-B) <= 1.0e-9*(fabs(A)+fabs(B)))
+      return 1;
+
+    ListUI <<"           "<< s <<"(A) = "<< A <<" "<< s <<"(B) = "<< B;
+    A = 0.5*(A+B);
+    ListUI <<" --> "<< s <<" = "<< A <<"\n";
+    return 0;
+  };
+
   int         PID = 0, MID = 0;
   double      Izy = 0.0, NSMass = 0.0;
   BeamSection params(1.0);
@@ -2823,16 +2842,15 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
 		 fieldValue(entry[6],params.J) &&
 		 fieldValue(entry[7],NSMass));
 
-#define isSOFIELD(field) (field == "YES" || field == "YESA" || field == "NO")
-
   // Check if this is a tapered beam, and
   // find the index of the first SO-field (stress output option), if any
-  size_t iLast = 0;
-  bool hasTapering = true;
+  size_t iLast = 16;
+  char hasTapering = 0;
   if (isSOFIELD(entry[16]))
-    iLast = 16;
+    hasTapering = 'y';
   else if (isSOFIELD(entry[8]))
   {
+    hasTapering = 'y';
     iLast = 8; // First continuation is omitted
     nNotes++;
     ListUI <<"\n   * Note: Stress output option \""<< entry[8]
@@ -2841,59 +2859,46 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
            <<"Please verify that corresponding PBEAMSECTION entry "<< PID
            <<"\n           in the corresponding ftl-file is correct.\n";
   }
-  else
-  {
-    hasTapering = false; // No tapering
-    if (entry.size() > 17) iLast = 16;
-  }
+  else if (entry.size() <= 17)
+    iLast = 0; // No tapering
 
-  if (hasTapering)
-  {
-    nNotes++;
-    ListUI <<"\n   * Note: Beam property "<< PID <<" has tapering.\n          "
-           <<" The properties specified at the two end points are averaged:\n";
-
-    // Lambda function for averaging a cross section property
-    auto&& averageBS = [](double& A, double B, const char* s) -> bool
-    {
-      if (fabs(A-B) <= 1.0e-9*(fabs(A)+fabs(B)))
-        return true;
-
-      ListUI <<"           "<< s <<"(A) = "<< A <<" "<< s <<"(B) = "<< B;
-      A = 0.5*(A+B);
-      ListUI <<" --> "<< s <<" = "<< A <<"\n";
-      return false;
-    };
-
-    bool foundB = false; // Find the properties at end B
+  if (hasTapering) // Find the properties at end B
     while (iLast < entry.size() && isSOFIELD(entry[iLast]))
     {
-      double XoXB = 0.0, A = 0.0, Izz = 0.0, Iyy = 0.0, I12 = 0.0;
-      double J = 0.0, NSMB = 0.0;
+      double endB[11]; endB[0] = 0.0;
+      memcpy(endB+1,&params,sizeof(params));
+      for (size_t i = 1; i < 8 && iLast+i < entry.size(); i++)
+        if (!entry[iLast+i].empty())
+          CONVERT_ENTRY ("PBEAM",fieldValue(entry[iLast+i],endB[i-1]));
 
-      if (entry.size() < iLast+8) entry.resize(iLast+8,"");
-      CONVERT_ENTRY ("PBEAM",
-		     fieldValue(entry[iLast+1],XoXB) &&
-		     fieldValue(entry[iLast+2],A) &&
-		     fieldValue(entry[iLast+3],Izz) &&
-		     fieldValue(entry[iLast+4],Iyy) &&
-		     fieldValue(entry[iLast+5],I12) &&
-		     fieldValue(entry[iLast+6],J) &&
-		     fieldValue(entry[iLast+7],NSMB));
       iLast += entry[iLast] == "YES" ? 16 : 8;
-      if (XoXB > 0.999 && !foundB)
-      {
-        foundB = true;
-        if (averageBS(params.A,A,"A") &
-            averageBS(params.Izz,Izz,"I1") &
-            averageBS(params.Iyy,Iyy,"I2") &
-            averageBS(Izy,I12,"I12") &
-            averageBS(params.J,J,"J") &
-            averageBS(NSMass,NSMB,"NSM"))
-          ListUI <<"           All properties at both ends are equal.\n";
-      }
+      if (endB[0] > 0.999 && hasTapering == 'y')
+        hasTapering = (averageBS(params.A  ,endB[1],"A") &
+                       averageBS(params.Izz,endB[2],"I1") &
+                       averageBS(params.Iyy,endB[3],"I2") &
+                       averageBS(I12       ,endB[4],"I12") &
+                       averageBS(params.J  ,endB[5],"J") &
+                       averageBS(NSMass    ,endB[6],"NSM")) ? 'N' : 'Y';
     }
+
+  if (hasTapering == 'Y')
+  {
+    nNotes++;
+    ListUI <<"   * Note: Beam property "<< PID <<" has tapering.\n           "
+           <<"The properties specified at the two end points are averaged "
+           <<"(see above).\n";
   }
+  else if (hasTapering == 'y')
+  {
+    nWarnings++;
+    ListUI <<"\n  ** Warning: Beam property "<< PID <<" has tapering,\n"
+           <<"                but properties at end B were not found.\n";
+  }
+#ifdef FFL_DEBUG
+  else if (hasTapering == 'N')
+    std::cout <<"Beam property with ID = "<< PID <<" has tapering,\n"
+              <<"but all properties at both ends are equal."<< std::endl;
+#endif
 
   if (iLast > 0 && iLast < entry.size())
   {
