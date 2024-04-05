@@ -39,7 +39,6 @@ IF(IFEM_USE_FFLLIB)
   STRING(APPEND CMAKE_CXX_FLAGS " -DHAS_FFLLIB")
 ENDIF(IFEM_USE_FFLLIB)
 
-if(BUILD_SHELLEX) # temporarily disabled
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 FILE(GLOB ShellEx_SOURCES *.C)
 FILE(GLOB ShellEx_HEADERS *.h)
@@ -59,8 +58,10 @@ install(TARGETS ShellSim DESTINATION bin COMPONENT bin)
 enable_testing()
 include(IFEMTesting)
 
-file(GLOB SHELL_TESTFILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
-                                   ${PROJECT_SOURCE_DIR}/Test/*.reg)
+if(IFEM_USE_ANDES AND TARGET FFlLib)
+  file(GLOB SHELL_TESTFILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
+                                     ${PROJECT_SOURCE_DIR}/Test/*.reg)
+endif()
 
 if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
   foreach(TESTFILE ${SHELL_TESTFILES})
@@ -74,8 +75,3 @@ if(IFEM_COMMON_APP_BUILD)
 else(IFEM_COMMON_APP_BUILD)
   add_check_target()
 endif()
-
-elseif(${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME})
-  MESSAGE(STATUS "Adding dummy testapps target for project ${CMAKE_PROJECT_NAME}")
-  ADD_CUSTOM_TARGET(testapps echo "No apps here yet")
-endif(BUILD_SHELLEX) # temporarily disabled
