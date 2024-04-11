@@ -15,6 +15,7 @@
 #define _ANDES_SHELL_H
 
 #include "ElasticBase.h"
+#include <set>
 
 class ASMu2DNastran;
 
@@ -29,8 +30,8 @@ public:
   //! \brief Default constructor.
   //! \param[in] n Number of consequtive solution vectors to reside in core
   explicit AndesShell(unsigned short int n = 1);
-  //! \brief Empty destructor.
-  virtual ~AndesShell() {}
+  //! \brief The destructor writes out the ignored bad elements.
+  virtual ~AndesShell();
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
@@ -74,6 +75,9 @@ private:
   double Rho;   //!< Current mass density
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
+
+  std::set<int> degenerated;  //!< List of detected degenerated elements
+  std::set<int> straightline; //!< List of detected straight line elements
 };
 
 #endif

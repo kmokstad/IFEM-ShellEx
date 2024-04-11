@@ -18,6 +18,7 @@
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <fstream>
 
 
 #ifdef HAS_ANDES
@@ -47,6 +48,24 @@ AndesShell::AndesShell (unsigned short int n)
   Thick = 0.1;
 
   currentPatch = nullptr;
+}
+
+
+AndesShell::~AndesShell ()
+{
+  if (!degenerated.empty())
+  {
+    std::ofstream os("degenerated_elements.ftl");
+    os <<"GROUP{1"; for (int e : degenerated) os <<" "<< e;
+    os <<" {NAME \"degenerated elements\"}}\n";
+  }
+
+  if (!straightline.empty())
+  {
+    std::ofstream os("straightline_elements.ftl");
+    os <<"GROUP{2"; for (int e : straightline) os <<" "<< e;
+    os <<" {NAME \"straight line elements\"}}\n";
+  }
 }
 
 
@@ -185,7 +204,11 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
   }
 
-  if (iERR == -99)
+  if (iERR >= 1 && iERR <= 3)
+    degenerated.insert(fe.iel);
+  else if (iERR == 4)
+    straightline.insert(fe.iel);
+  else if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
   return iERR >= 0;
 }
