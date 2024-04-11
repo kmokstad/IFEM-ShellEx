@@ -164,6 +164,10 @@ int main (int argc, char** argv)
     if (!model->writeGlvBC(nBlock))
       terminate(13);
 
+    // Write global node numbers as scalar fields
+    if (!model->writeGlvNo(nBlock))
+      terminate(14);
+
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
     if (!model->writeGlvS(displ[0],1,nBlock))
