@@ -39,6 +39,7 @@
   \arg -nev \a nev : Number of eigenvalues to compute
   \arg -ncv \a ncv : Number of Arnoldi vectors to use in the eigenvalue analysis
   \arg -shift \a shf : Shift value to use in the eigenproblem solver
+  \arg -free : Ignore all boundary conditions (use in free vibration analysis)
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
@@ -58,6 +59,8 @@ int main (int argc, char** argv)
   for (int i = 1; i < argc; i++)
     if (SIMoptions::ignoreOldOptions(argc,argv,i))
       ; // ignore the obsolete option
+    else if (!strcmp(argv[i],"-free"))
+      SIMbase::ignoreDirichlet = true;
     else if (!strcmp(argv[i],"-check"))
       iop = 100;
     else if (!strcmp(argv[i],"-fixDup"))
@@ -76,13 +79,15 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-fixDup [<tol>]] [-vtf <format>] [-check]\n";
+              <<"       [-free] [-check] [-fixDup [<tol>]] [-vtf <format>]\n";
     delete prof;
     return 0;
   }
 
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
+  if (SIMbase::ignoreDirichlet)
+    IFEM::cout <<"\nSpecified boundary conditions are ignored";
   if (fixDup)
     IFEM::cout <<"\nCo-located nodes will be merged,"
                <<" using comparison tolerance "<< Vec3::comparisonTolerance
