@@ -7,6 +7,7 @@
 
 #include "FFlLib/FFlIOAdaptors/FFlNastranReader.H"
 #include "FFlLib/FFlIOAdaptors/FFlReaders.H"
+#include "FFlLib/FFlIOAdaptors/FFlCrossSection.H"
 #include "FFlLib/FFlLinkHandler.H"
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFlLib/FFlElementBase.H"
@@ -68,118 +69,8 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//! \brief Struct with beam cross section parameters.
-struct BeamSection
-{
-  double A;
-  double Iyy, Izz, J;
-  double K1, K2;
-  double S1, S2;
 
-  //! \brief Default constructor.
-  BeamSection (double K = 0.0)
-  {
-    A = Iyy = Izz = J = S1 = S2 = 0.0;
-    K1 = K2 = K;
-  }
-
-  //! \brief This constructor calculates cross section parameters from \a Dim.
-  BeamSection (int PID, const std::string& Type,
-               const std::vector<double>& Dim)
-  {
-    S1 = S2 = 0.0;
-
-    if (Type == "ROD")
-    {
-      A   =       M_PI*Dim[0]*Dim[0];
-      Iyy = Izz = 0.25*Dim[0]*Dim[0]*A;
-      J   = Iyy + Izz;
-      K1  = K2  = 0.9;
-    }
-    else if (Type == "TUBE")
-    {
-      A   =       M_PI*(pow(Dim[0],2.0) - pow(Dim[1],2.0));
-      Iyy = Izz = M_PI*(pow(Dim[0],4.0) - pow(Dim[1],4.0))/4.0;
-      J   = Iyy + Izz;
-      K1  = K2  = 0.5;
-    }
-    else if (Type == "BAR")
-    {
-      A   = Dim[0]*Dim[1];
-      Iyy = Dim[0]*Dim[0]*A/12.0;
-      Izz = Dim[1]*Dim[1]*A/12.0;
-      if (Dim[0] > Dim[1])
-        J = Dim[1]*Dim[1]*A*(1.0 - 0.6*(Dim[1]/Dim[0]))/3.0;
-      else
-        J = Dim[0]*Dim[0]*A*(1.0 - 0.6*(Dim[0]/Dim[1]))/3.0;
-      K1  = K2  = 5.0/6.0;
-    }
-    else if (Type == "BOX")
-    {
-      double l1 = Dim[0] - 2.0*Dim[3];
-      double l2 = Dim[1] - 2.0*Dim[2];
-      double minThk = Dim[2] < Dim[3] ? Dim[2] : Dim[3];
-
-      A   = 2.0*(Dim[0]*Dim[2] + Dim[3]*l2);
-      Iyy = (Dim[1]*pow(Dim[0],3.0) - pow(l1,3.0)*l2)/12.0;
-      Izz = (Dim[0]*pow(Dim[1],3.0) - pow(l2,3.0)*l1)/12.0;
-      J   = (2.0*Dim[0]*Dim[0]*Dim[1]*Dim[1]*minThk)/(Dim[0]+Dim[1]);
-      K1  = A/(2.0*Dim[3]*l2);
-      K2  = A/(2.0*Dim[2]*l1);
-    }
-    else if (Type == "I")
-    {
-      double l1 = Dim[0] - Dim[4] - Dim[5];
-      double y1 = Dim[4]/2.0;
-      double y2 = Dim[4] + l1/2.0;
-      double y3 = Dim[4] + l1 + Dim[5]/2.0;
-      A = Dim[1]*Dim[4] + Dim[3]*l1 + Dim[2]*Dim[5];
-
-      double ya = (Dim[1]*Dim[4]*y1+Dim[3]*l1*y2+Dim[2]*Dim[5]*y3)/A;
-      double b1 = fabs(Dim[4]/2.0 - ya);
-      double b2 = fabs(Dim[4] + l1/2.0 - ya);
-      double b3 = fabs(Dim[4] + l1 + Dim[5]/2.0 - ya);
-
-      Iyy = (Dim[4]*pow(Dim[1],3.0) + Dim[5]*pow(Dim[2],3.0) +
-             l1*pow(Dim[3],3.0))/12.0;
-      Izz = Dim[1]*pow(Dim[4],3.0)/12.0 + b1*b1*Dim[1]*Dim[4] +
-            Dim[3]*pow(l1,3.0)/12.0     + b2*b2*l1*Dim[3]     +
-            Dim[2]*pow(Dim[5],3.0)/12.0 + b3*b3*Dim[2]*Dim[5];
-      J =  (Dim[1]*pow(Dim[4],3.0) + l1*pow(Dim[3],3.0) +
-            Dim[2]*pow(Dim[5],3.0))/3.0;
-      K1 = l1*Dim[3]/A;
-      K2 = 5.0/6.0;
-    }
-    else if (Type == "T")
-    {
-      double l1 = Dim[1] - Dim[2];
-      double y1 = l1*0.5;
-      double y2 = l1 + Dim[2]*0.5;
-      A = Dim[0]*Dim[2] + l1*Dim[3];
-
-      double ya = (Dim[3]*l1*y1+Dim[0]*Dim[2]*y2)/A;
-      double b1 = fabs(l1*0.5 - ya);
-      double b2 = fabs(l1 + Dim[2]*0.5 - ya);
-
-      Iyy = (l1*pow(Dim[3],3.0) + Dim[2]*pow(Dim[0],3.0))/12.0;
-      Izz = Dim[3]*pow(l1,3.0)/12.0     + b1*b1*l1*Dim[3] +
-            Dim[0]*pow(Dim[2],3.0)/12.0 + b2*b2*Dim[0]*Dim[2];
-      J   = (l1*pow(Dim[3],3.0)+Dim[0]*pow(Dim[2],3.0))/3.0;
-      K1  = K2 = 5.0/6.0;
-    }
-    else // Extend with more cross section types on demand
-    {
-      ListUI <<"\n *** Error: Beam property "<< PID
-             <<", cross-section type \"" << Type <<"\" is not yet supported."
-             <<"\n            Replace it with a general PBEAM/PBAR entry.\n";
-      A = Iyy = Izz = J = K1 = K2 = 0.0;
-    }
-  }
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-static FFlAttributeBase* createBeamSection (int PID, BeamSection& data,
+static FFlAttributeBase* createBeamSection (int PID, FFlCrossSection& data,
                                             std::pair<int,std::string>& comment)
 {
   FFlPBEAMSECTION* myAtt = CREATE_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
@@ -1185,9 +1076,8 @@ bool FFlNastranReader::process_CONROD (std::vector<std::string>& entry)
 {
   START_TIMER("process_CONROD")
 
-  int         EID, MID = 0;
-  double      NSMass = 0.0;
-  BeamSection params;
+  int             EID, MID = 0;
+  FFlCrossSection params;
 
   std::vector<int> G(2,0);
 
@@ -1200,7 +1090,7 @@ bool FFlNastranReader::process_CONROD (std::vector<std::string>& entry)
 		 fieldValue(entry[3],MID) &&
 		 fieldValue(entry[4],params.A) &&
 		 fieldValue(entry[5],params.J) &&
-		 fieldValue(entry[7],NSMass));
+		 fieldValue(entry[7],params.NSM));
 
   if (entry[0].empty()) EID = myLink->getNewElmID();
 
@@ -1212,10 +1102,10 @@ bool FFlNastranReader::process_CONROD (std::vector<std::string>& entry)
   this->insertBeamPropMat("PROD",EID,MID);
   myLink->addAttribute(createBeamSection(EID,params,lastComment));
 
-  if (NSMass != 0.0)
+  if (params.NSM != 0.0)
   {
     beamPIDnsm.insert(EID);
-    myLink->addAttribute(createNSM(EID,NSMass));
+    myLink->addAttribute(createNSM(EID,params.NSM));
   }
 
   sizeOK = myLink->addElement(createElement("BEAM2",EID,G,EID));
@@ -2657,10 +2547,9 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
 {
   START_TIMER("process_PBAR")
 
-  int         PID = 0, MID = 0;
-  double      Izy = 0.0, NSMass = 0.0;
-  double      C1, C2, D1, D2, E1, E2, F1, F2;
-  BeamSection params;
+  int             PID = 0, MID = 0;
+  double          C1, C2, D1, D2, E1, E2, F1, F2;
+  FFlCrossSection params;
 
   if (entry.size() < 19) entry.resize(19,"");
 
@@ -2671,7 +2560,7 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
 		 fieldValue(entry[3],params.Izz) &&
 		 fieldValue(entry[4],params.Iyy) &&
 		 fieldValue(entry[5],params.J) &&
-		 fieldValue(entry[6],NSMass) &&
+		 fieldValue(entry[6],params.NSM) &&
 		            entry[7].empty() &&
 		 fieldValue(entry[8],C1) &&
 		 fieldValue(entry[9],C2) &&
@@ -2683,18 +2572,18 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
 		 fieldValue(entry[15],F2) &&
 		 fieldValue(entry[16],params.K1) &&
 		 fieldValue(entry[17],params.K2) &&
-		 fieldValue(entry[18],Izy));
+		 fieldValue(entry[18],params.Izy));
 
 #ifdef FFL_DEBUG
   std::cout <<"Beam property, ID = "<< PID <<" --> material ID = "<< MID
 	    << std::endl;
 #endif
 
-  if (Izy != 0.0)
+  if (params.Izy != 0.0)
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: PBAR "<< PID <<" has nonzero I12 inertia "
-           << Izy <<" (unsupported)."
+           << params.Izy <<" (unsupported)."
            <<"\n              This may lead to incorrect results."
            <<"\n              Consider calculating new local axis systems "
            <<"\n              corresponding to I12=0 and update I1 and I2.\n";
@@ -2703,10 +2592,10 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
   this->insertBeamPropMat("PBAR",PID,MID);
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
 
-  if (NSMass != 0.0)
+  if (params.NSM != 0.0)
   {
     beamPIDnsm.insert(PID);
-    myLink->addAttribute(createNSM(PID,NSMass));
+    myLink->addAttribute(createNSM(PID,params.NSM));
   }
 
   STOPP_TIMER("process_PBAR")
@@ -2782,12 +2671,14 @@ bool FFlNastranReader::process_PBARL (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  BeamSection params(PID,Type,Dim);
+  FFlCrossSection params(Type,Dim);
   if (params.A > 0.0)
   {
     this->insertBeamPropMat("PBARL",PID,MID);
     myLink->addAttribute(createBeamSection(PID,params,lastComment));
   }
+  else
+    ListUI <<"            Error occurred when processing PBARL "<< PID <<".\n";
 
   if (NSMass != 0.0)
   {
@@ -2826,9 +2717,8 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
     return 0;
   };
 
-  int         PID = 0, MID = 0;
-  double      Izy = 0.0, NSMass = 0.0;
-  BeamSection params(1.0);
+  int             PID = 0, MID = 0;
+  FFlCrossSection params(1.0);
 
   if (entry.size() < 17) entry.resize(17,"");
 
@@ -2838,9 +2728,9 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
 		 fieldValue(entry[2],params.A) &&
 		 fieldValue(entry[3],params.Izz) &&
 		 fieldValue(entry[4],params.Iyy) &&
-		 fieldValue(entry[5],Izy) &&
+		 fieldValue(entry[5],params.Izy) &&
 		 fieldValue(entry[6],params.J) &&
-		 fieldValue(entry[7],NSMass));
+		 fieldValue(entry[7],params.NSM));
 
   // Check if this is a tapered beam, and
   // find the index of the first SO-field (stress output option), if any
@@ -2876,9 +2766,9 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
         hasTapering = (averageBS(params.A  ,endB[1],"A") &
                        averageBS(params.Izz,endB[2],"I1") &
                        averageBS(params.Iyy,endB[3],"I2") &
-                       averageBS(I12       ,endB[4],"I12") &
+                       averageBS(params.Izy,endB[4],"I12") &
                        averageBS(params.J  ,endB[5],"J") &
-                       averageBS(NSMass    ,endB[6],"NSM")) ? 'N' : 'Y';
+                       averageBS(params.NSM,endB[6],"NSM")) ? 'N' : 'Y';
     }
 
   if (hasTapering == 'Y')
@@ -2935,11 +2825,11 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  if (Izy != 0.0)
+  if (params.Izy != 0.0)
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: PBEAM "<< PID <<" has nonzero I12 inertia "
-           << Izy <<" (unsupported)."
+           << params.Izy <<" (unsupported)."
            <<"\n              This may lead to incorrect results."
            <<"\n              Consider calculating new local axis systems "
            <<"\n              corresponding to I12=0 and update I1 and I2.\n";
@@ -2948,10 +2838,10 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
   this->insertBeamPropMat("PBEAM",PID,MID);
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
 
-  if (NSMass != 0.0)
+  if (params.NSM != 0.0)
   {
     beamPIDnsm.insert(PID);
-    myLink->addAttribute(createNSM(PID,NSMass));
+    myLink->addAttribute(createNSM(PID,params.NSM));
   }
 
   STOPP_TIMER("process_PBEAM")
@@ -3048,12 +2938,14 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  BeamSection params(PID,Type,DimA);
+  FFlCrossSection params(Type,DimA);
   if (params.A > 0.0)
   {
     this->insertBeamPropMat("PBEAML",PID,MID);
     myLink->addAttribute(createBeamSection(PID,params,lastComment));
   }
+  else
+    ListUI <<"            Error occurred when processing PBEAML "<< PID <<".\n";
 
   if (NsmA != 0.0)
   {
@@ -3335,9 +3227,8 @@ bool FFlNastranReader::process_PROD (std::vector<std::string>& entry)
 {
   START_TIMER("process_PROD")
 
-  int         PID = 0, MID = 0;
-  double      NSMass = 0.0;
-  BeamSection params;
+  int             PID = 0, MID = 0;
+  FFlCrossSection params;
 
   if (entry.size() < 6) entry.resize(6,"");
 
@@ -3346,7 +3237,7 @@ bool FFlNastranReader::process_PROD (std::vector<std::string>& entry)
 		 fieldValue(entry[1],MID) &&
 		 fieldValue(entry[2],params.A) &&
 		 fieldValue(entry[3],params.J) &&
-		 fieldValue(entry[5],NSMass));
+		 fieldValue(entry[5],params.NSM));
 
 #ifdef FFL_DEBUG
   std::cout <<"Rod property, ID = "<< PID <<" --> material ID = "<< MID
@@ -3356,10 +3247,10 @@ bool FFlNastranReader::process_PROD (std::vector<std::string>& entry)
   this->insertBeamPropMat("PROD",PID,MID);
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
 
-  if (NSMass != 0.0)
+  if (params.NSM != 0.0)
   {
     beamPIDnsm.insert(PID);
-    myLink->addAttribute(createNSM(PID,NSMass));
+    myLink->addAttribute(createNSM(PID,params.NSM));
   }
 
   STOPP_TIMER("process_PROD")
@@ -3522,7 +3413,7 @@ bool FFlNastranReader::process_PWELD (std::vector<std::string>& entry)
 
   this->insertBeamPropMat("PWELD",PID,MID);
 
-  BeamSection params(PID,"ROD",{0.5*D});
+  FFlCrossSection params("ROD",{0.5*D});
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
 
   STOPP_TIMER("process_PWELD")
