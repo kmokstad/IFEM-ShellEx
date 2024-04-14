@@ -34,6 +34,7 @@ FFlPBEAMSECTION::FFlPBEAMSECTION(const FFlPBEAMSECTION& obj)
   Kxz.setValue(obj.Kxz.getValue());
   Sy.setValue(obj.Sy.getValue());
   Sz.setValue(obj.Sz.getValue());
+  phi.setValue(obj.phi.getValue());
 }
 
 
@@ -59,6 +60,7 @@ void FFlPBEAMSECTION::setupFields()
   this->addField(Kxz);
   this->addField(Sy);
   this->addField(Sz);
+  this->addField(phi);
 }
 
 

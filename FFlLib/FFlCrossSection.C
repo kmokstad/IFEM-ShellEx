@@ -162,6 +162,40 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
 }
 
 
+double FFlCrossSection::findMainAxes ()
+{
+  if (Izy == 0.0) return 0.0;
+
+  double fi = 0.5*atan2(-2.0*Izy,Iyy-Izz);
+  double cf = cos(fi);
+  double sf = sin(fi);
+  double s2 = sin(2.0*fi);
+
+  // Find the principal moments of inertia
+  double Iy = Izz*sf*sf + Iyy*cf*cf - Izy*s2;
+  double Iz = Izz*cf*cf + Iyy*sf*sf + Izy*s2;
+#ifdef FFL_DEBUG
+  std::cout <<"           phi="<< 180.0*fi/M_PI
+            <<" I1="<< Iy <<" I2="<< Iz << std::endl;
+#endif
+  Iyy = Iy;
+  Izz = Iz;
+  Izy = 0.0;
+
+  // Transform the shear centre offset
+  s2 = cf*S2 - sf*S1;
+  S1 = cf*S1 + sf*S2;
+  S2 = s2;
+
+  // Transform the shear stiffness factors
+  s2 = cf*cf*K2 + sf*sf*K1;
+  K1 = cf*cf*K1 + sf*sf*K2;
+  K2 = s2;
+
+  return 180.0*fi/M_PI;
+}
+
+
 std::ostream& operator<< (std::ostream& os, const FFlCrossSection& cs)
 {
   if (fabs(cs.A) > 1.0e-16) os <<" A="<< cs.A;

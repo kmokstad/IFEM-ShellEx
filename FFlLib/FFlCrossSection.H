@@ -36,6 +36,9 @@ struct FFlCrossSection
   //! \param[in] Type Geometric cross section type
   //! \param[in] Dim Parameter values defining the cross section geometry
   FFlCrossSection(const std::string& Type, const std::vector<double>& Dim);
+  //! \brief Calculates the angle to the main axes and updates the inertias.
+  //! \return Angle (in degrees) between local Y-axis and Y-axis for Izy=0
+  double findMainAxes();
 };
 
 

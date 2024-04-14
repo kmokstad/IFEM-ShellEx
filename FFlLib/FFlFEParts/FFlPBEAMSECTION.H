@@ -40,6 +40,7 @@ public:
   FFlField<double> Kxz;
   FFlField<double> Sy;
   FFlField<double> Sz;
+  FFlField<double> phi;
 
 private:
   void setupFields();

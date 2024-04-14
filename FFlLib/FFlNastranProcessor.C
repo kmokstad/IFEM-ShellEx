@@ -75,6 +75,7 @@ static FFlAttributeBase* createBeamSection (int PID, FFlCrossSection& data,
 {
   FFlPBEAMSECTION* myAtt = CREATE_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
   myAtt->crossSectionArea = round(data.A,10);
+  myAtt->phi = round(data.findMainAxes(),10);
   myAtt->Iy  = round(data.Izz,10);
   myAtt->Iz  = round(data.Iyy,10);
   myAtt->It  = round(data.J,10);
@@ -2579,16 +2580,6 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  if (params.Izy != 0.0)
-  {
-    nWarnings++;
-    ListUI <<"\n  ** Warning: PBAR "<< PID <<" has nonzero I12 inertia "
-           << params.Izy <<" (unsupported)."
-           <<"\n              This may lead to incorrect results."
-           <<"\n              Consider calculating new local axis systems "
-           <<"\n              corresponding to I12=0 and update I1 and I2.\n";
-  }
-
   this->insertBeamPropMat("PBAR",PID,MID);
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
 
@@ -2824,16 +2815,6 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
   std::cout <<"Beam property, ID = "<< PID <<" --> material ID = "<< MID
 	    << std::endl;
 #endif
-
-  if (params.Izy != 0.0)
-  {
-    nWarnings++;
-    ListUI <<"\n  ** Warning: PBEAM "<< PID <<" has nonzero I12 inertia "
-           << params.Izy <<" (unsupported)."
-           <<"\n              This may lead to incorrect results."
-           <<"\n              Consider calculating new local axis systems "
-           <<"\n              corresponding to I12=0 and update I1 and I2.\n";
-  }
 
   this->insertBeamPropMat("PBEAM",PID,MID);
   myLink->addAttribute(createBeamSection(PID,params,lastComment));
