@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Simple test of FE analysis of a combined shell and beam model !-->
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">Q4andBeam.nas</patchfile>
+    <topologysets>
+      <set name="ASET" type="nodes">
+        <!-- Since this patch also contains beam elements,
+             a separate internal patch will be created for those,
+             and will be ordered before the shell element patch.
+             Therefore, the patch index will be 2 instead of 1. !-->
+        <item patch="2"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <discretization type="lagrange"/>
+
+  <elasticity>
+    <boundaryconditions>
+      <dirichlet set="ASET" comp="123456"/>
+    </boundaryconditions>
+    <gravity z="1000"/>
+    <nodeload node="7" dof="3" type="expression">1.0e6*sin(PI*t)*t</nodeload>
+  </elasticity>
+
+  <newmarksolver alpha2="0.001">
+    <timestepping>
+      <step start="0.0" end="1.0">0.05</step>
+    </timestepping>
+  </newmarksolver>
+
+</simulation>

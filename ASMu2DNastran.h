@@ -15,6 +15,9 @@
 #define _ASM_U2D_NASTRAN_H
 
 #include "ASMu2DLag.h"
+#include "ASMu1DLag.h"
+
+class BeamProperty;
 
 
 /*!
@@ -27,10 +30,10 @@ class ASMu2DNastran : public ASMu2DLag
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  ASMu2DNastran(unsigned char n, unsigned char n_f, char fType = 'N')
-    : ASMu2DLag(n,n_f,fType) {}
+  ASMu2DNastran(unsigned char n, unsigned char n_f)
+    : ASMu2DLag(n,n_f,'N') { beamPatch = nullptr; }
   //! \brief Disable default copy constructor.
-  ASMu2DNastran(const ASMu2DNastran& pch) = delete;
+  ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief Empty destructor.
   virtual ~ASMu2DNastran() {}
 
@@ -69,13 +72,16 @@ public:
     return this->isInElementSet(iset,this->getElmIndex(elmId));
   }
 
+  //! \brief Returns the sub-patch with beam elements, if any.
+  ASMbase* haveBeams() const { return beamPatch; }
+
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
                            const std::vector<double>& weights,
                            const IntVec& mnpc, const Matrix& Xnod);
 
-private:
+public:
   //! \brief Data type for shell element properties.
   struct ShellProps
   {
@@ -85,9 +91,52 @@ private:
     double Rho   = 7850.0; //!< Mass density
   };
 
+  //! \brief Data type for beam element properties.
+  struct BeamProps
+  {
+    double Emod  = 2.1e11; //!< Young's modulus
+    double Gmod  = 8.0e9;  //!< Shear modulus
+    double Rho   = 7850.0; //!< Mass density
+
+    std::array<double,9> cs{}; //!< Cross section parameters
+  };
+
+private:
   std::map<int,ShellProps> myProps;  //!< Shell element property container
+  std::map<int,BeamProps>  myBprops; //!< Beam element property container
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
   std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
+
+  ASMu1DLag* beamPatch; //!< Separate patch for beam elements
+};
+
+
+/*!
+  \brief Driver for assembly of beam elements.
+*/
+
+class ASMuBeam : public ASMu1DLag
+{
+  using BeamProps = ASMu2DNastran::BeamProps; //!< Convenience alias
+
+public:
+  //! \brief The constructor initializes the mesh data.
+  ASMuBeam(const Vec3Vec& coord, const IntMat& mmnpc,
+           const IntVec& mlgn, const IntVec& mlge,
+           const std::map<int,BeamProps>& props,
+           unsigned char n, unsigned char n_f);
+  //! \brief Disable default copy constructor.
+  ASMuBeam(const ASMuBeam&) = delete;
+  //! \brief Empty destructor.
+  virtual ~ASMuBeam() {}
+
+  //! \brief Retrieves the properties for element with index \a id.
+  bool getProps(int eId, double& E, double& G, double& rho,
+                BeamProperty& bprop) const;
+
+private:
+  //! Reference to the beam element property container
+  const std::map<int,BeamProps>& myProps;
 };
 
 #endif

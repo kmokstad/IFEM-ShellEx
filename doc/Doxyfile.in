@@ -566,6 +566,7 @@ WARN_LOGFILE           = @PROJECT_BINARY_DIR@/DoxyWarnings.log
 
 INPUT                  = @PROJECT_SOURCE_DIR@ \
                          @PROJECT_SOURCE_DIR@/.. \
+                         @PROJECT_SOURCE_DIR@/../Beam \
                          @PROJECT_BINARY_DIR@
 
 # This tag can be used to specify the character encoding of the source files 

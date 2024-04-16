@@ -13,7 +13,12 @@ endif()
 include_directories(${IFEM_INCLUDES})
 
 get_filename_component(PARENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PARENT_SOURCE_DIR} ${PARENT_SOURCE_DIR}/Linear)
+if(IS_DIRECTORY ${PARENT_SOURCE_DIR}/Linear)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PARENT_SOURCE_DIR}
+                      ${PARENT_SOURCE_DIR}/Linear ${PARENT_SOURCE_DIR}/Beam)
+else()
+  message(FATAL_ERROR "Need IFEM-Elasticity as parent directory.")
+endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
@@ -40,8 +45,8 @@ IF(IFEM_USE_FFLLIB)
 ENDIF(IFEM_USE_FFLLIB)
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-FILE(GLOB ShellEx_SOURCES *.C ../Linear/*Driver.C)
-FILE(GLOB ShellEx_HEADERS *.h)
+FILE(GLOB ShellEx_SOURCES *.C ../Beam/ElasticBeam.C ../Beam/BeamProperty.C ../Linear/*Driver.C)
+FILE(GLOB ShellEx_HEADERS *.h ../Beam/ElasticBeam.h ../Beam/BeamProperty.h)
 ADD_LIBRARY(ShellEx ${ShellEx_SOURCES} ${ANDES_SOURCES})
 TARGET_LINK_LIBRARIES(ShellEx Elasticity ${IFEM_LIBRARIES})
 IF(TARGET FFlLib)
@@ -59,6 +64,7 @@ install(TARGETS ShellSim DESTINATION bin COMPONENT bin)
 set(EXTRA_DOXY_PATHS "${PROJECT_SOURCE_DIR} \\
                       ${PROJECT_BINARY_DIR} \\
                       ${PARENT_SOURCE_DIR} \\
+                      ${PARENT_SOURCE_DIR}/Beam \\
                       ${PARENT_SOURCE_DIR}/Linear")
 add_doc_target(ShellSim ShellSim)
 

@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "AndesShell.h"
+#include "ElasticBeam.h"
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
 #include "NewmarkMats.h"
@@ -45,7 +46,7 @@ extern "C" {
 #endif
 
 
-AndesShell::AndesShell (unsigned short int n, bool modal)
+AndesShell::AndesShell (unsigned short int n, bool modal, bool withBeams)
 {
   nsd = 3; // Number of spatial dimenstions
   npv = 6; // Number of primary unknowns per node
@@ -54,7 +55,7 @@ AndesShell::AndesShell (unsigned short int n, bool modal)
 
   // Default material properties
   Emod  = 2.1e11;
-  Rny   = 0.3;
+  GorNu = 0.3;
   Thick = Thck0 = 0.1;
   Rho   = 7.85e3;
   ovrMat = false;
@@ -65,11 +66,22 @@ AndesShell::AndesShell (unsigned short int n, bool modal)
   isModal = modal;
 
   currentPatch = nullptr;
+  beamPatch = nullptr;
+
+  if (withBeams)
+  {
+    beamProblem = new ElasticBeam(n);
+    beamProblem->setProperty(&myBeamProps);
+  }
+  else
+    beamProblem = nullptr;
 }
 
 
 AndesShell::~AndesShell ()
 {
+  delete beamProblem;
+
   if (!degenerated.empty())
   {
     std::ofstream os("degenerated_elements.ftl");
@@ -100,8 +112,8 @@ Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem, bool)
     IFEM::cout <<"\tPatch-level material properties are overridden:";
     if (utl::getAttribute(elem,"E",Emod))
       IFEM::cout <<" E="<< Emod;
-    if (utl::getAttribute(elem,"nu",Rny))
-      IFEM::cout <<" nu="<< Rny;
+    if (utl::getAttribute(elem,"nu",GorNu))
+      IFEM::cout <<" nu="<< GorNu;
     if (utl::getAttribute(elem,"rho",Rho))
       IFEM::cout <<" rho="<< Rho;
     IFEM::cout << std::endl;
@@ -142,6 +154,8 @@ Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem, bool)
 void AndesShell::printLog () const
 {
   IFEM::cout <<"Formulation: ANDES shell";
+  if (beamProblem)
+    IFEM::cout <<" with beam elements";
   IFEM::cout << std::endl;
 }
 
@@ -160,6 +174,12 @@ void AndesShell::setMode (SIM::SolutionMode mode)
     eS = 3; // Store external forces separately, for visualization
     vecNames.push_back("(empty)");
     vecNames.push_back("external forces");
+  }
+
+  if (beamProblem)
+  {
+    beamProblem->setMode(mode);
+    beamProblem->setGravity(gravity.x,gravity.y,gravity.z);
   }
 }
 
@@ -182,6 +202,8 @@ void AndesShell::initLHSbuffers (size_t nEl)
 void AndesShell::initForPatch (const ASMbase* pch)
 {
   currentPatch = dynamic_cast<const ASMu2DNastran*>(pch);
+  if (beamProblem)
+    beamPatch = dynamic_cast<const ASMuBeam*>(pch);
 }
 
 
@@ -210,6 +232,9 @@ void AndesShell::initIntegration (size_t nGp, size_t)
 
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
 {
+  if (beamPatch)
+    return beamProblem->getLocalIntegral(nen,iEl,false);
+
   ElmMats* result = nullptr;
   if (this->inActive(iEl))
     return result; // element is not in current material group
@@ -258,6 +283,9 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
 
 int AndesShell::getIntegrandType () const
 {
+  if (beamPatch)
+    return beamProblem->getIntegrandType();
+
   return thickLoss || trInside+trOutside > 0.0 ? ELEMENT_CENTER : STANDARD;
 }
 
@@ -272,6 +300,16 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
                               const FiniteElement& fe, const Vec3& Xc, size_t,
                               LocalIntegral& elmInt)
 {
+  if (beamPatch)
+  {
+    if (!beamPatch->getProps(fe.iel,Emod,GorNu,Rho,myBeamProps))
+      return false;
+
+    beamProblem->setStiffness(Emod,GorNu);
+    beamProblem->setMass(Rho);
+    return beamProblem->initElement(MNPC,fe,Vec3(),0,elmInt);
+  }
+
   if (fe.iel > 0)
   {
     size_t iel = fe.iel - 1;
@@ -295,7 +333,7 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
     ok = currentPatch->getProps(fe.iel,dum1,dum2,dum3,Thick);
   }
   else // Use the patch-level material properties
-    ok = currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
+    ok = currentPatch->getProps(fe.iel,Emod,GorNu,Rho,Thick);
 
   // Scale the thickness depending on location inside or outside given box
   const Vec4* Xt = dynamic_cast<const Vec4*>(&Xc);
@@ -324,6 +362,9 @@ bool AndesShell::isInLossArea (const Vec3& Xc) const
 bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
                           const Vec3& X) const
 {
+  if (beamPatch) // 2-noded beam element
+    return beamProblem->evalInt(elmInt,fe,X);
+
   if (eS <= 0) return true; // No external load vector
 
   Vec3 p, n;
@@ -376,6 +417,9 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
                                   const FiniteElement& fe,
                                   const TimeDomain& time, size_t)
 {
+  if (beamPatch) // 2-noded beam element
+    return beamProblem->finalizeElement(elmInt,fe,time);
+
   int iERR = -99;
   Vector vDummy(1);
   Matrix mDummy(1,1);
@@ -429,7 +473,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element
     ifem_andes3_(fe.iel, fe.Xn.ptr(),
-                 eKm > 0 ? Thick : 0.0, Emod, Rny, eM > 0 ? Rho : 0.0,
+                 eKm > 0 ? Thick : 0.0, Emod, GorNu, eM > 0 ? Rho : 0.0,
                  Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
 #endif
   }
@@ -438,7 +482,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_andes4_(fe.iel, fe.Xn.ptr(),
-                 eKm > 0 ? Thick : 0.0, Emod, Rny, eM > 0 ? Rho : 0.0,
+                 eKm > 0 ? Thick : 0.0, Emod, GorNu, eM > 0 ? Rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
 #endif
   }
@@ -495,7 +539,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 {
   int iERR = 0;
   size_t nenod = fe.Xn.cols();
-  if (nenod == 1) // 1-noded concentrated mass element (no stresses)
+  if (nenod <= 2) // 1-noded concentrated mass or 2-noded beam element
     s.clear();
   else if (nenod == 3) // 3-noded shell element
     s.clear();
@@ -504,7 +548,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
     s.resize(n2v > 12 ? n2v : 12, 0.0);
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
-    ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny,
+    ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, GorNu,
                  eV.front().data(), s.data(), s.data()+6, iERR);
 #endif
   }

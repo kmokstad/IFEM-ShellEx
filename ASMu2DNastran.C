@@ -14,6 +14,7 @@
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
 #include "IntegrandBase.h"
+#include "BeamProperty.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
@@ -30,6 +31,7 @@
 #include "FFlFEParts/FFlPMASS.H"
 #include "FFlFEParts/FFlPTHICK.H"
 #include "FFlFEParts/FFlPWAVGM.H"
+#include "FFlFEParts/FFlPBEAMSECTION.H"
 
 
 /*!
@@ -78,6 +80,11 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGN.clear();
   myCoord.clear();
   myLoads.clear();
+  IntVec beamElms;
+  IntVec beamNodes;
+  IntMat beamMNPC;
+  int nBel = 0;
+  int nErr = 0;
 
   // Fast-forward until "BEGIN BULK"
   int lCount = 0;
@@ -112,12 +119,15 @@ bool ASMu2DNastran::read (std::istream& is)
 
   nnod = fem.getNodeCount(FFlLinkHandler::FFL_FEM);
   nel  = fem.getElementCount(FFlTypeInfoSpec::SHELL_ELM);
+  nBel = fem.getElementCount(FFlTypeInfoSpec::BEAM_ELM);
 #ifdef INT_DEBUG
   fem.dump();
 #else
   IFEM::cout <<"\nTotal number of nodes:          "<< nnod
-             <<"\nNumber of shell elements:       "<< nel
-             <<"\nNumber of constraint elements:  "
+             <<"\nNumber of shell elements:       "<< nel;
+  if (nBel > 0)
+    IFEM::cout <<"\nNumber of beam elements:        "<< nBel;
+  IFEM::cout <<"\nNumber of constraint elements:  "
              << fem.getElementCount(FFlTypeInfoSpec::CONSTRAINT_ELM)
              <<"\nNumber of other elements:       "
              << fem.getElementCount(FFlTypeInfoSpec::OTHER_ELM)
@@ -132,6 +142,9 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
   myCoord.reserve(nnod);
+  beamNodes.reserve(nBel);
+  beamElms.reserve(nBel);
+  beamMNPC.reserve(nBel);
 
   // Extract the nodal points
   for (size_t inod = 1; inod <= nnod; inod++)
@@ -174,7 +187,59 @@ bool ASMu2DNastran::read (std::istream& is)
     for (size_t i = 0; i < mnpc.size(); i++)
       mnpc[i] = this->getNodeIndex((*e)->getNodeID(1+i)) - 1;
 
-    if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
+    if ((*e)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM && mnpc.size() == 2)
+    {
+#if INT_DEBUG > 1
+      std::cout <<"Beam element "<< beamElms.size() <<" "<< eid <<":";
+      for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
+#endif
+      beamElms.push_back(eid);
+      for (int& inod : mnpc)
+      {
+        int node = MLGN[inod];
+        IntVec::iterator it = std::find(beamNodes.begin(),beamNodes.end(),node);
+        if (it == beamNodes.end())
+        {
+          beamNodes.push_back(node);
+          inod = beamNodes.size() - 1;
+        }
+        else
+          inod = it - beamNodes.begin();
+      }
+      beamMNPC.push_back(mnpc);
+
+      BeamProps& bprop = myBprops[eid];
+      FFlPMAT* mat = GET_ATTRIBUTE(e,PMAT);
+      if (mat)
+      {
+        bprop.Emod = mat->youngsModule.getValue();
+        bprop.Gmod = mat->shearModule.getValue();
+        bprop.Rho  = mat->materialDensity.getValue();
+      }
+      else
+        IFEM::cout <<"  ** No material attached to element "<< eid
+                   <<", using default properties"<< std::endl;
+
+      FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(e,PBEAMSECTION);
+      if (bsec)
+      {
+        size_t i = 0;
+        for (FFlFieldBase* field : *bsec)
+          if (i < bprop.cs.size())
+            bprop.cs[i++] = static_cast<FFlField<double>*>(field)->getValue();
+      }
+      else if (++nErr <= 20)
+        std::cerr <<" *** No beam cross section attached to beam element "<< eid
+                  << std::endl;
+
+#if INT_DEBUG > 1
+      std::cout <<" E="<< bprop.Emod <<" G="<< bprop.Gmod
+                <<" rho="<< bprop.Rho <<"\nCS:";
+      for (double cv : bprop.cs) std::cout <<" "<< cv;
+      std::cout << std::endl;
+#endif
+    }
+    else if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
       if (mnpc.size() == 4)
       {
@@ -299,6 +364,9 @@ bool ASMu2DNastran::read (std::istream& is)
       IFEM::cout <<"  ** Ignored element "<< (*e)->getTypeName()
                  <<" "<< eid << std::endl;
   }
+  if (nErr > 20)
+    std::cerr <<" *** A total of "<< nErr
+              <<" beam elements lack cross section properties."<< std::endl;
 
   // Extract the pressure loads, if any
   std::set<int> loadCases;
@@ -353,7 +421,17 @@ bool ASMu2DNastran::read (std::istream& is)
 #endif
 #endif
 
-  return true;
+  if (nBel > 0 && nErr == 0)
+  {
+    // Create a separate patch for the beam elements
+    Vec3Vec bXYZ;
+    bXYZ.reserve(beamNodes.size());
+    for (int node : beamNodes)
+      bXYZ.push_back(myCoord[this->getNodeIndex(node)-1]);
+    beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
+  }
+
+  return nErr == 0;
 }
 
 
@@ -579,5 +657,36 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
     if (checkPt[i])
       sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
 
+  return true;
+}
+
+
+ASMuBeam::ASMuBeam (const Vec3Vec& nodes, const IntMat& mmnpc,
+                    const IntVec& mlgn, const IntVec& mlge,
+                    const std::map<int,BeamProps>& props,
+                    unsigned char n, unsigned char n_f)
+  : ASMu1DLag(n,n_f), myProps(props)
+{
+  myCoord = nodes;
+  myMNPC  = mmnpc;
+  myMLGN  = mlgn;
+  myMLGE  = mlge;
+}
+
+
+bool ASMuBeam::getProps (int eId, double& E, double& G,
+                         double& rho, BeamProperty& bprop) const
+{
+  std::map<int,BeamProps>::const_iterator it = myProps.find(eId);
+  if (it == myProps.end())
+  {
+    std::cerr <<" *** No properties for beam element "<< eId << std::endl;
+    return false;
+  }
+
+  E   = it->second.Emod;
+  G   = it->second.Gmod;
+  rho = it->second.Rho;
+  bprop.setConstant(RealArray(it->second.cs.begin(),it->second.cs.end()));
   return true;
 }
