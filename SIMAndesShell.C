@@ -20,6 +20,9 @@
 #include "tinyxml2.h"
 
 
+static bool withBeams = false; //!< If \e true, the model contains beam elements
+
+
 SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
 {
   nsd = 3;
@@ -30,7 +33,7 @@ SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nsv,modal);
+    myProblem = new AndesShell(nsv,modal,withBeams);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }
@@ -82,7 +85,8 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
                                    const CharVec&, const char* whiteSpace) const
 {
   ASMbase* pch = NULL;
-  if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
+  bool nastran = nf.size() == 2 && nf[1] == 'n';
+  if (nastran) // Nastran bulk data file
     pch = new ASMu2DNastran(nsd,nf.front());
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
@@ -95,6 +99,15 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
 
   if (whiteSpace)
     IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
+
+  ASMbase* bpch = nullptr;
+  if (nastran) // Check if we also have beam elements in the model
+    if ((bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams()))
+    {
+      withBeams = true;
+      bpch->idx = myModel.size();
+      const_cast<SIMAndesShell*>(this)->myModel.push_back(bpch);
+    }
 
   pch->idx = myModel.size();
   return pch;

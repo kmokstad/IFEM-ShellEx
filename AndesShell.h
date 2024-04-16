@@ -15,10 +15,12 @@
 #define _ANDES_SHELL_H
 
 #include "ElasticBase.h"
+#include "BeamProperty.h"
 #include <set>
 
 class ASMu2DNastran;
-class RealFunc;
+class ASMuBeam;
+class ElasticBeam;
 
 
 /*!
@@ -31,7 +33,9 @@ public:
   //! \brief Default constructor.
   //! \param[in] n Number of consequtive solution vectors to reside in core
   //! \param[in] modal If \e true, a modal dynamics simulation is performed
-  explicit AndesShell(unsigned short int n = 1, bool modal = false);
+  //! \param[in] withBeams If \e true, the model also contains beam elements
+  explicit AndesShell(unsigned short int n = 1, bool modal = false,
+                      bool withBeams = false);
   //! \brief The destructor writes out the ignored bad elements.
   virtual ~AndesShell();
 
@@ -62,7 +66,7 @@ public:
   //! \param[in] nen Number of nodes on element
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t, bool) const;
 
-  //! \brief Returns which integrand to be used.
+  //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
 
   using ElasticBase::initElement;
@@ -104,7 +108,7 @@ protected:
 private:
   double Thick; //!< Current shell thickness
   double Emod;  //!< Current Young's modules
-  double Rny;   //!< Current Poisson's ratio
+  double GorNu; //!< Current Poisson's ratio or shear modulus (G)
   double Rho;   //!< Current mass density
   bool ovrMat;  //!< If \e true, patch-level material properties are overridden
 
@@ -114,6 +118,9 @@ private:
   Vec3 Xupp; //!< Uppoer bound of thickness loss box
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
+  const ASMuBeam*      beamPatch;    //!< Pointer to underlying beam model
+  ElasticBeam*         beamProblem;  //!< Pointer to beam problem integrand
+  BeamProperty         myBeamProps;  //!< Beam cross section properties
 
   std::map<int,RealFunc*> presFld; //!< Pointers to pressure field functions
 
