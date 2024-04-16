@@ -11,6 +11,8 @@
     </topologysets>
   </geometry>
 
+  <discretization type="lagrange"/>
+
   <elasticity>
     <boundaryconditions>
       <dirichlet set="ASET" comp="1236"/>
