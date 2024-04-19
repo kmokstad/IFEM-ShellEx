@@ -29,8 +29,8 @@ public:
   //! \param[in] n Number of consequtive solution vectors in core
   //! \param[in] m If \e true, a modal linear dynamics simulation is performed
   explicit SIMAndesShell(unsigned char n = 1, bool m = false);
-  //! \brief Empty destructor.
-  virtual ~SIMAndesShell() {}
+  //! \brief The destructor deletes the nodal point load functions.
+  virtual ~SIMAndesShell();
 
   //! \brief Retrieves the shell thickness of all elements in the model.
   void getShellThicknesses(RealArray& elmThick) const;
@@ -53,7 +53,27 @@ protected:
   //! \brief Dummy override, does nothing.
   virtual bool initBodyLoad(size_t) { return true; }
 
+  //! \brief Renumbers all global nodes number if the model.
+  //! \param[in] nodeMap Mapping from old to new node number
+  virtual bool renumberNodes(const std::map<int,int>& nodeMap);
+
+  //! \brief Assembles the nodal point loads, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
+                                     const TimeDomain& time);
+
 private:
+  //! \brief Struct defining a nodal point load.
+  struct PointLoad
+  {
+    int         inod; //!< Node or patch index
+    int         ldof; //!< Local DOF number
+    ScalarFunc* p;    //!< Load magnitude
+    //! \brief Default constructor.
+    PointLoad(int n = 0) : inod(n), ldof(0), p(nullptr) {}
+  };
+
+  std::vector<PointLoad> myLoads; //!< Nodal point loads
+
   unsigned char nsv; //!< Number of consequtive solution vectors in core
 
   bool modal; //!< Modal dynamics simulation flag
