@@ -78,12 +78,17 @@ static char isBulkData(const char* line)
 
   // Check all legal bulk entry keywords,
   // in case they are not listed in the usual order
+  size_t nchar = strlen(line);
   for (const char** keyw = allKeys; *keyw; ++keyw)
   {
     size_t n = strlen(*keyw);
-    if (strncmp(line,*keyw,n) == 0)
-      if (isspace(line[n]) || line[n] == '*' || line[n] == ',')
+    if (strncmp(line,*keyw,n) == 0 && nchar > n)
+    {
+      if (line[n] == '*' || line[n] == ',')
         return 's'; // Probably bulk data use this as starting line when parsing
+      else if (isspace(line[n]) && nchar > n+1 && line[n+1] != '=')
+        return 's'; // Probably bulk data as well
+    }
   }
   return 0;
 }
