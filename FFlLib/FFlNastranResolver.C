@@ -705,10 +705,14 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
 
   // Special resolving of beams with neutral axis offset
   FFlPBEAMSECTION* theSec = GET_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
-  if (!theSec || fabs(theSec->Sy.getValue())+fabs(theSec->Sz.getValue()) == 0.0)
-    return PID; // No neutral axis offset for this beam
+  if (!theSec) return PID; // No neutral axis offset for this beam
 
-  else if (Ecc == 0)
+  double Sy = theSec->Sy.getValue();
+  double Sz = theSec->Sz.getValue();
+  if (fabs(Sy)+fabs(Sz) <= 1.0e-16)
+    return PID; // Negligible neutral axis offset for this beam
+
+  if (Ecc == 0)
   {
     Ecc = EID; // This beam element does not have eccentricities yet, create one
     FFlPBEAMECCENT* theEc = CREATE_ATTRIBUTE(FFlPBEAMECCENT,"PBEAMECCENT",Ecc);
@@ -718,9 +722,20 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
     ok &= curElm->setAttribute("PBEAMECCENT",Ecc);
   }
 
+  if (fabs(theSec->phi.getValue()) > 1.0e-6)
+  {
+    // Transform neutral axis offset to local element axes (from principal axes)
+    double fi = theSec->phi.getValue()*M_PI/180.0;
+    double cf = cos(fi);
+    double sf = sin(fi);
+    double S1 = cf*Sy - sf*Sz;
+    double S2 = cf*Sz + sf*Sy;
+    Sy = S1;
+    Sz = S2;
+  }
+
   // Update the eccentricity vectors with neutral axis offset
-  FaVec3 offset = (theSec->Sy.getValue()*y.normalize() +
-                   theSec->Sz.getValue()*(x^y).normalize());
+  FaVec3 offset = (Sy*y.normalize() + Sz*(x^y).normalize());
 #if FFL_DEBUG > 1
   std::cout <<"Attribute PBEAMECCENT, ID = "<< Ecc <<", offset = "<< offset;
   for (int i = 0; i < 2; i++)
