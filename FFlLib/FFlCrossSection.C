@@ -11,6 +11,15 @@
 #include <functional>
 
 
+/*!
+  Formulas for the cross section parameters for the various section types
+  can be found in the SIEMENS Element Library Reference documentation, e.g.,
+
+  https://docs.plm.automation.siemens.com/data_services/resources/nxnastran/10/help/en_US/tdocExt/pdf/element.pdf
+
+  See Section 8.1 Using Supplied Beam and Bar Libraries.
+*/
+
 FFlCrossSection::FFlCrossSection (const std::string& Type,
                                   const std::vector<double>& Dim)
 {
@@ -47,7 +56,7 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
     Iyy = pow2(b)*A/12.0;
     Izz = pow2(h)*A/12.0;
     if (h > b) std::swap(b,h);
-    J   = pow2(h)*A*(1.0 - 0.6*h/b)/3.0; // TODO: verify this
+    J   = pow2(h)*A*(1.0 - 0.63*(h/b)*(1.0-pow2(pow2(h/b))/12.0))/3.0;
     K1  = K2 = 5.0/6.0;
   }
   else if (Type == "BOX")
@@ -59,12 +68,11 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
 
     double bi = b - 2.0*t2;
     double hi = h - 2.0*t1;
-    double minThk = t1 < t2 ? t1 : t2;
 
     A   = b*h - bi*hi;
     Iyy = (h*pow3(b) - hi*pow3(bi))/12.0;
     Izz = (b*pow3(h) - bi*pow3(hi))/12.0;
-    J   = 2.0*pow2(b*h)*minThk/(b+h); // TODO: verify this, probably assumes t1 << h and t2 << b
+    J   = 2.0*t2*t1*pow2((b-t2)*(h-t1))/(b*t2 + h*t1 - pow2(t2) - pow2(t1));
     K1  = 2.0*hi*t2/A;
     K2  = 2.0*bi*t1/A;
   }
@@ -76,23 +84,24 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
     double ta = Dim[4];
     double tb = Dim[5];
     double hw = Dim[0] - (ta + tb);
+    double hf = hw + 0.5*(ta + tb);
 
     A = a*ta + hw*tw + b*tb;
 
-    double y1 = 0.5*ta;
-    double y2 = y1 + 0.5*(ta+hw);
-    double y3 = y2 + 0.5*(tb+hw);
-
-    double ya = y1 - (a*ta*y1 + tw*hw*y2 + b*tb*y3)/A;
-    double yw = ya + 0.5*(ta+hw);
-    double yb = yw + 0.5*(tb+hw);
+    // I-profile centroid location w.r.t lower flange centroid
+    double ya = (0.5*(hw+ta)*hw*tw + hf*tb*b)/A;
+    // Web centroid location w.r.t. I-profile centroid
+    double yw = 0.5*(hw+ta) - ya;
+    // Upper flange centroid location w.r.t. I-profile centroid
+    double yb = hf - ya;
 
     Iyy = (ta*pow3(a) + hw*pow3(tw) + tb*pow3(b))/12.0;
     Izz = (a*pow3(ta) + tw*pow3(hw) + b*pow3(tb))/12.0
       +    pow2(ya)*a*ta + pow2(yw)*hw*tw + pow2(yb)*b*tb;
-    J  = (a*pow3(ta) + hw*pow3(tw) + b*pow3(tb))/3.0;
+    J  = (a*pow3(ta) + hf*pow3(tw) + b*pow3(tb))/3.0;
     K1 = hw*tw/A;
     K2 = 5.0*(a*ta+b*tb)/(6.0*A);
+    S1 = hf*tb*pow3(b)/(ta*pow3(a) + tb*pow3(b)) - ya;
 
 #ifdef FFL_DEBUG
     std::cout <<"I-profile: a="<< a <<" b="<< b <<" h="<< hw+ta+tb
@@ -107,17 +116,21 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
     double tf = Dim[2];
     double tw = Dim[3];
     double hw = Dim[1] - tf;
+    double hf = hw + 0.5*tf;
 
     A = bf*tf + hw*tw;
 
-    double yw = 0.5*hw - (0.5*tw*pow2(hw) + bf*(tf*hw + 0.5*pow2(tf)))/A;
-    double yf = yw + 0.5*(hw+tf);
+    // T-profile centroid location w.r.t. flange centroid
+    double yf = 0.5*(hw+tf)*hw*tw/A;
+    // Web centroid location w.r.t. T-profile centroid
+    double yw = 0.5*(hw+tf) - yf;
 
     Iyy = (tf*pow3(bf) + hw*pow3(tw))/12.0;
     Izz = (bf*pow3(tf) + tw*pow3(hw))/12.0 + pow2(yw)*hw*tw + pow2(yf)*bf*tf;
-    J   = (hw*pow3(tw) + bf*pow3(tf))/3.0;
+    J   = (hf*pow3(tw) + bf*pow3(tf))/3.0;
     K1  = hw*tw/A;
     K2  = bf*tf/A;
+    S1  = yf;
 
 #ifdef FFL_DEBUG
     std::cout <<"T-profile: bf="<< bf <<" h="<< hw+tf
@@ -137,6 +150,7 @@ FFlCrossSection::FFlCrossSection (const std::string& Type,
 
     A = b*t1 + h2*t2;
 
+    // L-profile centroid location w.r.t. outer (lower left) corner
     double yc = (b1*pow2(t1) + t2*pow2(h))*0.5/A;
     double zc = (t1*pow2(b) + h2*pow2(t2))*0.5/A;
 
