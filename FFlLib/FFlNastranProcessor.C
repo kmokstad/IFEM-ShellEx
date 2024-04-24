@@ -526,7 +526,6 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
   START_TIMER("process_CBEAM")
 
   int    EID, PID = 0, PA = 0, PB = 0;
-  double BIT;
   FaVec3 X, WA, WB;
 
   std::vector<int> G(2,0);
@@ -541,7 +540,6 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
 		 fieldValue(entry[4],X[0]) &&
 		 fieldValue(entry[5],X[1]) &&
 		 fieldValue(entry[6],X[2]) &&
-		 fieldValue(entry[7],BIT) &&
 		 fieldValue(entry[8],PA) &&
 		 fieldValue(entry[9],PB) &&
 		 fieldValue(entry[10],WA[0]) &&
@@ -552,6 +550,14 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
 		 fieldValue(entry[15],WB[2]));
 
   if (entry[0].empty()) EID = myLink->getNewElmID();
+
+  if (!entry[7].empty() && entry[7] != "GGG")
+  {
+    nWarnings++;
+    ListUI <<"\n  ** Warning: CBEAM element "<< EID
+           <<" has offset vector flag \""<< entry[7] <<"\"."
+           <<"\n              This is not implemented yet, \"GGG\" is used.\n";
+  }
 
   // Store the property and beam orientation data temporarily in the bOri map
   // must be resolved later after all coordinate systems has been read in
