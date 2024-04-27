@@ -32,6 +32,8 @@
 #include "FFlFEParts/FFlPTHICK.H"
 #include "FFlFEParts/FFlPWAVGM.H"
 #include "FFlFEParts/FFlPBEAMSECTION.H"
+#include "FFlFEParts/FFlPBEAMECCENT.H"
+#include "FFlFEParts/FFlPORIENT.H"
 
 
 /*!
@@ -232,10 +234,24 @@ bool ASMu2DNastran::read (std::istream& is)
         std::cerr <<" *** No beam cross section attached to beam element "<< eid
                   << std::endl;
 
+      FFlPORIENT* bori = GET_ATTRIBUTE(e,PORIENT);
+      if (bori)
+        bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
+
+      FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(e,PBEAMECCENT);
+      if (bEcc)
+        bprop.eccN = {
+          -Vec3(bEcc->node1Offset.getValue().getPt()),
+          -Vec3(bEcc->node2Offset.getValue().getPt())
+        };
+
 #if INT_DEBUG > 1
       std::cout <<" E="<< bprop.Emod <<" G="<< bprop.Gmod
                 <<" rho="<< bprop.Rho <<"\nCS:";
       for (double cv : bprop.cs) std::cout <<" "<< cv;
+      if (!bprop.Zaxis.isZero()) std::cout <<"\nZ-axis: "<< bprop.Zaxis;
+      if (!bprop.eccN[0].isZero()) std::cout <<"\necc1: "<< bprop.eccN[0];
+      if (!bprop.eccN[1].isZero()) std::cout <<"\necc2: "<< bprop.eccN[1];
       std::cout << std::endl;
 #endif
     }
@@ -688,5 +704,59 @@ bool ASMuBeam::getProps (int eId, double& E, double& G,
   G   = it->second.Gmod;
   rho = it->second.Rho;
   bprop.setConstant(RealArray(it->second.cs.begin(),it->second.cs.end()));
+  bprop.setEccentric(it->second.eccN.front(),it->second.eccN.back());
+  return true;
+}
+
+
+bool ASMuBeam::initLocalElementAxes (const Vec3&)
+{
+  size_t iel = 0;
+  for (Tensor& Tlg : myCS)
+  {
+    int eId = MLGE[iel++];
+    std::map<int,BeamProps>::const_iterator it = myProps.find(eId);
+    if (it == myProps.end())
+    {
+      std::cerr <<" *** No properties for beam element "<< eId << std::endl;
+      return false;
+    }
+
+    // Set up the global-to-local transformation matrix
+    int n1 = MNPC[iel-1].front();
+    int n2 = MNPC[iel-1].back();
+    const Vec3& X1 = myCoord[n1];
+    const Vec3& X2 = myCoord[n2];
+    if (it->second.Zaxis.isZero())
+      Tlg = Tensor(X2-X1,true);
+    else
+      Tlg = Tensor(X2-X1,it->second.Zaxis,false,true);
+
+    const double phi = it->second.cs.back();
+    if (fabs(phi) > 1.0e-6)
+    {
+      // Rotate from local element axes to principal axes
+      double cfi = cos(phi*M_PI/180.0);
+      double sfi = sin(phi*M_PI/180.0);
+      for (size_t c = 1; c <= 3; c++)
+      {
+        double t = cfi*Tlg(c,2) + sfi*Tlg(c,3);
+        Tlg(c,3) = cfi*Tlg(c,3) - sfi*Tlg(c,2);
+        Tlg(c,2) = t;
+      }
+    }
+
+#ifdef INT_DEBUG
+    std::cout <<"\nLocal axes for beam element "<< eId
+              <<",\nfrom  N"<< MLGN[n1] <<" = "<< X1
+              <<"  to  N"<< MLGN[n2] <<" = "<< X2;
+    if (!it->second.Zaxis.isZero())
+      std::cout <<"  with Z-axis = "<< it->second.Zaxis;
+    if (fabs(phi) > 1.0e-6)
+      std::cout <<"  and phi = "<< phi;
+    std::cout <<":\n"<< Tlg;
+#endif
+  }
+
   return true;
 }

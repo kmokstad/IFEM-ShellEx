@@ -98,6 +98,10 @@ public:
     double Gmod  = 8.0e9;  //!< Shear modulus
     double Rho   = 7850.0; //!< Mass density
 
+    Vec3 Zaxis; //!< Vector defining the local Z-axis of the element
+
+    std::array<Vec3,2> eccN{}; //!< Nodal eccentricity vectors
+
     std::array<double,9> cs{}; //!< Cross section parameters
   };
 
@@ -133,6 +137,10 @@ public:
   //! \brief Retrieves the properties for element with index \a id.
   bool getProps(int eId, double& E, double& G, double& rho,
                 BeamProperty& bprop) const;
+
+protected:
+  //! \brief Initializes the local element axes for a patch of beam elements.
+  virtual bool initLocalElementAxes(const Vec3&);
 
 private:
   //! Reference to the beam element property container
