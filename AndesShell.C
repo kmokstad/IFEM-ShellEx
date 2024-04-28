@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 
-AndesShell::AndesShell (unsigned short int n)
+AndesShell::AndesShell (unsigned short int n, bool modal)
 {
   nsd = 3; // Number of spatial dimenstions
   npv = 6; // Number of primary unknowns per node
@@ -48,6 +48,8 @@ AndesShell::AndesShell (unsigned short int n)
   Emod  = 2.1e11;
   Rny   = 0.3;
   Thick = 0.1;
+
+  isModal = modal;
 
   currentPatch = nullptr;
 }
@@ -75,6 +77,15 @@ void AndesShell::printLog () const
 {
   IFEM::cout <<"Formulation: ANDES shell";
   IFEM::cout << std::endl;
+}
+
+
+void AndesShell::setMode (SIM::SolutionMode mode)
+{
+  if (isModal && mode == SIM::DYNAMIC)
+    mode = SIM::RHS_ONLY;
+
+  this->ElasticBase::setMode(mode);
 }
 
 

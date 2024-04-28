@@ -20,7 +20,7 @@
 #include "tinyxml2.h"
 
 
-SIMAndesShell::SIMAndesShell (unsigned char n) : nsv(n)
+SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
 {
   nsd = 3;
   nf.front() = 6;
@@ -30,7 +30,7 @@ SIMAndesShell::SIMAndesShell (unsigned char n) : nsv(n)
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nsv);
+    myProblem = new AndesShell(nsv,modal);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }

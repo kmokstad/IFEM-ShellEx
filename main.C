@@ -13,9 +13,10 @@
 
 #include "IFEM.h"
 #include "SIMenums.h"
-#include "SIMAndesShell.h"
+#include "SIMShellModal.h"
 #include "NonlinearDriver.h"
 #include "ElasticityUtils.h"
+#include "ModalSim.h"
 #include "Profiler.h"
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
@@ -87,8 +88,10 @@ int mlcSim (SIMbase* model, char* infile)
   \arg -ncv \a ncv : Number of Arnoldi vectors to use in the eigenvalue analysis
   \arg -shift \a shf : Shift value to use in the eigenproblem solver
   \arg -free : Ignore all boundary conditions (use in free vibration analysis)
-  \arg -mlc : Solve the linear static problem as a multi-load-case problem
   \arg -time : Time for evaluation of possible time-dependent functions
+  \arg -mlc : Solve the linear static problem as a multi-load-case problem
+  \arg -qstatic : Solve the linear dynamics problem as quasi-static
+  \arg -dynamic : Solve the linear dynamics problem using modal transformation
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
@@ -102,6 +105,7 @@ int main (int argc, char** argv)
   int iop = 0;
   bool fixDup = false;
   bool mlcase = false;
+  char dynSol = false;
   char* infile = nullptr;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
@@ -123,6 +127,10 @@ int main (int argc, char** argv)
     }
     else if (!strncmp(argv[i],"-mlc",4))
       mlcase = true;
+    else if (!strncmp(argv[i],"-qstat",6))
+      dynSol = 's';
+    else if (!strncmp(argv[i],"-dyn",4))
+      dynSol = 'd';
     else if (!infile)
       infile = argv[i];
     else
@@ -133,7 +141,7 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-time <t>] [-free] [-mlc] [-check]\n"
+              <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]\n"
               <<"       [-fixDup [<tol>]] [-vtf <format>]\n";
     delete prof;
     return 0;
@@ -141,7 +149,7 @@ int main (int argc, char** argv)
 
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
-  if (!mlcase)
+  if (!mlcase && !dynSol)
     IFEM::cout <<"\nEvaluation time for property functions: "<< Elastic::time;
   else if (Elastic::time > 1.0)
     IFEM::cout <<"\nSimulation stop time: "<< Elastic::time;
@@ -159,8 +167,8 @@ int main (int argc, char** argv)
   utl::profiler->start("Model input");
 
   // Create the simulation model
-  SIMoutput* model = new SIMAndesShell();
   std::vector<Mode> modes;
+  SIMoutput* model = dynSol ? new SIMShellModal(modes) : new SIMAndesShell();
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
@@ -177,6 +185,9 @@ int main (int argc, char** argv)
   // Read in model definitions
   if (!model->read(infile))
     terminate(1);
+
+  if (model->opt.eig != 3 && model->opt.eig != 4 && model->opt.eig != 6)
+    dynSol = false; // Dynamics solution requires eigenmode calculation
 
   model->opt.print(IFEM::cout,true) << std::endl;
 
@@ -216,6 +227,9 @@ int main (int argc, char** argv)
     if (!model->systemModes(modes))
       terminate(9);
   }
+
+  if (dynSol) // Solve the dynamics problem using modal transformation
+    terminate(modalSim(infile,modes.size(),false,dynSol=='s',model));
 
   utl::profiler->start("Postprocessing");
 

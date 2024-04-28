@@ -27,7 +27,8 @@ class SIMAndesShell : public SIMElasticity<SIM2D>
 public:
   //! \brief Default constructor.
   //! \param[in] n Number of consequtive solution vectors in core
-  explicit SIMAndesShell(unsigned char n = 1);
+  //! \param[in] m If \e true, a modal linear dynamics simulation is performed
+  explicit SIMAndesShell(unsigned char n = 1, bool m = false);
   //! \brief Empty destructor.
   virtual ~SIMAndesShell() {}
 
@@ -51,6 +52,8 @@ protected:
 
 private:
   unsigned char nsv; //!< Number of consequtive solution vectors in core
+
+  bool modal; //!< Modal dynamics simulation flag
 };
 
 #endif

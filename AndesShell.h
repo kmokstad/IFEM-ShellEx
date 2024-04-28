@@ -30,12 +30,17 @@ class AndesShell : public ElasticBase
 public:
   //! \brief Default constructor.
   //! \param[in] n Number of consequtive solution vectors to reside in core
-  explicit AndesShell(unsigned short int n = 1);
+  //! \param[in] modal If \e true, a modal dynamics simulation is performed
+  explicit AndesShell(unsigned short int n = 1, bool modal = false);
   //! \brief The destructor writes out the ignored bad elements.
   virtual ~AndesShell();
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
+
+  //! \brief Defines the solution mode before the element assembly is started.
+  //! \param[in] mode The solution mode to use
+  virtual void setMode(SIM::SolutionMode mode);
 
   //! \brief Initialization of integrand with patch-specific data.
   virtual void initForPatch(const ASMbase* pch);
@@ -84,6 +89,8 @@ private:
 
   std::set<int> degenerated;  //!< List of detected degenerated elements
   std::set<int> straightline; //!< List of detected straight line elements
+
+  bool isModal; //!< Flag for modal dynamics simulation
 };
 
 #endif
