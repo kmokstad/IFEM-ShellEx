@@ -186,7 +186,8 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     }
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element
-    ifem_andes3_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
+    ifem_andes3_(fe.iel, fe.Xn.ptr(),
+                 eKm > 0 ? Thick : 0.0, Emod, Rny, eM > 0 ? Rho : 0.0,
                  Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
 #endif
   }
@@ -194,7 +195,8 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   {
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
-    ifem_andes4_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny, eM > 0 ? Rho : 0.0,
+    ifem_andes4_(fe.iel, fe.Xn.ptr(),
+                 eKm > 0 ? Thick : 0.0, Emod, Rny, eM > 0 ? Rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
 #endif
   }

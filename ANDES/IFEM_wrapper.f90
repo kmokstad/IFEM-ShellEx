@@ -36,17 +36,21 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, Press, EK, EM, ES, IERR)
 
   !! --- Logic section ---
 
-  ek = 0.0_dp
+  if (Thick > 0.0_dp) then
 
-  !! Set up the constitutive matrix
+     call DCOPY (NELDOF*NELDOF,0.0_dp,0,EK(1,1),1)
 
-  Cmat = 0.0_dp
-  Cmat(1,1) = Emod*Thick / (1.0_dp - Rny*Rny)
-  Cmat(1,2) = Rny * Cmat(1,1)
-  Cmat(2,1) = Cmat(1,2)
-  Cmat(2,2) = Cmat(1,1)
-  Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
-  Cmat(4:6,4:6) = Cmat(1:3,1:3) * (Thick*Thick/12.0_dp)
+     !! Set up the constitutive matrix
+
+     Cmat = 0.0_dp
+     Cmat(1,1) = Emod*Thick / (1.0_dp - Rny*Rny)
+     Cmat(1,2) = Rny * Cmat(1,1)
+     Cmat(2,1) = Cmat(1,2)
+     Cmat(2,2) = Cmat(1,1)
+     Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
+     Cmat(4:6,4:6) = Cmat(1:3,1:3) * (Thick*Thick/12.0_dp)
+
+  end if
 
   !! Set up element transformation matrix
 
@@ -87,23 +91,27 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, Press, EK, EM, ES, IERR)
   YL(2) = 0.0_dp
   YL(3) = SL31*SING
 
-  call Andes3shell_stiffmat (Xl,Yl,Cmat,alpha,alphaH,lType,Kmat,lpu,ierr)
-  if (ierr < 0) then
-     write(lpu,*) '*** Failed to compute stiffness matrix for element',iEL
-     return
-  end if
+  if (Thick > 0.0_dp) then
 
-  !! Transform to global axes
+     call Andes3shell_stiffmat (Xl,Yl,Cmat,alpha,alphaH,lType,Kmat,lpu,ierr)
+     if (ierr < 0) then
+        write(lpu,*) '*** Failed to compute stiffness matrix for element',iEL
+        return
+     end if
 
-  do i = 1, neldof, 3
-     do j = 1, neldof, 3
-        EK(i:i+2,j:j+2) = matmul(TelT,matmul(Kmat(i:i+2,j:j+2),Tel))
+     !! Transform to global axes
+
+     do i = 1, neldof, 3
+        do j = 1, neldof, 3
+           EK(i:i+2,j:j+2) = matmul(TelT,matmul(Kmat(i:i+2,j:j+2),Tel))
+        end do
      end do
-  end do
+
+  end if
 
   if (any(Press /= 0.0_dp)) call T3_load (Press,ES)
 
-  if (Rho <= 0.0_dp) return
+  if (Rho <= 0.0_dp .or. Thick <= 0.0_dp) return
 
   !! Compute lumped mass matrix
   Xl = X0(1,:)
@@ -175,7 +183,10 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
 
   !! --- Logic section ---
 
-  ek = 0.0_dp
+  ierr = 0
+  if (Thick <= 0.0_dp) return
+
+  call DCOPY (NELDOF*NELDOF,0.0_dp,0,EK(1,1),1)
 
   !! Set up the constitutive matrix
 
@@ -200,13 +211,13 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
      return
   end if
 
+  TelT = Trel(1:3,1:3)
+  Tel  = transpose(TelT)
+
   !! Need to swap element nodes 3 and 4
   Xnod(:,1:2) = X0(:,1:2)
   Xnod(:,3)   = X0(:,4)
   Xnod(:,4)   = X0(:,3)
-
-  TelT = Trel(1:3,1:3)
-  Tel  = transpose(TelT)
 
   !! Calculate the element stiffness matrix
   !! Zl has to be close to zero, i.e., best fit in X-Y plane
