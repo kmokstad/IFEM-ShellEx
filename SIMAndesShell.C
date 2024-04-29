@@ -14,7 +14,10 @@
 #include "SIMAndesShell.h"
 #include "ASMu2DNastran.h"
 #include "AndesShell.h"
+#include "Functions.h"
+#include "Utilities.h"
 #include "IFEM.h"
+#include "tinyxml2.h"
 
 
 SIMAndesShell::SIMAndesShell (unsigned char n) : nsv(n)
@@ -30,6 +33,38 @@ ElasticBase* SIMAndesShell::getIntegrand ()
     myProblem = new AndesShell(nsv);
 
   return dynamic_cast<ElasticBase*>(myProblem);
+}
+
+
+bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
+{
+  if (!this->SIMElasticity<SIM2D>::parse(elem))
+    return false;
+
+  const tinyxml2::XMLElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if (!strcasecmp(child->Value(),"pressure") && child->FirstChild())
+    {
+      IFEM::cout <<"  Parsing <pressure>"<< std::endl;
+
+      std::string set, type;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,1);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (code > 0)
+      {
+        utl::getAttribute(child,"type",type,true);
+        IFEM::cout <<"\tPressure code "<< code;
+        if (!type.empty()) IFEM::cout <<" ("<< type <<")";
+        myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
+        this->setPropertyType(code,Property::BODYLOAD);
+        IFEM::cout << std::endl;
+        AndesShell* shellp = static_cast<AndesShell*>(this->getIntegrand());
+        shellp->setPressure(myScalars[code]);
+      }
+    }
+
+  return true;
 }
 
 

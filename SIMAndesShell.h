@@ -32,6 +32,10 @@ public:
   virtual ~SIMAndesShell() {}
 
 protected:
+  using SIMElasticity<SIM2D>::parse;
+  //! \brief Parses a data section from an XML element.
+  virtual bool parse(const tinyxml2::XMLElement* elem);
+
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read

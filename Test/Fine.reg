@@ -1,4 +1,4 @@
-Fine.xinp -eig 4
+Fine.xinp -eig 4 -free
 
 Input file: Fine.xinp
 Equation solver: 2

@@ -15,6 +15,8 @@
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
+#include "TimeDomain.h"
+#include "Function.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
@@ -82,6 +84,15 @@ void AndesShell::initForPatch (const ASMbase* pch)
 }
 
 
+void AndesShell::setPressure (RealFunc* pf)
+{
+  if (pf)
+    presFld.push_back(pf);
+  else
+    presFld.clear();
+}
+
+
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 {
   ElmMats* result = new ElmMats();
@@ -134,6 +145,13 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 }
 
 
+/*!
+  This method only deals with the element load vector due to pressure and
+  gravity loads on the 4-noded shell element. The element stiffness- and mass-
+  matrices, as well as the load vector for the 3-noded shell, are all calculated
+  in the finalizeElement() method by invoking the Fortran wrapper.
+*/
+
 bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
                           const Vec3& X) const
 {
@@ -142,6 +160,15 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   Vec3 p;
   if (Rho > 0.0 && !gravity.isZero())
     p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
+
+  if (!presFld.empty() && fe.G.cols() >= 2)
+  {
+    Vec3 n(fe.G.getColumn(1),fe.G.getColumn(2));
+    n.normalize(); // Shell normal vector
+
+    for (RealFunc* pf : presFld)
+      p += (*pf)(X)*n;
+  }
 
   if (p.isZero()) return true; // No pressure load
 
@@ -155,9 +182,14 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 }
 
 
+/*!
+  This method constructs the element stiffness and mass matrices for the 3- and
+  4-noded ANDES shell elements, by invoking the appropriate Fortran wrapper.
+*/
+
 bool AndesShell::finalizeElement (LocalIntegral& elmInt,
                                   const FiniteElement& fe,
-                                  const TimeDomain&, size_t)
+                                  const TimeDomain& time, size_t)
 {
   int iERR = -99;
   Vector vDummy(1);
@@ -183,6 +215,21 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       Vec3 p = gravity*(Rho*Thick);
       for (size_t i = 1; i <= nenod; i++)
         Press.fillColumn(i,p.ptr());
+    }
+    if (eS > 0 && !presFld.empty())
+    {
+      // Find the shell normal vector
+      std::array<Vec3,3> X = { fe.Xn.ptr(0), fe.Xn.ptr(1), fe.Xn.ptr(2) };
+      Vec3 n(X[1]-X[0],X[2]-X[0]);
+      n.normalize();
+      // Calculate nodal pressure intensities
+      for (size_t i = 1; i <= 3; i++)
+        for (RealFunc* pf : presFld)
+        {
+          Vec3 p = (*pf)(Vec4(X[i-1],time.t))*n;
+          for (size_t j = 1; j <= 3; j++)
+            Press(j,i) += p(j);
+        }
     }
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element

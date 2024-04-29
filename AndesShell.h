@@ -18,6 +18,7 @@
 #include <set>
 
 class ASMu2DNastran;
+class RealFunc;
 
 
 /*!
@@ -38,6 +39,9 @@ public:
 
   //! \brief Initialization of integrand with patch-specific data.
   virtual void initForPatch(const ASMbase* pch);
+
+  //! \brief Defines the pressure field.
+  void setPressure(RealFunc* pf = nullptr);
 
   using ElasticBase::getLocalIntegral;
   //! \brief Returns a local integral container for the given element.
@@ -75,6 +79,8 @@ private:
   double Rho;   //!< Current mass density
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
+
+  std::vector<RealFunc*> presFld; //!< Pointers to pressure field functions
 
   std::set<int> degenerated;  //!< List of detected degenerated elements
   std::set<int> straightline; //!< List of detected straight line elements

@@ -2860,4 +2860,5 @@ $* MATERIAL CARDS
 $*
 $*  Material: Steel
 MAT1           12.100+11        0.300000 7850.00
+SPC1,,123,948,THRU,951
 ENDDATA
