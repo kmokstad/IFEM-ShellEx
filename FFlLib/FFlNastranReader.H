@@ -217,6 +217,8 @@ protected:
 
   int addUniqueAttribute (FFlAttributeBase* newAtt);
 
+  IntMap::iterator setDofFlag (int n, int flg);
+
   // Alphabetical list of bulk entries that will be processed by this reader:
   DEF_PROCESSOR( ASET   ) // Specification of external nodes
   DEF_PROCESSOR( ASET1  ) // Specification of external nodes, alternate form
