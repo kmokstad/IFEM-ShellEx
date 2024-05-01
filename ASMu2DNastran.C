@@ -12,11 +12,14 @@
 //==============================================================================
 
 #include "ASMu2DNastran.h"
+#include "FiniteElement.h"
 #include "MPC.h"
+#include "Vec3Oper.h"
 #ifdef HAS_FFLLIB
 #include "FFlLinkHandler.H"
 #include "FFlNastranReader.H"
 #include "FFlElementBase.H"
+#include "FFlLoadBase.H"
 #include "FFlFEParts/FFlNode.H"
 #include "FFlFEParts/FFlPMAT.H"
 #include "FFlFEParts/FFlPMASS.H"
@@ -51,6 +54,7 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGE.clear();
   myMLGN.clear();
   myCoord.clear();
+  myLoads.clear();
 
   // Fast-forward until "BEGIN BULK"
   int lCount = 0;
@@ -250,6 +254,36 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout <<"  ** Ignored element "<< (*e)->getTypeName()
                 <<" "<< eid << std::endl;
   }
+
+  // Extract the pressure loads, if any
+  std::set<int> loadCases;
+  fem.getLoadCases(loadCases);
+  for (int lc : loadCases)
+  {
+    LoadsVec loads;
+    fem.getLoads(lc,loads);
+    for (FFlLoadBase* load : loads)
+    {
+      std::vector<FaVec3> Pe;
+      int iel, iface = 0;
+      while ((iel = load->getLoad(Pe,iface)) > 0)
+        if (iface >= 0)
+        {
+          Vec3Vec& elLoad = myLoads[iel];
+          elLoad.clear();
+          elLoad.reserve(Pe.size());
+          for (const FaVec3& P : Pe)
+            elLoad.push_back(P.getPt());
+          if (elLoad.size() == 4)
+            std::swap(elLoad[2],elLoad[3]);
+#if INT_DEBUG > 1
+          std::cout <<"Surface pressure on element "<< iel <<":";
+          for (const Vec3& p : elLoad) std::cout <<"  "<< p;
+          std::cout << std::endl;
+#endif
+        }
+    }
+  }
 #endif
 
   return true;
@@ -303,6 +337,22 @@ bool ASMu2DNastran::getLoadVector (int eId, const Vec3& g, Vector& S) const
     S(i) = it->second(i,1)*g.x + it->second(i,2)*g.y + it->second(i,3)*g.z;
 
   return true;
+}
+
+
+Vec3 ASMu2DNastran::getPressureAt (const FiniteElement& fe) const
+{
+  std::map<int,Vec3Vec>::const_iterator it = myLoads.find(fe.iel);
+  if (it == myLoads.end() || it->second.empty()) return Vec3();
+
+  if (it->second.size() < fe.N.size())
+    return it->second.front();
+
+  Vec3 p;
+  for (size_t i = 1; i < fe.N.size(); i++)
+    p += fe.N[i]*it->second[i];
+
+  return p;
 }
 
 

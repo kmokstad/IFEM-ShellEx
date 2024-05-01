@@ -170,6 +170,9 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
       p += (*pf)(X)*n;
   }
 
+  if (currentPatch) // Add surface loads from the FE model, if any
+    p += currentPatch->getPressureAt(fe);
+
   if (p.isZero()) return true; // No pressure load
 
   // Integrate the external load vector

@@ -16,6 +16,8 @@
 
 #include "ASMu2DLag.h"
 
+class FiniteElement;
+
 
 /*!
   \brief Driver for assembly of unstructured 2D %Lagrange FE models.
@@ -44,6 +46,9 @@ public:
   //! \brief Retrieves the load vector for mass element with index \a id.
   bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
+  //! \brief Evaluates the surface pressure at current integration point.
+  Vec3 getPressureAt(const FiniteElement& fe) const;
+
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.
   void addFlexibleCoupling(int iel, int lDof, const int* indC,
@@ -62,6 +67,7 @@ private:
 
   std::map<int,ShellProps> myProps;  //!< Shell element property container
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
+  std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
 };
 
 #endif
