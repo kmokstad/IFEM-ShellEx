@@ -21,6 +21,7 @@
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
 #endif
+#include <fstream>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -95,6 +96,8 @@ int mlcSim (SIMbase* model, char* infile)
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
+  \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
+  \arg -vtfgrp \a file1 \a file2 ... : Extra files for element set visualisation
 */
 
 int main (int argc, char** argv)
@@ -107,6 +110,7 @@ int main (int argc, char** argv)
   bool mlcase = false;
   char dynSol = false;
   char* infile = nullptr;
+  std::vector<std::string> resfiles, grpfiles;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
 
@@ -131,6 +135,12 @@ int main (int argc, char** argv)
       dynSol = 's';
     else if (!strncmp(argv[i],"-dyn",4))
       dynSol = 'd';
+    else if (!strncmp(argv[i],"-vtfres",6))
+      while (i+1 < argc && argv[i+1][0] != '-')
+        resfiles.push_back(argv[++i]);
+    else if (!strncmp(argv[i],"-vtfgrp",6))
+      while (i+1 < argc && argv[i+1][0] != '-')
+        grpfiles.push_back(argv[++i]);
     else if (!infile)
       infile = argv[i];
     else
@@ -259,7 +269,54 @@ int main (int argc, char** argv)
       if (!model->writeGlvM(mode,true,nBlock))
         terminate(18);
 
+    int idBlock = 100;
+    for (const std::string& fileName : grpfiles)
+    {
+      // Write element set definition
+      Vector data(model->getNoElms());
+      std::ifstream ifs(fileName);
+      while (ifs.good())
+      {
+        int iel = 0;
+        ifs >> iel;
+        if (ifs.good() && iel > 1 && iel <= static_cast<int>(data.size()))
+          data[iel-1] = 1.0;
+      }
+      if (!model->writeGlvE(data,1,nBlock,fileName.c_str(),++idBlock,true))
+        terminate(19);
+    }
+
     model->writeGlvStep(1,0.0,-1);
+
+    if (!resfiles.empty())
+    {
+      // Write external element results (from OSP calculations)
+      std::vector<Vectors> extResults(resfiles.size());
+      std::vector<double> times;
+      for (size_t i = 0; i < resfiles.size(); i++)
+      {
+        double time = 0.0;
+        Vector data(model->getNoElms());
+        std::ifstream ifs(resfiles[i]);
+        while (ifs.good())
+        {
+          ifs >> time;
+          if (i == 0) times.push_back(time);
+          for (double& val : data) ifs >> val;
+          extResults[i].push_back(data);
+        }
+      }
+      for (size_t iStep = 1; iStep <= extResults.front().size(); iStep++)
+      {
+        int jdBlock = idBlock;
+        for (size_t j = 0; j < extResults.size(); j++)
+          if (!model->writeGlvE(extResults[j][iStep-1],iStep,nBlock,
+                                resfiles[j].c_str(),++jdBlock,true))
+            terminate(19);
+
+        model->writeGlvStep(iStep+1,times[iStep-1],0);
+      }
+    }
   }
   model->closeGlv();
 
