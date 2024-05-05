@@ -1,12 +1,6 @@
 Fine.xinp -eig 4 -dynamic
 
 Input file: Fine.xinp
-Equation solver: 2
-Eigenproblem solver: 4
-Number of eigenvalues: 10
-Number of Arnoldi vectors: 20
-Shift value: 0
-Number of Gauss points: 4
 Parsing input file Fine.xinp
 Parsing <discretization>
 Parsing <geometry>
@@ -19,7 +13,7 @@ Number of other elements:       0
 	Reading patch 1
   Parsing <topologysets>
 	Topology sets: SPC7 (1,1,4D)
-	               plate (1,0,2D)
+	               plate (1,2,5D)
   Parsing <patchfile>
   Parsing <topologysets>
 Parsing <boundaryconditions>
@@ -28,7 +22,6 @@ Parsing <boundaryconditions>
 Parsing <elasticity>
   Parsing <pressure>
 	Pressure code 1 (expression): 1.0e6\*sin(PI\*(t-x/0.13))\*sin(PI\*(1.5\*z-y/0.065))
-Parsing <newmarksolver>
 Parsing input file succeeded.
 Equation solver: 2
 Eigenproblem solver: 4
@@ -63,14 +56,6 @@ Solving the eigenvalue problem ...
      9		14784.8
      10		16718.9
 Parsing input file Fine.xinp
-Parsing <discretization>
-	(skipped)
-Parsing <geometry>
-	(skipped)
-Parsing <boundaryconditions>
-	(skipped)
-Parsing <elasticity>
-	(skipped)
 Parsing <newmarksolver>
 	alpha1 = 0  alpha2 = 0.001
 	beta = 0.25  gamma = 0.5

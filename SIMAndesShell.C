@@ -60,7 +60,11 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         this->setPropertyType(code,Property::BODYLOAD);
         IFEM::cout << std::endl;
         AndesShell* shellp = static_cast<AndesShell*>(this->getIntegrand());
-        shellp->setPressure(myScalars[code]);
+        if (set.empty()) // Applies to all elements in the model
+          shellp->setPressure(myScalars[code],code);
+        else for (const ASMbase* pch : myModel)
+          if (shellp->setPressure(myScalars[code],code,set,pch))
+            break; // Note: This assumes a set has elements from one patch only
       }
     }
 

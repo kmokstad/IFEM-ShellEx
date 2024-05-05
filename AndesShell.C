@@ -95,12 +95,18 @@ void AndesShell::initForPatch (const ASMbase* pch)
 }
 
 
-void AndesShell::setPressure (RealFunc* pf)
+bool AndesShell::setPressure (RealFunc* pf, int code,
+                              const std::string& sName, const ASMbase* pch)
 {
-  if (pf)
-    presFld.push_back(pf);
+  size_t sIdx = 0;
+  if (sName.empty())
+    presFld[-code] = pf;
+  else if ((sIdx = static_cast<const ASMu2DLag*>(pch)->getElementSetIdx(sName)))
+    presFld[sIdx] = pf;
   else
-    presFld.clear();
+    return false;
+
+  return true;
 }
 
 
@@ -168,17 +174,17 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 {
   if (eS <= 0) return true; // No external load vector
 
-  Vec3 p;
+  Vec3 p, n;
   if (Rho > 0.0 && !gravity.isZero())
     p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
 
-  if (!presFld.empty() && fe.G.cols() >= 2)
+  if (fe.G.cols() >= 2 && this->havePressure(fe.iel))
   {
-    Vec3 n(fe.G.getColumn(1),fe.G.getColumn(2));
-    n.normalize(); // Shell normal vector
-
-    for (RealFunc* pf : presFld)
-      p += (*pf)(X)*n;
+    // Shell normal vector
+    n.cross(fe.G.getColumn(1),fe.G.getColumn(2));
+    n.normalize();
+    // Evaluate the pressure at this point
+    this->addPressure(p,X,n,fe.iel);
   }
 
   if (currentPatch) // Add surface loads from the FE model, if any
@@ -230,7 +236,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       for (size_t i = 1; i <= nenod; i++)
         Press.fillColumn(i,p.ptr());
     }
-    if (eS > 0 && !presFld.empty())
+    if (eS > 0 && this->havePressure(fe.iel))
     {
       // Find the shell normal vector
       std::array<Vec3,3> X = { fe.Xn.ptr(0), fe.Xn.ptr(1), fe.Xn.ptr(2) };
@@ -238,12 +244,12 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       n.normalize();
       // Calculate nodal pressure intensities
       for (size_t i = 1; i <= 3; i++)
-        for (RealFunc* pf : presFld)
-        {
-          Vec3 p = (*pf)(Vec4(X[i-1],time.t))*n;
-          for (size_t j = 1; j <= 3; j++)
-            Press(j,i) += p(j);
-        }
+      {
+        Vec3 p;
+        this->addPressure(p,Vec4(X[i-1],time.t),n,fe.iel);
+        for (size_t j = 1; j <= 3; j++)
+          Press(j,i) += p(j);
+      }
     }
     if (eS > 0 && currentPatch) // Add surface loads from the FE model, if any
       for (size_t i = 1; i <= 3; i++)
@@ -281,4 +287,37 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   else if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
   return iERR >= 0;
+}
+
+
+bool AndesShell::havePressure (int iel) const
+{
+  for (const std::pair<const int,RealFunc*>& press : presFld)
+    if (press.first < 0)
+      return true;
+    else if (!currentPatch)
+      break;
+    else
+    {
+      const IntVec& eSet = currentPatch->getElementSet(press.first);
+      if (std::find(eSet.begin(),eSet.end(),iel) != eSet.end())
+        return true;
+    }
+
+  return false;
+}
+
+
+void AndesShell::addPressure (Vec3& p, const Vec3& X,
+                              const Vec3& n, int iel) const
+{
+  for (const std::pair<const int,RealFunc*>& press : presFld)
+    if (press.first < 0)
+      p += (*press.second)(X)*n;
+    else
+    {
+      const IntVec& eSet = currentPatch->getElementSet(press.first);
+      if (std::find(eSet.begin(),eSet.end(),iel) != eSet.end())
+        p += (*press.second)(X)*n;
+    }
 }

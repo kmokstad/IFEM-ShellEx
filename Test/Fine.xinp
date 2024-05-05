@@ -8,8 +8,8 @@
       <set name="SPC7" type="nodes">
         <item patch="1"/>
       </set>
-      <set name="plate" type="face">
-        <item patch="1"/>
+      <set name="plate" type="elements">
+        <item patch="1">1:902</item>
       </set>
     </topologysets>
   </geometry>

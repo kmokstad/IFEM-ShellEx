@@ -46,7 +46,12 @@ public:
   virtual void initForPatch(const ASMbase* pch);
 
   //! \brief Defines the pressure field.
-  void setPressure(RealFunc* pf = nullptr);
+  //! \param[in] pf Spatial function describing the pressure field
+  //! \param[in] code Pressure function code
+  //! \param[in] sName Name of element set the pressure applies to
+  //! \param[in] pch The patch containing those elements
+  bool setPressure(RealFunc* pf, int code,
+                   const std::string& sName = "", const ASMbase* pch = nullptr);
 
   using ElasticBase::getLocalIntegral;
   //! \brief Returns a local integral container for the given element.
@@ -74,8 +79,19 @@ public:
   //! \brief Finalizes the element matrices after the numerical integration.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
   virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
-                               const TimeDomain&, size_t);
+                               const TimeDomain& time, size_t);
+
+protected:
+  //! \brief Returns whether element \a iel has pressure loads or not.
+  bool havePressure(int iel) const;
+  //! \brief Evaluates the surface pressure function(s) at specified point.
+  //! \param p Updated surface pressue value at evaluation point
+  //! \param[in] X Cartesian coordinates of evaluation point
+  //! \param[in] n Shell surface normal vector at evaluation point
+  //! \param[in] iel External index of element containing the evaluation point
+  void addPressure(Vec3& p, const Vec3& X, const Vec3& n, int iel) const;
 
 private:
   double Thick; //!< Current shell thickness
@@ -85,7 +101,7 @@ private:
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
 
-  std::vector<RealFunc*> presFld; //!< Pointers to pressure field functions
+  std::map<int,RealFunc*> presFld; //!< Pointers to pressure field functions
 
   std::set<int> degenerated;  //!< List of detected degenerated elements
   std::set<int> straightline; //!< List of detected straight line elements
