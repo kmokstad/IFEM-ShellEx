@@ -14,6 +14,8 @@
 #include "IFEM.h"
 #include "SIMenums.h"
 #include "SIMAndesShell.h"
+#include "NonlinearDriver.h"
+#include "ElasticityUtils.h"
 #include "Profiler.h"
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
@@ -21,6 +23,51 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+
+/*!
+  \brief Reads the input file and invokes the multi-load-case simulation driver.
+*/
+
+int mlcSim (SIMbase* model, char* infile)
+{
+  IFEM::cout <<"\nUsing the multi-load-case simulation driver."<< std::endl;
+  NonlinearDriver simulator(*model,true);
+
+  // Read in solver and model definitions
+  if (!simulator.read(infile))
+    return 1;
+
+  // Let the stop time specified on command-line override input file setting
+  if (Elastic::time > 1.0)
+    simulator.setStopTime(Elastic::time);
+
+  model->opt.print(IFEM::cout,true) << std::endl;
+
+  utl::profiler->stop("Model input");
+
+  // Preprocess the model and establish data structures for the algebraic system
+  if (!model->preprocess())
+    return 2;
+
+  if (model->opt.format >= 0)
+  {
+    // Save FE model to VTF file for visualization
+    model->opt.nViz[2] = 1;
+    if (!simulator.saveModel(infile))
+      return 3;
+  }
+
+  // Initialize the solution vectors
+  simulator.initSol();
+
+  // Initialize the linear equation solver
+  if (!simulator.initEqSystem())
+    return 3;
+
+  // Now invoke the main solution driver
+  return simulator.solveProblem(nullptr,nullptr,nullptr,false,0.0,1.0e-6,0);
+}
 
 
 /*!
@@ -40,6 +87,8 @@
   \arg -ncv \a ncv : Number of Arnoldi vectors to use in the eigenvalue analysis
   \arg -shift \a shf : Shift value to use in the eigenproblem solver
   \arg -free : Ignore all boundary conditions (use in free vibration analysis)
+  \arg -mlc : Solve the linear static problem as a multi-load-case problem
+  \arg -time : Time for evaluation of possible time-dependent functions
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
@@ -52,6 +101,7 @@ int main (int argc, char** argv)
 
   int iop = 0;
   bool fixDup = false;
+  bool mlcase = false;
   char* infile = nullptr;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
@@ -59,6 +109,8 @@ int main (int argc, char** argv)
   for (int i = 1; i < argc; i++)
     if (SIMoptions::ignoreOldOptions(argc,argv,i))
       ; // ignore the obsolete option
+    else if (!strcmp(argv[i],"-time") && i < argc-1)
+      Elastic::time = atof(argv[++i]);
     else if (!strcmp(argv[i],"-free"))
       SIMbase::ignoreDirichlet = true;
     else if (!strcmp(argv[i],"-check"))
@@ -69,6 +121,8 @@ int main (int argc, char** argv)
       if (i+1 < argc && argv[i+1][0] != '-')
         Vec3::comparisonTolerance = atof(argv[++i]);
     }
+    else if (!strncmp(argv[i],"-mlc",4))
+      mlcase = true;
     else if (!infile)
       infile = argv[i];
     else
@@ -79,13 +133,18 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-free] [-check] [-fixDup [<tol>]] [-vtf <format>]\n";
+              <<"       [-time <t>] [-free] [-mlc] [-check]\n"
+              <<"       [-fixDup [<tol>]] [-vtf <format>]\n";
     delete prof;
     return 0;
   }
 
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
+  if (!mlcase)
+    IFEM::cout <<"\nEvaluation time for property functions: "<< Elastic::time;
+  else if (Elastic::time > 1.0)
+    IFEM::cout <<"\nSimulation stop time: "<< Elastic::time;
   if (SIMbase::ignoreDirichlet)
     IFEM::cout <<"\nSpecified boundary conditions are ignored";
   if (fixDup)
@@ -112,6 +171,9 @@ int main (int argc, char** argv)
     exit(status);
   };
 
+  if (mlcase) // Solve the multi-load-case linear static problem
+    terminate(mlcSim(model,infile));
+
   // Read in model definitions
   if (!model->read(infile))
     terminate(1);
@@ -132,7 +194,7 @@ int main (int argc, char** argv)
     model->setMode(SIM::STATIC);
     model->setQuadratureRule(2);
     model->initSystem(model->opt.solver);
-    if (!model->assembleSystem())
+    if (!model->assembleSystem(Elastic::time))
       terminate(4);
 
     // Solve the linear system of equations
