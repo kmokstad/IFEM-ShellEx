@@ -161,6 +161,10 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (Rho > 0.0 && !gravity.isZero())
     p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
 
+  // Temporary hack: time-dependent gravity load
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  if (Xt) p *= sin(M_PI*Xt->t);
+
   if (!presFld.empty() && fe.G.cols() >= 2)
   {
     Vec3 n(fe.G.getColumn(1),fe.G.getColumn(2));
