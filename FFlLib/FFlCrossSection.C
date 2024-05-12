@@ -23,6 +23,8 @@
 FFlCrossSection::FFlCrossSection (const std::string& Type,
                                   const std::vector<double>& Dim)
 {
+  name = Type;
+
   // Lambda function for calculating x^2
   std::function<double(double)> pow2 = [](double x) -> double { return x*x; };
   // Lambda function for calculating x^3
@@ -212,6 +214,7 @@ double FFlCrossSection::findMainAxes ()
 
 std::ostream& operator<< (std::ostream& os, const FFlCrossSection& cs)
 {
+  os << cs.name <<":";
   if (fabs(cs.A) > 1.0e-16) os <<" A="<< cs.A;
   if (fabs(cs.Izz) > 1.0e-16) os <<" Izz="<< cs.Izz;
   if (fabs(cs.Iyy) > 1.0e-16) os <<" Iyy="<< cs.Iyy;
@@ -220,5 +223,5 @@ std::ostream& operator<< (std::ostream& os, const FFlCrossSection& cs)
   if (fabs(cs.K1)+fabs(cs.K2) > 1.0e-16) os <<" K1="<< cs.K1 <<" K2="<< cs.K2;
   if (fabs(cs.S1)+fabs(cs.S2) > 1.0e-16) os <<" S1="<< cs.S1 <<" S2="<< cs.S2;
   if (fabs(cs.NSM) > 1.0e-16) os <<" NSM="<< cs.NSM;
-  return os;
+  return os << std::endl;
 }

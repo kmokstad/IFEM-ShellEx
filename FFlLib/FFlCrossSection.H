@@ -19,6 +19,7 @@
 
 struct FFlCrossSection
 {
+  std::string name; //!< Cross section type name
   double A   = 0.0; //!< Cross section area
   double Iyy = 0.0; //!< 2nd moment of inertia about local Y-axis
   double Izz = 0.0; //!< 2nd moment of inertia about local Z-axis
@@ -31,7 +32,7 @@ struct FFlCrossSection
   double S2  = 0.0; //!< Shear center position in local Z-direction
 
   //! \brief Default constructor.
-  FFlCrossSection(double K = 0.0) { K1 = K2 = K; }
+  FFlCrossSection(double K = 0.0) { name = "Generic"; K1 = K2 = K; }
   //! \brief Constructor calculating cross section parameters from given data.
   //! \param[in] Type Geometric cross section type
   //! \param[in] Dim Parameter values defining the cross section geometry

@@ -90,6 +90,7 @@ static FFlAttributeBase* createBeamSection (int PID, FFlCrossSection& data,
       myAtt->setName(comment.second);
 
 #ifdef FFL_DEBUG
+  std::cout << data;
   myAtt->print();
 #endif
   return myAtt;
@@ -2753,7 +2754,7 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
     while (iLast < entry.size() && isSOFIELD(entry[iLast]))
     {
       double endB[11]; endB[0] = 0.0;
-      memcpy(endB+1,&params,sizeof(params));
+      memcpy(endB+1,&params.A,10*sizeof(double));
       for (size_t i = 1; i < 8 && iLast+i < entry.size(); i++)
         if (!entry[iLast+i].empty())
           CONVERT_ENTRY ("PBEAM",fieldValue(entry[iLast+i],endB[i-1]));
