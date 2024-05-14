@@ -94,10 +94,11 @@ int mlcSim (SIMbase* model, char* infile)
   \arg -qstatic : Solve the linear dynamics problem as quasi-static
   \arg -dynamic : Solve the linear dynamics problem using modal transformation
   \arg -check : Data check only, read model and output to VTF (no solution)
-  \arg -fixDup <tol> : Resolve co-located nodes by merging them into one
+  \arg -fixDup \a tol : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
   \arg -vtfgrp \a file1 \a file2 ... : Extra files for element set visualisation
+  \arg -refsol \a file1 \a file2 ... : Files with reference solution
 */
 
 int main (int argc, char** argv)
@@ -110,7 +111,7 @@ int main (int argc, char** argv)
   bool mlcase = false;
   char dynSol = false;
   char* infile = nullptr;
-  std::vector<std::string> resfiles, grpfiles;
+  std::vector<std::string> resfiles, grpfiles, disfiles;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
 
@@ -141,6 +142,9 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-vtfgrp",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         grpfiles.push_back(argv[++i]);
+    else if (!strncmp(argv[i],"-refsol",6))
+      while (i+1 < argc && argv[i+1][0] != '-')
+        disfiles.push_back(argv[++i]);
     else if (!infile)
       infile = argv[i];
     else
@@ -152,7 +156,8 @@ int main (int argc, char** argv)
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
               <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]\n"
-              <<"       [-fixDup [<tol>]] [-vtf <format>]\n";
+              <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]]\n"
+              <<"       [-fixDup [<tol>]] [-refsol <files>]\n";
     delete prof;
     return 0;
   }
@@ -207,7 +212,20 @@ int main (int argc, char** argv)
   if (!model->preprocess({},fixDup))
     terminate(2);
 
-  Vectors displ(1);
+  Vectors displ(2);
+  if (!disfiles.empty())
+  {
+    // Read reference solution from external file(s) into displ.back()
+    size_t incd = disfiles.size() == 1 ? 1 : 6;
+    size_t ndof = model->getNoDOFs();
+    displ.back().resize(ndof);
+    for (size_t ldof = 0; ldof < disfiles.size() && ldof < 6; ldof++)
+    {
+      std::ifstream ifs(disfiles[ldof]);
+      for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
+        ifs >> displ.back()[idof];
+    }
+  }
 
   switch (iop+model->opt.eig) {
   case 0:
@@ -243,6 +261,35 @@ int main (int argc, char** argv)
 
   utl::profiler->start("Postprocessing");
 
+  if (!displ.front().empty() && !displ.back().empty())
+  {
+    // Calculate the L2-norm of the two solutions and the difference
+    size_t ndof = model->getNoDOFs();
+    std::array<Vector,3> tra, rot;
+    for (int i = 0; i < 2; i++)
+    {
+      tra[i].resize(ndof/2);
+      rot[i].resize(ndof/2);
+      size_t jdof = 1;
+      for (size_t idof = 1; idof <= ndof; idof += 6)
+        for (int j = 0; j < 3; j++, jdof++)
+        {
+          tra[i](jdof) = displ[i](idof+j);
+          rot[i](jdof) = displ[i](idof+3+j);
+        }
+    }
+    tra[2] = tra[0] - tra[1];
+    rot[2] = rot[0] - rot[1];
+    IFEM::cout <<"\nL2-norm of this solution: "
+               << tra[0].norm2() <<" "<< rot[0].norm2()
+               <<"\nL2-norm of ref. solution: "
+               << tra[1].norm2() <<" "<< rot[1].norm2()
+               <<"\nL2-norm of difference:  "
+               << tra[2].norm2() <<" "<< rot[2].norm2() <<" ("
+               << 100.0*tra[2].norm2()/tra[1].norm2() <<"% "
+               << 100.0*rot[2].norm2()/rot[1].norm2() <<"%)"<< std::endl;
+  }
+
   if (model->opt.format >= 0)
   {
     int geoBlk = 0, nBlock = 0;
@@ -261,8 +308,12 @@ int main (int argc, char** argv)
 
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
-    if (!model->writeGlvS(displ[0],1,nBlock))
+    if (!model->writeGlvS(displ.front(),1,nBlock))
       terminate(16);
+
+    // Write reference solution, if any
+    if (model->writeGlvS1(displ.back(),1,nBlock,0.0,"Reference",20,-1) < 0)
+      terminate(17);
 
     // Write eigenmodes
     for (const Mode& mode : modes)
