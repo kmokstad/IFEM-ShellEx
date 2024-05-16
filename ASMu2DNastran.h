@@ -16,8 +16,6 @@
 
 #include "ASMu2DLag.h"
 
-class FiniteElement;
-
 
 /*!
   \brief Driver for assembly of unstructured 2D %Lagrange FE models.
@@ -47,7 +45,7 @@ public:
   bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
   //! \brief Evaluates the surface pressure at current integration point.
-  Vec3 getPressureAt(const FiniteElement& fe) const;
+  Vec3 getPressureAt(int iel, const RealArray& N) const;
 
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.

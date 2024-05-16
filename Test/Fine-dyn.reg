@@ -7,7 +7,6 @@ Number of eigenvalues: 10
 Number of Arnoldi vectors: 20
 Shift value: 0
 Number of Gauss points: 4
-Evaluation time for property functions: 1
 Parsing input file Fine.xinp
 Parsing <discretization>
 Parsing <geometry>

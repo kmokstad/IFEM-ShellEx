@@ -182,7 +182,7 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   }
 
   if (currentPatch) // Add surface loads from the FE model, if any
-    p += currentPatch->getPressureAt(fe);
+    p += currentPatch->getPressureAt(fe.iel,fe.N);
 
   if (p.isZero()) return true; // No pressure load
 
@@ -245,6 +245,13 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
             Press(j,i) += p(j);
         }
     }
+    if (eS > 0 && currentPatch) // Add surface loads from the FE model, if any
+      for (size_t i = 1; i <= 3; i++)
+      {
+        Vec3 p = currentPatch->getPressureAt(fe.iel,{-static_cast<double>(i)});
+        for (size_t j = 1; j <= 3; j++)
+          Press(j,i) += p(j);
+      }
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element
     ifem_andes3_(fe.iel, fe.Xn.ptr(),

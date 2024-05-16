@@ -340,17 +340,24 @@ bool ASMu2DNastran::getLoadVector (int eId, const Vec3& g, Vector& S) const
 }
 
 
-Vec3 ASMu2DNastran::getPressureAt (const FiniteElement& fe) const
+Vec3 ASMu2DNastran::getPressureAt (int iel, const RealArray& N) const
 {
-  std::map<int,Vec3Vec>::const_iterator it = myLoads.find(fe.iel);
+  std::map<int,Vec3Vec>::const_iterator it = myLoads.find(iel);
   if (it == myLoads.end() || it->second.empty()) return Vec3();
 
-  if (it->second.size() < fe.N.size())
+  size_t n = it->second.size();
+  if (n == 1 || N.size() > n)
     return it->second.front();
+  else if (N.size() == 1 && N.front() < 0.0)
+  {
+    // N[0] contains the nodal index
+    size_t idx = -N.front();
+    return idx > 0 && idx <= n ? it->second[idx-1] : Vec3();
+  }
 
   Vec3 p;
-  for (size_t i = 1; i < fe.N.size(); i++)
-    p += fe.N[i]*it->second[i];
+  for (size_t i = 0; i < N.size(); i++)
+    p += N[i]*it->second[i];
 
   return p;
 }
