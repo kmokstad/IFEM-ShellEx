@@ -67,6 +67,12 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
             break; // Note: This assumes a set has elements from one patch only
       }
     }
+    else if (!strcasecmp(child->Value(),"material"))
+    {
+      IFEM::cout <<"  Parsing <material>"<< std::endl;
+
+      this->getIntegrand()->parseMatProp(child,true);
+    }
 
   return true;
 }

@@ -35,6 +35,10 @@ public:
   //! \brief The destructor writes out the ignored bad elements.
   virtual ~AndesShell();
 
+  using ElasticBase::parseMatProp;
+  //! \brief Parses material properties from an XML-element.
+  virtual Material* parseMatProp(const tinyxml2::XMLElement* elem, bool);
+
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
 
@@ -58,13 +62,17 @@ public:
   //! \param[in] nen Number of nodes on element
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t, bool) const;
 
+  //! \brief Returns which integrand to be used.
+  virtual int getIntegrandType() const;
+
   using ElasticBase::initElement;
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] Xc Cartesian coordinates of the element center
   //! \param elmInt The local integral object for current element
   virtual bool initElement(const std::vector<int>& MNPC,
-                           const FiniteElement& fe, const Vec3&, size_t,
+                           const FiniteElement& fe, const Vec3& Xc, size_t,
                            LocalIntegral& elmInt);
 
   using ElasticBase::evalInt;
@@ -98,6 +106,12 @@ private:
   double Emod;  //!< Current Young's modules
   double Rny;   //!< Current Poisson's ratio
   double Rho;   //!< Current mass density
+  bool ovrMat;  //!< If \e true, patch-level material properties are overridden
+
+  double trInside;  //!< Thickness loss level inside given box domain
+  double trOutside; //!< Thickness loss level outside given box domain
+  Vec3 Xlow; //!< Lower bound of thickness loss box
+  Vec3 Xupp; //!< Uppoer bound of thickness loss box
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
 

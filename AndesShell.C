@@ -18,6 +18,7 @@
 #include "TimeDomain.h"
 #include "Function.h"
 #include "Vec3Oper.h"
+#include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <fstream>
@@ -48,6 +49,10 @@ AndesShell::AndesShell (unsigned short int n, bool modal)
   Emod  = 2.1e11;
   Rny   = 0.3;
   Thick = 0.1;
+  Rho   = 7.85e3;
+  ovrMat = false;
+
+  trInside = trOutside = 0.0;
 
   isModal = modal;
 
@@ -70,6 +75,34 @@ AndesShell::~AndesShell ()
     os <<"GROUP{2"; for (int e : straightline) os <<" "<< e;
     os <<" {NAME \"straight line elements\"}}\n";
   }
+}
+
+
+Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem, bool)
+{
+  if (utl::getAttribute(elem,"override",ovrMat) && ovrMat)
+  {
+    IFEM::cout <<"\tPatch-level material properties are overridden:";
+    if (utl::getAttribute(elem,"E",Emod))
+      IFEM::cout <<" E="<< Emod;
+    if (utl::getAttribute(elem,"nu",Rny))
+      IFEM::cout <<" nu="<< Rny;
+    if (utl::getAttribute(elem,"rho",Rho))
+      IFEM::cout <<" rho="<< Rho;
+    IFEM::cout << std::endl;
+  }
+
+  const tinyxml2::XMLElement* child = elem->FirstChildElement("thickloss");
+  if (child && child->FirstChild())
+  {
+    utl::getAttribute(child,"t1",trOutside);
+    utl::getAttribute(child,"t2",trInside);
+    std::istringstream(child->FirstChild()->Value()) >> Xlow >> Xupp;
+    IFEM::cout <<"\tThickness loss: t1="<< trOutside <<" t2="<< trInside
+               <<"  Xlower = "<< Xlow <<"  Xupper = "<< Xupp << std::endl;
+  }
+
+  return nullptr;
 }
 
 
@@ -147,18 +180,37 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 }
 
 
+int AndesShell::getIntegrandType () const
+{
+  return trInside > 0.0 && trOutside > 0.0 ? ELEMENT_CENTER : STANDARD;
+}
+
+
 bool AndesShell::initElement (const std::vector<int>& MNPC,
-                              const FiniteElement& fe, const Vec3&, size_t,
+                              const FiniteElement& fe, const Vec3& Xc, size_t,
                               LocalIntegral& elmInt)
 {
   if (!this->initElement(MNPC,elmInt))
     return false;
   else if (fe.Xn.cols() == 1)
     return true;
-  else if (currentPatch)
-    return currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
-  else
+  else if (!currentPatch)
     return false;
+
+  bool ok = true;
+  if (ovrMat) // Override the patch-level material properties
+  {
+    double dum1, dum2, dum3;
+    ok = currentPatch->getProps(fe.iel,dum1,dum2,dum3,Thick);
+  }
+  else // Use patch-level material properties
+    ok = currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
+
+  // Scale the thickness depending on location inside or outside given box
+  if (trInside > 0.0 && trOutside > 0.0)
+    Thick *= 1.0 - (Xlow < Xc && Xc < Xupp ? trInside : trOutside);
+
+  return ok;
 }
 
 
