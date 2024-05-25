@@ -26,6 +26,7 @@
   <discretization type="lagrange"/>
 
   <newmarksolver alpha2="0.001">
+    <nupdate>0</nupdate>
     <timestepping>
       <step start="0.0" end="1.0">0.05</step>
     </timestepping>

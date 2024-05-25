@@ -14,8 +14,10 @@
 #include "IFEM.h"
 #include "SIMenums.h"
 #include "SIMShellModal.h"
+#include "NewmarkDriver.h"
 #include "NonlinearDriver.h"
 #include "ElasticityUtils.h"
+#include "NewmarkSIM.h"
 #include "ModalSim.h"
 #include "Profiler.h"
 #ifdef HAS_FFLLIB
@@ -73,6 +75,53 @@ int mlcSim (SIMbase* model, char* infile)
 
 
 /*!
+  \brief Reads the input file and invokes the linear dynamics simulation driver.
+*/
+
+int dynamicSim (SIMbase* model, char* infile)
+{
+  IFEM::cout <<"\nUsing the linear dynamics simulation driver."<< std::endl;
+  NewmarkDriver<NewmarkSIM> simulator(*model);
+
+  // Read in solver and model definitions
+  if (!simulator.read(infile))
+    return 1;
+
+  // Let the stop time specified on command-line override input file setting
+  if (Elastic::time > 1.0)
+    simulator.setStopTime(Elastic::time);
+
+  model->opt.print(IFEM::cout,true) << std::endl;
+  simulator.printProblem();
+
+  utl::profiler->stop("Model input");
+
+  // Preprocess the model and establish data structures for the algebraic system
+  if (!model->preprocess())
+    return 2;
+
+  if (model->opt.format >= 0)
+  {
+    // Save FE model to VTF file for visualization
+    model->opt.nViz[2] = 1;
+    if (!simulator.saveModel(infile))
+      return 3;
+  }
+
+  // Define the initial configuration and initialize the solution vectors
+  simulator.initPrm();
+  simulator.initSol(3);
+
+  // Initialize the linear equation solver
+  if (!simulator.initEqSystem(false,0))
+    return 3;
+
+  // Now invoke the main solution driver
+  return simulator.solveProblem(nullptr,nullptr,1.0e-6,0);
+}
+
+
+/*!
   \brief Main program for the linear elastic shell solver.
 
   The input to the program is specified through the following
@@ -109,6 +158,7 @@ int main (int argc, char** argv)
   int iop = 0;
   bool fixDup = false;
   bool mlcase = false;
+  bool modalS = false;
   char dynSol = false;
   char* infile = nullptr;
   std::vector<std::string> resfiles, grpfiles, disfiles;
@@ -181,9 +231,12 @@ int main (int argc, char** argv)
   utl::profiler->stop("Initialization");
   utl::profiler->start("Model input");
 
+  if (IFEM::getOptions().eig == 4 && dynSol)
+    modalS = true; // Modal dynamics solution
+
   // Create the simulation model
   std::vector<Mode> modes;
-  SIMoutput* model = dynSol ? new SIMShellModal(modes) : new SIMAndesShell();
+  SIMoutput* model = modalS ? new SIMShellModal(modes) : new SIMAndesShell();
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
@@ -197,12 +250,12 @@ int main (int argc, char** argv)
   if (mlcase) // Solve the multi-load-case linear static problem
     terminate(mlcSim(model,infile));
 
+  if (dynSol && !modalS) // Invoke the linear Newmark time integration simulator
+    terminate(dynamicSim(model,infile));
+
   // Read in model definitions
   if (!model->read(infile))
     terminate(1);
-
-  if (model->opt.eig != 3 && model->opt.eig != 4 && model->opt.eig != 6)
-    dynSol = false; // Dynamics solution requires eigenmode calculation
 
   model->opt.print(IFEM::cout,true) << std::endl;
 
@@ -256,7 +309,7 @@ int main (int argc, char** argv)
       terminate(9);
   }
 
-  if (dynSol) // Solve the dynamics problem using modal transformation
+  if (modalS) // Solve the dynamics problem using modal transformation
     terminate(modalSim(infile,modes.size(),false,dynSol=='s',model));
 
   utl::profiler->start("Postprocessing");

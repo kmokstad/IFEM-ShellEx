@@ -14,7 +14,7 @@
 #include "AndesShell.h"
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
-#include "ElmMats.h"
+#include "NewmarkMats.h"
 #include "TimeDomain.h"
 #include "Function.h"
 #include "Vec3Oper.h"
@@ -119,6 +119,8 @@ void AndesShell::setMode (SIM::SolutionMode mode)
     mode = SIM::RHS_ONLY;
 
   this->ElasticBase::setMode(mode);
+
+  if (mode == SIM::STATIC || (isModal && mode == SIM::RHS_ONLY)) iS  = 0;
 }
 
 
@@ -145,13 +147,22 @@ bool AndesShell::setPressure (RealFunc* pf, int code,
 
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 {
-  ElmMats* result = new ElmMats();
+  ElmMats* result = nullptr;
+
+  if (!isModal && m_mode == SIM::DYNAMIC)
+    result = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
+  else
+    result = new ElmMats();
 
   switch (m_mode)
   {
     case SIM::STATIC:
     case SIM::MASS_ONLY:
       result->resize(1,1);
+      break;
+
+    case SIM::DYNAMIC:
+      result->resize(3,1);
       break;
 
     case SIM::VIBRATION:
@@ -338,7 +349,15 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     straightline.insert(fe.iel);
   else if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
-  return iERR >= 0;
+
+  if (iS && !elmInt.vec.empty() && nenod > 1 && iERR >= 0)
+  {
+    Vector& Svec = static_cast<ElmMats&>(elmInt).b[iS-1];
+    if (!Kmat.multiply(elmInt.vec.front(),Svec,false,-1))
+      iERR = -97;
+  }
+
+  return iERR >= 0 && this->finalizeElement(elmInt,time);
 }
 
 
