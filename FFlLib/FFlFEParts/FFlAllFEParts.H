@@ -28,7 +28,6 @@
 #include "FFlWEDG15.H"
 #include "FFlHEX8.H"
 #include "FFlHEX20.H"
-#include "FFlSTRCoat.H"
 #include "FFlCLOAD.H"
 #include "FFlPLOAD.H"
 #include "FFlPMASS.H"
@@ -52,10 +51,13 @@
 #include "FFlPMAT3D.H"
 #include "FFlPMATSHELL.H"
 #include "FFlPCOORDSYS.H"
+#ifdef FT_USE_STRAINCOAT
+#include "FFlSTRCoat.H"
 #include "FFlPSTRC.H"
 #include "FFlPHEIGHT.H"
 #include "FFlPTHICKREF.H"
 #include "FFlPFATIGUE.H"
+#endif
 #ifdef FT_USE_VISUALS
 #include "FFlVAppearance.H"
 #include "FFlVDetail.H"

@@ -29,7 +29,9 @@
 #include "FFlLib/FFlFEParts/FFlRBAR.H"
 #include "FFlLib/FFlFEParts/FFlRGD.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
+#ifdef FT_USE_STRAINCOAT
 #include "FFlLib/FFlFEParts/FFlSTRCoat.H"
+#endif
 
 typedef FFaSingelton<FFaMemPoolMgr,FFlElementBase> FFlMemPoolMgr;
 
@@ -56,10 +58,12 @@ FFaMemPool FFlHEX20  ::ourMemPool(sizeof(FFlHEX20)  ,FFlMemPoolMgr::instance());
 FFaMemPool FFlRBAR   ::ourMemPool(sizeof(FFlRBAR)   ,FFlMemPoolMgr::instance());
 FFaMemPool FFlRGD    ::ourMemPool(sizeof(FFlRGD)    ,FFlMemPoolMgr::instance());
 FFaMemPool FFlWAVGM  ::ourMemPool(sizeof(FFlWAVGM)  ,FFlMemPoolMgr::instance());
+#ifdef FT_USE_STRAINCOAT
 FFaMemPool FFlSTRCT3 ::ourMemPool(sizeof(FFlSTRCT3) ,FFlMemPoolMgr::instance());
 FFaMemPool FFlSTRCQ4 ::ourMemPool(sizeof(FFlSTRCQ4) ,FFlMemPoolMgr::instance());
 FFaMemPool FFlSTRCT6 ::ourMemPool(sizeof(FFlSTRCT6) ,FFlMemPoolMgr::instance());
 FFaMemPool FFlSTRCQ8 ::ourMemPool(sizeof(FFlSTRCQ8) ,FFlMemPoolMgr::instance());
+#endif
 #endif
 
 
@@ -104,10 +108,12 @@ void FFlMemPool::setAsMemPoolPart(FFlLinkHandler*
   FFlRBAR   ::usePartOfPool(link);
   FFlRGD    ::usePartOfPool(link);
   FFlWAVGM  ::usePartOfPool(link);
+#ifdef FT_USE_STRAINCOAT
   FFlSTRCT3 ::usePartOfPool(link);
   FFlSTRCQ4 ::usePartOfPool(link);
   FFlSTRCT6 ::usePartOfPool(link);
   FFlSTRCQ8 ::usePartOfPool(link);
+#endif
 #endif
 }
 
@@ -141,10 +147,12 @@ void FFlMemPool::freeMemPoolPart(FFlLinkHandler*
   FFlRBAR   ::freePartOfPool(link);
   FFlRGD    ::freePartOfPool(link);
   FFlWAVGM  ::freePartOfPool(link);
+#ifdef FT_USE_STRAINCOAT
   FFlSTRCT3 ::freePartOfPool(link);
   FFlSTRCQ4 ::freePartOfPool(link);
   FFlSTRCT6 ::freePartOfPool(link);
   FFlSTRCQ8 ::freePartOfPool(link);
+#endif
 #endif
 }
 
@@ -175,9 +183,11 @@ void FFlMemPool::resetMemPoolPart()
   FFlRBAR   ::useDefaultPartOfPool();
   FFlRGD    ::useDefaultPartOfPool();
   FFlWAVGM  ::useDefaultPartOfPool();
+#ifdef FT_USE_STRAINCOAT
   FFlSTRCT3 ::useDefaultPartOfPool();
   FFlSTRCQ4 ::useDefaultPartOfPool();
   FFlSTRCT6 ::useDefaultPartOfPool();
   FFlSTRCQ8 ::useDefaultPartOfPool();
+#endif
 #endif
 }

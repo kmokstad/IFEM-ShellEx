@@ -38,10 +38,12 @@ void FFl::initAllElements()
   FFlWEDG15::init();
   FFlHEX8::init();
   FFlHEX20::init();
+#ifdef FT_USE_STRAINCOAT
   FFlSTRCT3::init();
   FFlSTRCT6::init();
   FFlSTRCQ4::init();
   FFlSTRCQ8::init();
+#endif
 
   FFlCFORCE::init();
   FFlCMOMENT::init();
@@ -70,11 +72,12 @@ void FFl::initAllElements()
   FFlPMAT3D::init();
   FFlPMATSHELL::init();
   FFlPCOORDSYS::init();
+#ifdef FT_USE_STRAINCOAT
   FFlPSTRC::init();
   FFlPHEIGHT::init();
   FFlPTHICKREF::init();
   FFlPFATIGUE::init();
-
+#endif
 #ifdef FT_USE_VISUALS
   FFlVAppearance::init();
   FFlVDetail::init();
@@ -124,10 +127,12 @@ void FFl::releaseAllElements()
   releaseElement<FFlWEDG15>();
   releaseElement<FFlHEX8>();
   releaseElement<FFlHEX20>();
+#ifdef FT_USE_STRAINCOAT
   releaseElement<FFlSTRCT3>();
   releaseElement<FFlSTRCT6>();
   releaseElement<FFlSTRCQ4>();
   releaseElement<FFlSTRCQ8>();
+#endif
   ElementFactory::removeInstance();
 
   releaseAttribute<FFlCFORCE>();
@@ -158,10 +163,12 @@ void FFl::releaseAllElements()
   releaseAttribute<FFlPMAT3D>();
   releaseAttribute<FFlPMATSHELL>();
   releaseAttribute<FFlPCOORDSYS>();
+#ifdef FT_USE_STRAINCOAT
   releaseAttribute<FFlPSTRC>();
   releaseAttribute<FFlPHEIGHT>();
   releaseAttribute<FFlPTHICKREF>();
   releaseAttribute<FFlPFATIGUE>();
+#endif
   AttributeFactory::removeInstance();
 
 #ifdef FT_USE_VISUALS
