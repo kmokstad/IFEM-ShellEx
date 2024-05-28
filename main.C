@@ -159,6 +159,7 @@ int main (int argc, char** argv)
   bool fixDup = false;
   bool mlcase = false;
   bool modalS = false;
+  bool nodalR = false;
   char dynSol = false;
   char* infile = nullptr;
   std::vector<std::string> resfiles, grpfiles, disfiles;
@@ -187,8 +188,13 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-dyn",4))
       dynSol = 'd';
     else if (!strncmp(argv[i],"-vtfres",6))
+    {
       while (i+1 < argc && argv[i+1][0] != '-')
-        resfiles.push_back(argv[++i]);
+        if (!strcmp(argv[++i],"nodal"))
+          nodalR = true;
+        else
+          resfiles.push_back(argv[i]);
+    }
     else if (!strncmp(argv[i],"-vtfgrp",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         grpfiles.push_back(argv[++i]);
@@ -376,8 +382,8 @@ int main (int argc, char** argv)
     int idBlock = 100;
     for (const std::string& fileName : grpfiles)
     {
-      // Write element set definition
-      Vector data(model->getNoElms());
+      // Write node/element set definition
+      Vector data(nodalR ? model->getNoNodes() : model->getNoElms());
       std::ifstream ifs(fileName);
       while (ifs.good())
       {
@@ -386,21 +392,26 @@ int main (int argc, char** argv)
         if (ifs.good() && iel > 1 && iel <= static_cast<int>(data.size()))
           data[iel-1] = 1.0;
       }
-      if (!model->writeGlvE(data,1,nBlock,fileName.c_str(),++idBlock,true))
-        terminate(19);
+
+      bool ok = true;
+      if (nodalR)
+        ok = model->writeGlvS(data,fileName.c_str(),1,nBlock,++idBlock);
+      else
+        ok = model->writeGlvE(data,1,nBlock,fileName.c_str(),++idBlock,true);
+      if (!ok) terminate(19);
     }
 
     model->writeGlvStep(1,0.0,-1);
 
     if (!resfiles.empty())
     {
-      // Write external element results (from OSP calculations)
+      // Write external  results (from OSP calculations)
       std::vector<Vectors> extResults(resfiles.size());
       std::vector<double> times;
       for (size_t i = 0; i < resfiles.size(); i++)
       {
         double time = 0.0;
-        Vector data(model->getNoElms());
+        Vector data(nodalR ? model->getNoNodes() : model->getNoElms());
         std::ifstream ifs(resfiles[i]);
         while (ifs.good())
         {
@@ -410,13 +421,19 @@ int main (int argc, char** argv)
           extResults[i].push_back(data);
         }
       }
+
       for (size_t iStep = 1; iStep <= extResults.front().size(); iStep++)
       {
+        bool ok = true;
         int jdBlock = idBlock;
-        for (size_t j = 0; j < extResults.size(); j++)
-          if (!model->writeGlvE(extResults[j][iStep-1],iStep,nBlock,
-                                resfiles[j].c_str(),++jdBlock,true))
-            terminate(19);
+        for (size_t j = 0; j < extResults.size() && ok; j++)
+          if (nodalR)
+            ok = model->writeGlvS(extResults[j][iStep-1],
+                                  resfiles[j].c_str(),iStep,nBlock,++jdBlock);
+          else
+            ok = model->writeGlvE(extResults[j][iStep-1],iStep,nBlock,
+                                  resfiles[j].c_str(),++jdBlock,true);
+        if (!ok) terminate(19);
 
         model->writeGlvStep(iStep+1,times[iStep-1],0);
       }
