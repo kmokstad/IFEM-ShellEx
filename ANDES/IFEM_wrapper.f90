@@ -245,7 +245,7 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   call pMatStiff (Xnod,PMAT,LPU,IERR)
   if (ierr < 0) goto 999
 
-  !! Project the stiffness matrix: K = P'*K*P
+  !! Project the stiffness matrix: K = P^t*K*P
   call DGEMM ('T','N', NELDOF, NELDOF, NELDOF, 1.0_dp, &
        &      PMAT(1,1), NELDOF, KMAT(1,1), NELDOF, 0.0_dp, TMP(1), NELDOF)
   call DGEMM ('N','N', NELDOF, NELDOF, NELDOF, 1.0_dp, &

@@ -75,8 +75,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
   k = 1 + mod(j,3)
 
   if (indC(lDof) > 0) then
-     !! Direct coupling of the lDof'th dependent DOF to
-     !! corresponding independent DOFs
+
+     !! Direct coupling of dependent DOF to the corresponding independent DOFs
 
      iFrst = indC(lDof)
      iLast = iFrst + nM-1

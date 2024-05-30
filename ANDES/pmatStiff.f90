@@ -99,7 +99,7 @@ subroutine pmat_stiff1 (coor,pmat,lpu,ierr)
      rmat(:,i) = rmat(:,i)/c
   end do
 
-  !! Compute nondiagonal part of R'*R
+  !! Compute nondiagonal part of Transpose(R)*R
 
   do i = 1, 3
      do j = 1, 3
@@ -109,7 +109,7 @@ subroutine pmat_stiff1 (coor,pmat,lpu,ierr)
   subinv = invert33(sub,lpu,ierr)
   if (ierr < 0) return
 
-  !! Compute RS = R*Inverse(R'*R)
+  !! Compute RS = R*Inverse(Transpose(R)*R)
 
   do i = 1, 6*nnod
      rsmat(1:3) = rmat(i,1:3)
@@ -117,7 +117,7 @@ subroutine pmat_stiff1 (coor,pmat,lpu,ierr)
         rsmat(3+j) = dot_product(rmat(i,4:6),subinv(1:3,j))
      end do
 
-     !! Compute the projector matrix as P = ( I - R*(RR)R' )
+     !! Compute the projector matrix as P = I - R*(R*R)*Transpose(R)
      do j = 1, 6*nnod
         pmat(i,j) = -dot_product(rsmat,rmat(j,:))
      end do
