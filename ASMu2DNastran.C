@@ -309,6 +309,17 @@ bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
 }
 
 
+bool ASMu2DNastran::getThickness (int eId, double& t) const
+{
+  std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
+  if (it == myProps.end()) return false; // silently ignore
+
+  t = it->second.Thick;
+
+  return true;
+}
+
+
 bool ASMu2DNastran::getMassMatrix (int eId, Matrix& M) const
 {
   std::map<int,Matrix>::const_iterator it = myMass.find(eId);
