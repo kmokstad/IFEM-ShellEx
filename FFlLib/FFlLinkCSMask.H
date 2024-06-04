@@ -6,7 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef FFL_LINK_CS_MASK_H
-#define FLL_LINK_CS_MASK_H
+#define FFL_LINK_CS_MASK_H
 
 
 namespace FFl
