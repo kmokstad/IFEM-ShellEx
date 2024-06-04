@@ -47,7 +47,7 @@ public:
   bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
   //! \brief Evaluates the surface pressure at current integration point.
-  Vec3 getPressureAt(int iel, const RealArray& N) const;
+  bool addPressureAt(Vec3& p, int iel, const RealArray& N) const;
 
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.

@@ -64,6 +64,11 @@ public:
   bool setPressure(RealFunc* pf, int code,
                    const std::string& sName = "", const ASMbase* pch = nullptr);
 
+  using ElasticBase::initIntegration;
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  virtual void initIntegration(size_t nGp, size_t);
+
   using ElasticBase::getLocalIntegral;
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
@@ -98,9 +103,19 @@ public:
   virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
                                const TimeDomain& time, size_t);
 
+  //! \brief Returns whether there are any load values to write to VTF.
+  virtual bool hasTractionValues() const;
+
+  //! \brief Writes the surface pressure for a given time step to VTF-file.
+  //! \param vtf The VTF-file object to receive the pressure vectors
+  //! \param[in] iStep Load/time step identifier
+  //! \param geoBlk Running geometry block counter
+  //! \param nBlock Running result block counter
+  virtual bool writeGlvT(VTF* vtf, int iStep, int& geoBlk, int& nBlock) const;
+
 protected:
   //! \brief Returns whether element \a iel has pressure loads or not.
-  bool havePressure(int iel) const;
+  bool havePressure(int iel = -1) const;
   //! \brief Evaluates the surface pressure function(s) at specified point.
   //! \param p Updated surface pressue value at evaluation point
   //! \param[in] X Cartesian coordinates of evaluation point
@@ -123,6 +138,8 @@ private:
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
 
   std::map<int,RealFunc*> presFld; //!< Pointers to pressure field functions
+
+  mutable std::vector<Vec3Pair> presVal; //!< Pressure field point values
 
   std::set<int> degenerated;  //!< List of detected degenerated elements
   std::set<int> straightline; //!< List of detected straight line elements
