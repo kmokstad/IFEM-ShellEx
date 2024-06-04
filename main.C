@@ -18,6 +18,8 @@
 #include "ElasticityUtils.h"
 #include "ElasticityArgs.h"
 #include "DynamicSim.h"
+#include "DataExporter.h"
+#include "HDF5Writer.h"
 #include "Profiler.h"
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
@@ -65,8 +67,25 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
   if (!simulator.initEqSystem())
     return 3;
 
+  // Open HDF5 result database, if requested
+  DataExporter* writer = nullptr;
+  if (model->opt.dumpHDF5(infile))
+  {
+    const std::string& fileName = model->opt.hdf5;
+    IFEM::cout <<"\nWriting HDF5 file "<< fileName <<".hdf5"<< std::endl;
+
+    writer = new DataExporter(true,model->opt.saveInc);
+    writer->registerWriter(new HDF5Writer(fileName,model->getProcessAdm()));
+
+    int results = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
+    writer->registerField("u","solution",DataExporter::SIM,results);
+    writer->setFieldValue("u",model,&simulator.getSolution());
+  }
+
   // Now invoke the main solution driver
-  return simulator.solveProblem(nullptr,nullptr,nullptr,false,0.0,1.0e-6,0);
+  int status = simulator.solveProblem(writer);
+  delete writer;
+  return status;
 }
 
 
