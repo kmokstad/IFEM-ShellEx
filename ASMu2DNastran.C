@@ -13,6 +13,7 @@
 
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
+#include "BeamProperty.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
 #ifdef HAS_FFLLIB
@@ -25,15 +26,25 @@
 #include "FFlFEParts/FFlPMASS.H"
 #include "FFlFEParts/FFlPTHICK.H"
 #include "FFlFEParts/FFlPWAVGM.H"
+#include "FFlFEParts/FFlPBEAMSECTION.H"
+#include "FFlFEParts/FFlPBEAMECCENT.H"
+#include "FFlFEParts/FFlPORIENT.H"
 
+
+/*!
+  \brief Class for reading Nastran bulk data into a FFlLinkHandler object.
+*/
 
 class MyNastranReader : public FFlNastranReader
 {
 public:
+  //! \brief The constructor forwards to the parent class constructor.
   MyNastranReader(FFlLinkHandler& fePart, int lCount)
     : FFlNastranReader(&fePart,lCount) {}
-  virtual ~MyNastranReader() {};
+  //! \brief Empty destructor.
+  virtual ~MyNastranReader() {}
 
+  //! \brief Reads the FE model and resolves all topological references.
   bool readAndResolve(std::istream& is)
   {
     if (!this->resolve(this->read(is)))
@@ -43,7 +54,7 @@ public:
                 <<"\n     However, "<< nWarnings
                 <<" warning(s) and "<< nNotes <<" note(s) were reported.\n"
                 <<"     Review the messages and check the FE data file.\n";
-    return myLink->hasGeometry();
+    return myLink->hasGeometry() && myLink->resolve();
   }
 };
 #endif
@@ -55,6 +66,10 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGN.clear();
   myCoord.clear();
   myLoads.clear();
+  IntVec beamElms;
+  IntVec beamNodes;
+  IntMat beamMNPC;
+  int nBel = 0;
 
   // Fast-forward until "BEGIN BULK"
   int lCount = 0;
@@ -72,7 +87,7 @@ bool ASMu2DNastran::read (std::istream& is)
 
   FFlLinkHandler  fem;
   MyNastranReader reader(fem,lCount);
-  if (!reader.readAndResolve(is) || !fem.resolve())
+  if (!reader.readAndResolve(is))
   {
     std::cout <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
@@ -82,12 +97,15 @@ bool ASMu2DNastran::read (std::istream& is)
 
   nnod = fem.getNodeCount();
   nel  = fem.getElementCount(FFlTypeInfoSpec::SHELL_ELM);
+  nBel = fem.getElementCount(FFlTypeInfoSpec::BEAM_ELM);
 #ifdef INT_DEBUG
   fem.dump();
 #else
   std::cout <<"\nTotal number of nodes:          "<< nnod
-            <<"\nNumber of shell elements:       "<< nel
-            <<"\nNumber of constraint elements:  "
+            <<"\nNumber of shell elements:       "<< nel;
+  if (nBel > 0)
+    std::cout <<"\nNumber of beam elements:        "<< nBel;
+  std::cout <<"\nNumber of constraint elements:  "
             << fem.getElementCount(FFlTypeInfoSpec::CONSTRAINT_ELM)
             <<"\nNumber of other elements:       "
             << fem.getElementCount(FFlTypeInfoSpec::OTHER_ELM)
@@ -97,6 +115,9 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
   myCoord.reserve(nnod);
+  beamNodes.reserve(nBel);
+  beamElms.reserve(nBel);
+  beamMNPC.reserve(nBel);
 
   // Extract the nodal points
   for (NodesCIter n = fem.nodesBegin(); n != fem.nodesEnd(); ++n)
@@ -129,7 +150,72 @@ bool ASMu2DNastran::read (std::istream& is)
     for (size_t i = 0; i < mnpc.size(); i++)
       mnpc[i] = this->getNodeIndex((*e)->getNodeID(1+i)) - 1;
 
-    if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
+    if ((*e)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM && mnpc.size() == 2)
+    {
+#if INT_DEBUG > 1
+      std::cout <<"Beam element "<< beamElms.size() <<" "<< eid <<":";
+      for (int node : mnpc) std::cout <<" "<< MLGN[node];
+#endif
+      beamElms.push_back(eid);
+      for (int& node : mnpc)
+      {
+        IntVec::iterator nit = std::find(beamNodes.begin(),beamNodes.end(),MLGN[node]);
+        if (nit == beamNodes.end())
+        {
+          beamNodes.push_back(MLGN[node]);
+          node = beamNodes.size()-1;
+        }
+        else
+          node = nit - beamNodes.begin();
+      }
+      beamMNPC.push_back(mnpc);
+
+      BeamProps& bprop = myBprops[eid];
+      FFlPMAT* mat = GET_ATTRIBUTE(e,PMAT);
+      if (mat)
+      {
+        bprop.Emod = mat->youngsModule.getValue();
+        bprop.Gmod = mat->shearModule.getValue();
+        bprop.Rho  = mat->materialDensity.getValue();
+      }
+      else
+        std::cout <<"  ** No material attached to element "<< eid
+                  <<", using default properties"<< std::endl;
+
+      FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(e,PBEAMSECTION);
+      if (bsec)
+      {
+        size_t i = 0;
+        for (FFlFieldBase* field : *bsec)
+          if (i < bprop.cs.size())
+            bprop.cs[i++] = static_cast<FFlField<double>*>(field)->getValue();
+      }
+      else
+        std::cout <<" *** No beam cross section attached to beam element "<< eid
+                  << std::endl;
+
+      FFlPORIENT* bori = GET_ATTRIBUTE(e,PORIENT);
+      if (bori)
+        bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
+
+      FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(e,PBEAMECCENT);
+      if (bEcc)
+        bprop.eccN = {
+          Vec3(bEcc->node1Offset.getValue().getPt()),
+          Vec3(bEcc->node2Offset.getValue().getPt())
+	};
+
+#if INT_DEBUG > 1
+      std::cout <<" E="<< bprop.Emod <<" G="<< bprop.Gmod
+                <<" rho="<< bprop.Rho <<"\nCS:";
+      for (double cv : bprop.cs) std::cout <<" "<< cv;
+      if (!bprop.Zaxis.isZero()) std::cout <<"\nZ-axis: "<< bprop.Zaxis;
+      if (!bprop.eccN[0].isZero()) std::cout <<"\necc1: "<< bprop.eccN[0];
+      if (!bprop.eccN[1].isZero()) std::cout <<"\necc2: "<< bprop.eccN[1];
+      std::cout << std::endl;
+#endif
+    }
+    else if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
       if (mnpc.size() == 4)
       {
@@ -286,6 +372,16 @@ bool ASMu2DNastran::read (std::istream& is)
   }
 #endif
 
+  if (nBel > 0)
+  {
+    // Create a separate patch for the beam elements
+    Vec3Vec bXYZ;
+    bXYZ.reserve(beamNodes.size());
+    for (int node : beamNodes)
+      bXYZ.push_back(myCoord[this->getNodeIndex(node)-1]);
+    beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
+  }
+
   return true;
 }
 
@@ -404,4 +500,84 @@ void ASMu2DNastran::addFlexibleCoupling (int iel, int lDof, const int* indC,
 
   delete[] rwork;
 #endif
+}
+
+
+ASMuBeam::ASMuBeam (const Vec3Vec& nodes, const IntMat& mmnpc,
+                    const IntVec& mlgn, const IntVec& mlge,
+                    const std::map<int,ASMu2DNastran::BeamProps>& props,
+                    unsigned char n, unsigned char n_f)
+  : ASMu1DLag(n,n_f), myProps(props)
+{
+  myCoord = nodes;
+  myMNPC  = mmnpc;
+  myMLGN  = mlgn;
+  myMLGE  = mlge;
+}
+
+
+bool ASMuBeam::getProps (int eId, double& E, double& G,
+                         double& rho, BeamProperty& bprop) const
+{
+  std::map<int,ASMu2DNastran::BeamProps>::const_iterator it = myProps.find(eId);
+  if (it == myProps.end())
+  {
+    std::cerr <<" *** No properties for beam element "<< eId << std::endl;
+    return false;
+  }
+
+  E   = it->second.Emod;
+  G   = it->second.Gmod;
+  rho = it->second.Rho;
+  bprop.setConstant(RealArray(it->second.cs.begin(),it->second.cs.end()));
+  bprop.setEccentric(it->second.eccN.front(),it->second.eccN.back());
+  return true;
+}
+
+
+bool ASMuBeam::initLocalElementAxes (const Vec3&)
+{
+  std::map<int,ASMu2DNastran::BeamProps>::const_iterator it;
+  for (size_t i = 0; i < myCS.size(); i++)
+    if ((it = myProps.find(MLGE[i])) != myProps.end())
+    {
+      // Set up the global to local transformation matrix
+      const Vec3& X1 = myCoord[MNPC[i].front()];
+      const Vec3& X2 = myCoord[MNPC[i].back()];
+      if (it->second.Zaxis.isZero())
+        myCS[i] = Tensor(X2-X1,true);
+      else
+        myCS[i] = Tensor(X2-X1,it->second.Zaxis,false,true);
+
+      const double phi = it->second.cs.back();
+      if (fabs(phi) > 1.0e-6)
+      {
+        // Rotate from local element axes to principal axes
+        double cfi = cos(phi*M_PI/180.0);
+        double sfi = sin(phi*M_PI/180.0);
+        for (size_t c = 1; c <= 3; c++)
+        {
+          double myCS3 = cfi*myCS[i](3,c) + sfi*myCS[i](2,c);
+          myCS[i](2,c) = cfi*myCS[i](2,c) - sfi*myCS[i](3,c);
+          myCS[i](3,c) = myCS3;
+        }
+      }
+
+#ifdef INT_DEBUG
+      std::cout <<"Local axes for beam element "<< MLGE[i]
+                <<", from "<< X1 <<" to "<< X2;
+      if (!it->second.Zaxis.isZero())
+        std::cout <<" with Z-axis "<< it->second.Zaxis;
+      if (fabs(phi) > 1.0e-6)
+        std::cout <<", phi "<< phi;
+      std::cout <<":\n"<< myCS[i];
+#endif
+    }
+    else
+    {
+      std::cerr <<" *** No properties for beam element "<< MLGE[i] << std::endl;
+      return false;
+    }
+
+  return true;
 }

@@ -14,10 +14,15 @@
 #include "SIMAndesShell.h"
 #include "ASMu2DNastran.h"
 #include "AndesShell.h"
+#include "AlgEqSystem.h"
+#include "SAM.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+
+
+static bool withBeams = false; //!< If \e true, the model contains beam elements
 
 
 SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
@@ -27,10 +32,17 @@ SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
 }
 
 
+SIMAndesShell::~SIMAndesShell ()
+{
+  for (PointLoad& load : myLoads)
+    delete load.p;
+}
+
+
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nsv,modal);
+    myProblem = new AndesShell(nsv,modal,withBeams);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }
@@ -67,6 +79,31 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
             break; // Note: This assumes a set has elements from one patch only
       }
     }
+    else if (!strcasecmp(child->Value(),"nodeload") && child->FirstChild())
+    {
+      IFEM::cout <<"  Parsing <nodeload>"<< std::endl;
+
+      PointLoad load;
+      utl::getAttribute(child,"node",load.inod);
+      utl::getAttribute(child,"dof",load.ldof);
+
+      if (load.inod > 0 && load.ldof > 0 && load.ldof <= 6)
+      {
+        std::string type("constant");
+        utl::getAttribute(child,"type",type);
+
+        IFEM::cout <<"\tNode "<< load.inod <<" dof "<< load.ldof <<" Load: ";
+        if (type == "constant")
+        {
+          load.p = new ConstantFunc(atof(child->FirstChild()->Value()));
+          IFEM::cout << (*load.p)(0.0) << std::endl;
+        }
+        else
+          load.p = utl::parseTimeFunc(child->FirstChild()->Value(),type);
+
+        myLoads.push_back(load);
+      }
+    }
     else if (!strcasecmp(child->Value(),"material"))
     {
       IFEM::cout <<"  Parsing <material>"<< std::endl;
@@ -82,7 +119,8 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
                                    const CharVec&, const char* whiteSpace) const
 {
   ASMbase* pch = NULL;
-  if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
+  bool nastran = nf.size() == 2 && nf[1] == 'n';
+  if (nastran) // Nastran bulk data file
     pch = new ASMu2DNastran(nsd,nf.front());
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
@@ -96,6 +134,48 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   if (whiteSpace)
     IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
 
+  ASMbase* bpch = nullptr;
+  if (nastran) // Check if we also have beam elements in the model
+    if ((bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams()))
+    {
+      withBeams = true;
+      bpch->idx = myModel.size();
+      const_cast<SIMAndesShell*>(this)->myModel.push_back(bpch);
+    }
+
   pch->idx = myModel.size();
   return pch;
+}
+
+
+bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
+{
+  bool ok = this->SIMElasticity<SIM2D>::renumberNodes(nodeMap);
+
+  for (PointLoad& load : myLoads)
+    if (load.inod > 0)
+      ok &= utl::renumber(load.inod,nodeMap,true);
+
+  return ok;
+}
+
+
+bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
+                                           const TimeDomain& time)
+{
+  if (itg != myProblem || !myEqSys)
+    return true;
+
+  bool ok = true;
+  SystemVector* R = myEqSys->getVector(0);
+  if (R) // Assemble external nodal point loads
+    for (const PointLoad& load : myLoads)
+    {
+      double P = (*load.p)(time.t);
+      int ldof = load.ldof;
+      myEqSys->addScalar(P,ldof-1);
+      ok &= mySam->assembleSystem(*R,P,{load.inod,ldof});
+    }
+
+  return ok;
 }
