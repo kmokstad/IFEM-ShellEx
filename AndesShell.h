@@ -46,6 +46,13 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
+  //! \brief Initializes and toggles the use of left-hand-side matrix buffers.
+  //! \param[in] nEl Number of elements in the model/toggle.
+  //! If larger than 1, element matrix buffers are allocated to given size.
+  //! If equal to 1, element matrices are recomputed.
+  //! If equal to 0, reuse buffered element matrices.
+  virtual void initLHSbuffers(size_t nEl);
+
   //! \brief Initialization of integrand with patch-specific data.
   virtual void initForPatch(const ASMbase* pch);
 
@@ -119,6 +126,9 @@ private:
 
   std::set<int> degenerated;  //!< List of detected degenerated elements
   std::set<int> straightline; //!< List of detected straight line elements
+
+  Matrices myKmats; //!< Element stiffness matrix buffer
+  Matrices myMmats; //!< Element mass matrix buffer
 
   bool isModal; //!< Flag for modal dynamics simulation
 };

@@ -124,6 +124,21 @@ void AndesShell::setMode (SIM::SolutionMode mode)
 }
 
 
+void AndesShell::initLHSbuffers (size_t nEl)
+{
+  if (nEl > 1)
+  {
+    myKmats.resize(nEl);
+    myMmats.resize(nEl);
+  }
+  else if (nEl == 0 && !myKmats.empty())
+  {
+    if (eKm > 0) eKm = -eKm;
+    if (eM  > 0) eM  = -eM;
+  }
+}
+
+
 void AndesShell::initForPatch (const ASMbase* pch)
 {
   currentPatch = dynamic_cast<const ASMu2DNastran*>(pch);
@@ -197,13 +212,28 @@ int AndesShell::getIntegrandType () const
 }
 
 
+/*!
+  In case that element stiffness- and mass-matrices are cached, this method
+  will copy the element matrices for current element from the cache
+  and skip the property initialisation which then are not needed.
+*/
+
 bool AndesShell::initElement (const std::vector<int>& MNPC,
                               const FiniteElement& fe, const Vec3& Xc, size_t,
                               LocalIntegral& elmInt)
 {
+  if (fe.iel > 0)
+  {
+    size_t iel = fe.iel - 1;
+    if (iel < myKmats.size() && eKm < 0)
+      static_cast<ElmMats&>(elmInt).A[-eKm-1] = myKmats[iel];
+    if (iel < myMmats.size() && eM  < 0)
+      static_cast<ElmMats&>(elmInt).A[-eM-1]  = myMmats[iel];
+  }
+
   if (!this->initElement(MNPC,elmInt))
     return false;
-  else if (fe.Xn.cols() == 1)
+  else if (fe.Xn.cols() == 1 || (eKm+eM <= 0 && fe.Xn.cols() != 3))
     return true;
   else if (!currentPatch)
     return false;
@@ -268,6 +298,12 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 /*!
   This method constructs the element stiffness and mass matrices for the 3- and
   4-noded ANDES shell elements, by invoking the appropriate Fortran wrapper.
+  The internal forces are also calculated from the element stiffness matrix and
+  the current element displacement vector stored in \a elmInt.
+
+  The calculated element matrices are cached in the internal buffers
+  \ref myKmats and \ref myMmats, if those buffers have been allocated
+  by invoking initLHSbuffers() with \a nEl > 1 as argument.
 */
 
 bool AndesShell::finalizeElement (LocalIntegral& elmInt,
@@ -284,6 +320,8 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   if (currentPatch && nenod == 1) // 1-noded concentrated mass element
   {
     iERR = 0;
+    if (eKm > 0)
+      Kmat.clear(); // no stiffness
     if (eM > 0)
       currentPatch->getMassMatrix(fe.iel, Mmat);
     if (eS > 0)
@@ -350,10 +388,19 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   else if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
 
-  if (iS && !elmInt.vec.empty() && nenod > 1 && iERR >= 0)
+  if (fe.iel > 0 && iERR >= 0)
   {
-    Vector& Svec = static_cast<ElmMats&>(elmInt).b[iS-1];
-    if (!Kmat.multiply(elmInt.vec.front(),Svec,false,-1))
+    size_t iel = fe.iel - 1;
+    if (iel < myKmats.size() && Kmat.size() > 1) myKmats[iel] = Kmat;
+    if (iel < myMmats.size() && Mmat.size() > 1) myMmats[iel] = Mmat;
+  }
+
+  if (iS > 0 && !elmInt.vec.empty() && nenod > 1 && iERR >= 0)
+  {
+    size_t iel = fe.iel - 1;
+    Matrix& Sm = fe.iel > 0 && iel < myKmats.size() ? myKmats[iel] : Kmat;
+    Vector& Sv = static_cast<ElmMats&>(elmInt).b[iS-1];
+    if (!Sm.multiply(elmInt.vec.front(),Sv,false,-1))
       iERR = -97;
   }
 
