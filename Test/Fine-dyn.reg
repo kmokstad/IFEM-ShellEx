@@ -28,7 +28,7 @@ Eigenproblem solver: 4
 Number of eigenvalues: 10
 Number of Arnoldi vectors: 20
 Shift value: 0
-Number of Gauss points: 4
+Number of Gauss points: 2
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell

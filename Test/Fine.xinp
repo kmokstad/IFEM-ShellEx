@@ -19,11 +19,12 @@
   </boundaryconditions>
 
   <elasticity>
-    <nogravity y="-9.81"/>
     <pressure set="plate" type="expression">1.0e6*sin(PI*(t-x/0.13))*sin(PI*(1.5*z-y/0.065))</pressure>
   </elasticity>
 
-  <discretization type="lagrange"/>
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
 
   <newmarksolver alpha2="0.001">
     <nupdate>0</nupdate>
@@ -31,5 +32,9 @@
       <step start="0.0" end="1.0">0.05</step>
     </timestepping>
   </newmarksolver>
+
+  <timestepping>
+    <step start="0.0" end="1.0">0.1</step>
+  </timestepping>
 
 </simulation>

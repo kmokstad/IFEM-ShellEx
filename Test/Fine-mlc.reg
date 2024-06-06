@@ -1,0 +1,84 @@
+Fine.xinp -mlc
+
+Input file: Fine.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Basis function values are precalculated but not cached
+Using the multi-load-case simulation driver.
+Parsing input file Fine.xinp
+Parsing <discretization>
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file FEM_Fine.nas
+Total number of nodes:          951
+Number of shell elements:       902
+Number of constraint elements:  0
+Number of other elements:       0
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: SPC7 (1,1,4D)
+	               plate (1,2,5D)
+  Parsing <patchfile>
+  Parsing <topologysets>
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 123: (fixed)
+Parsing <elasticity>
+  Parsing <pressure>
+	Pressure code 1 (expression): 1.0e6\*sin(PI\*(t-x/0.13))\*sin(PI\*(1.5\*z-y/0.065))
+Parsing <newmarksolver>
+Parsing <timestepping>
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 2
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 123
+ >>> SAM model summary <<<
+Number of elements    902
+Number of nodes       951
+Number of dofs        5706
+Number of unknowns    5694
+  step=1  time=0.1
+  Primary solution summary: L2-norm            : 0.00191555
+                            Max Y-displacement : 0.000241028
+  Total reaction forces: Sum(R) = 0 0.059284 0
+  step=2  time=0.2
+  Primary solution summary: L2-norm            : 0.0025335
+                            Max Y-displacement : 0.000319959
+  Total reaction forces: Sum(R) = 0 0.0313541 0
+  step=3  time=0.3
+  Primary solution summary: L2-norm            : 0.00290373
+                            Max Y-displacement : 0.00036757
+  Total reaction forces: Sum(R) = 0 0.000355063 0
+  step=4  time=0.4
+  Primary solution summary: L2-norm            : 0.0029899
+                            Max Y-displacement : 0.000379201
+  Total reaction forces: Sum(R) = 0 -0.0306788 0
+  step=5  time=0.5
+  Primary solution summary: L2-norm            : 0.00278356
+                            Max Y-displacement : 0.000353713
+  Total reaction forces: Sum(R) = 0 -0.0587095 0
+  step=6  time=0.6
+  Primary solution summary: L2-norm            : 0.00230494
+                            Max Y-displacement : 0.000293601
+  Total reaction forces: Sum(R) = 0 -0.0809934 0
+  step=7  time=0.7
+  Primary solution summary: L2-norm            : 0.00160107
+                            Max Y-displacement : 0.00020475
+  Total reaction forces: Sum(R) = 0 -0.0953491 0
+  step=8  time=0.8
+  Primary solution summary: L2-norm            : 0.000741886
+                            Max Y-displacement : 9.59054e-05
+  Total reaction forces: Sum(R) = 0 -0.100371 0
+  step=9  time=0.9
+  Primary solution summary: L2-norm            : 0.000206269
+                            Max Y-displacement : 2.25254e-05
+  Total reaction forces: Sum(R) = 0 -0.0955685 0
+  step=10  time=1
+  Primary solution summary: L2-norm            : 0.0011108
+                            Max Y-displacement : 0.000138503
+  Total reaction forces: Sum(R) = 0 -0.0814108 0
+  Time integration completed.
