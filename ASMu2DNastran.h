@@ -62,11 +62,11 @@ public:
                             const RealArray*, bool atElmCenters) const;
 
   //! \brief Checks if an external element ID is within a predefined set.
-  //! \TODO Maybe put this in ASMbase later, or extend isInElementSet()
+  //! \todo Maybe put this in ASMbase later, or extend isInElementSet()
   //! to handle both internal indices and external element numbers.
-  bool isElementInSet(int elmId, int idx) const
+  bool isElementInSet(int elmId, int iset) const
   {
-    return this->isInElementSet(idx,this->getElmIndex(elmId));
+    return this->isInElementSet(iset,this->getElmIndex(elmId));
   }
 
 protected:

@@ -55,6 +55,13 @@ target_link_libraries(ShellSim ShellEx)
 # Installation
 install(TARGETS ShellSim DESTINATION bin COMPONENT bin)
 
+# For generating the doxy
+set(EXTRA_DOXY_PATHS "${PROJECT_SOURCE_DIR} \\
+                      ${PROJECT_BINARY_DIR} \\
+                      ${PARENT_SOURCE_DIR} \\
+                      ${PARENT_SOURCE_DIR}/Linear")
+add_doc_target(ShellSim ShellSim)
+
 # Regression tests
 enable_testing()
 include(IFEMTesting)
