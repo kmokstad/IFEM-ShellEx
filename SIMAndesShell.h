@@ -32,6 +32,9 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMAndesShell() {}
 
+  //! \brief Retrieves the shell thickness of all elements in the model.
+  void getShellThicknesses(RealArray& elmThick) const;
+
 protected:
   using SIMElasticity<SIM2D>::parse;
   //! \brief Parses a data section from an XML element.

@@ -339,6 +339,8 @@ int main (int argc, char** argv)
   if (model->opt.format >= 0)
   {
     int geoBlk = 0, nBlock = 0;
+    size_t iStep = 1, nStep = 0;
+    double time = 0.0;
 
     // Write VTF-file with model geometry
     if (!model->writeGlvG(geoBlk,infile))
@@ -352,13 +354,18 @@ int main (int argc, char** argv)
     if (!model->writeGlvNo(nBlock))
       terminate(14);
 
+    Vector data(model->getNoElms());
+    static_cast<SIMAndesShell*>(model)->getShellThicknesses(data);
+    if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
+      terminate(15);
+
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
-    if (!model->writeGlvS(displ.front(),1,nBlock))
+    if (!model->writeGlvS(displ.front(),iStep,nBlock,time,nullptr,12))
       terminate(16);
 
     // Write reference solution, if any
-    if (model->writeGlvS1(displ.back(),1,nBlock,0.0,"Reference",20,-1) < 0)
+    if (model->writeGlvS1(displ.back(),iStep,nBlock,time,"Reference",20,-1) < 0)
       terminate(17);
 
     // Write eigenmodes
@@ -366,12 +373,16 @@ int main (int argc, char** argv)
       if (!model->writeGlvM(mode,true,nBlock))
         terminate(18);
 
+    if (nodalR && !(grpfiles.empty() && resfiles.empty()))
+      data.resize(model->getNoNodes());
+
+    bool ok = true;
     int idBlock = 100;
-    for (const std::string& fileName : grpfiles)
+    for (const std::string& fName : grpfiles)
     {
       // Write node/element set definition
-      Vector data(nodalR ? model->getNoNodes() : model->getNoElms());
-      std::ifstream ifs(fileName);
+      data.fill(0.0);
+      std::ifstream ifs(fName);
       while (ifs.good())
       {
         int iel = 0;
@@ -380,15 +391,14 @@ int main (int argc, char** argv)
           data[iel-1] = 1.0;
       }
 
-      bool ok = true;
       if (nodalR)
-        ok = model->writeGlvS(data,fileName.c_str(),1,nBlock,++idBlock);
+        ok = model->writeGlvS(data,fName.c_str(),iStep,nBlock,++idBlock);
       else
-        ok = model->writeGlvE(data,1,nBlock,fileName.c_str(),++idBlock,true);
+        ok = model->writeGlvE(data,iStep,nBlock,fName.c_str(),++idBlock,true);
       if (!ok) terminate(19);
     }
 
-    model->writeGlvStep(1,0.0,-1);
+    model->writeGlvStep(iStep, time, resfiles.empty() ? -1 : 0);
 
     if (!resfiles.empty())
     {
@@ -397,36 +407,36 @@ int main (int argc, char** argv)
       std::vector<double> times;
       for (size_t i = 0; i < resfiles.size(); i++)
       {
-        double time = 0.0;
-        Vector data(nodalR ? model->getNoNodes() : model->getNoElms());
         std::ifstream ifs(resfiles[i]);
+        ifs >> time;
         while (ifs.good())
         {
-          ifs >> time;
           if (i == 0) times.push_back(time);
           for (double& val : data) ifs >> val;
           extResults[i].push_back(data);
+          ifs >> time;
         }
+        if (!nStep || nStep > extResults[i].size())
+          nStep = extResults[i].size();
       }
 
-      for (size_t iStep = 1; iStep <= extResults.front().size(); iStep++)
+      IFEM::cout <<"Writing "<< nStep <<" steps"<< std::endl;
+      for (iStep = 1; iStep <= nStep; iStep++)
       {
-        bool ok = true;
         int jdBlock = idBlock;
         for (size_t j = 0; j < extResults.size() && ok; j++)
           if (nodalR)
             ok = model->writeGlvS(extResults[j][iStep-1],
-                                  resfiles[j].c_str(),iStep,nBlock,++jdBlock);
+                                  resfiles[j].c_str(),iStep+1,nBlock,++jdBlock);
           else
-            ok = model->writeGlvE(extResults[j][iStep-1],iStep,nBlock,
+            ok = model->writeGlvE(extResults[j][iStep-1],iStep+1,nBlock,
                                   resfiles[j].c_str(),++jdBlock,true);
         if (!ok) terminate(19);
 
-        model->writeGlvStep(iStep+1,times[iStep-1],0);
+        model->writeGlvStep(iStep+1,times[iStep-1]);
       }
     }
   }
-  model->closeGlv();
 
   utl::profiler->stop("Postprocessing");
   terminate(0);

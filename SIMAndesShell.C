@@ -99,3 +99,16 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   pch->idx = myModel.size();
   return pch;
 }
+
+
+void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
+{
+  for (const ASMbase* pch : myModel)
+  {
+    int iel = 0;
+    const ASMu2DNastran* shell = dynamic_cast<const ASMu2DNastran*>(pch);
+    if (shell)
+      for (double& t : elmThick)
+        shell->getThickness(++iel,t);
+  }
+}

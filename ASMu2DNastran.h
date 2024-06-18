@@ -37,6 +37,8 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
 
+  //! \brief Retrieves the shell thickness for element with index \a eId.
+  bool getThickness(int eId, double& t) const;
   //! \brief Retrieves the properties for element with index \a eId.
   bool getProps(int eId, double& E, double& nu, double& rho, double& t) const;
   //! \brief Retrieves the mass matrix for element with index \a id.
@@ -45,7 +47,7 @@ public:
   bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
 
   //! \brief Evaluates the surface pressure at current integration point.
-  Vec3 getPressureAt(int iel, const RealArray& N) const;
+  bool addPressureAt(Vec3& p, int iel, const RealArray& N) const;
 
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.

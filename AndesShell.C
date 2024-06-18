@@ -19,6 +19,7 @@
 #include "Function.h"
 #include "Vec3Oper.h"
 #include "Utilities.h"
+#include "VTF.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <fstream>
@@ -160,6 +161,14 @@ bool AndesShell::setPressure (RealFunc* pf, int code,
 }
 
 
+void AndesShell::initIntegration (size_t nGp, size_t)
+{
+  presVal.clear();
+  if (this->havePressure())
+    presVal.resize(nGp,{Vec3(),Vec3()});
+}
+
+
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 {
   ElmMats* result = nullptr;
@@ -268,7 +277,8 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (eS <= 0) return true; // No external load vector
 
   Vec3 p, n;
-  if (Rho > 0.0 && !gravity.isZero())
+  bool havePressure = Rho > 0.0 && !gravity.isZero();
+  if (havePressure)
     p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
 
   if (fe.G.cols() >= 2 && this->havePressure(fe.iel))
@@ -278,10 +288,16 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
     n.normalize();
     // Evaluate the pressure at this point
     this->addPressure(p,X,n,fe.iel);
+    havePressure = true;
   }
 
-  if (currentPatch) // Add surface loads from the FE model, if any
-    p += currentPatch->getPressureAt(fe.iel,fe.N);
+  // Add surface loads from the FE model, if any
+  if (currentPatch && currentPatch->addPressureAt(p,fe.iel,fe.N))
+    havePressure = true;
+
+  // Store pressure value for visualization
+  if (havePressure && fe.iGP < presVal.size())
+    presVal[fe.iGP] = { X, p };
 
   if (p.isZero()) return true; // No pressure load
 
@@ -355,9 +371,10 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     if (eS > 0 && currentPatch) // Add surface loads from the FE model, if any
       for (size_t i = 1; i <= 3; i++)
       {
-        Vec3 p = currentPatch->getPressureAt(fe.iel,{-static_cast<double>(i)});
-        for (size_t j = 1; j <= 3; j++)
-          Press(j,i) += p(j);
+        Vec3 p;
+        if (currentPatch->addPressureAt(p,fe.iel,{-static_cast<double>(i)}))
+          for (size_t j = 1; j <= 3; j++)
+            Press(j,i) += p(j);
       }
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element
@@ -411,7 +428,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 bool AndesShell::havePressure (int iel) const
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    if (press.first < 0)
+    if (press.first < 0 || iel < 0)
       return true;
     else if (!currentPatch)
       break;
@@ -438,4 +455,23 @@ void AndesShell::addPressure (Vec3& p, const Vec3& X,
       if (std::find(eSet.begin(),eSet.end(),iel) != eSet.end())
         p += (*press.second)(X)*n;
     }
+}
+
+
+bool AndesShell::hasTractionValues () const
+{
+  return !presVal.empty();
+}
+
+
+bool AndesShell::writeGlvT (VTF* vtf, int iStep,
+                            int& geoBlk, int& nBlock) const
+{
+  if (presVal.empty())
+    return true;
+  else if (!vtf)
+    return false;
+
+  // Write surface pressures as discrete point vectors to the VTF-file
+  return vtf->writeVectors(presVal,geoBlk,++nBlock,"Pressure",iStep);
 }
