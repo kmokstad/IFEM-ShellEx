@@ -1,0 +1,22 @@
+// $Id$
+//==============================================================================
+//!
+//! \file ShellSim.dox
+//!
+//! \date May 18 2024
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief File containing the Main Page of the IFEM-ShellEx documentation.
+//!
+//==============================================================================
+
+/*! \mainpage Linear FEM shell application
+
+\author Knut Morten Okstad, SINTEF Digital, Trondheim
+
+\section intro Introduction
+This is a linear elastic shell application built on top of the IFEM library.
+It uses the ANDES shell element formulation, based on code imported from
+the openfedem project.
+*/

@@ -170,7 +170,7 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 }
 
 
-bool SIMAndesShell::getElementGroup (int idx, std::string& name,
+bool SIMAndesShell::getElementGroup (int iset, std::string& name,
                                      RealArray& elGroup) const
 {
   elGroup.clear();
@@ -179,12 +179,12 @@ bool SIMAndesShell::getElementGroup (int idx, std::string& name,
   for (const ASMbase* pch : myModel)
   {
     const ASMu2DLag* shell = dynamic_cast<const ASMu2DLag*>(pch);
-    if (shell && shell->getElementSet(idx,name))
+    if (shell && shell->getElementSet(iset,name))
     {
       if (elGroup.empty())
         elGroup.resize(this->getNoElms(false,true),0.0);
-      for (size_t jel = 1; jel <= pch->getNoElms(true); iel++, jel++)
-        elGroup[iel] = pch->getElmID(jel) > 0 && shell->isInElementSet(idx,jel);
+      for (size_t je = 1; je <= pch->getNoElms(true); iel++, je++)
+        elGroup[iel] = pch->getElmID(je) > 0 && shell->isInElementSet(iset,je);
     }
     else
       iel += pch->getNoElms(true);
