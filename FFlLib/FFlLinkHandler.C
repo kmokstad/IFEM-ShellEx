@@ -256,7 +256,7 @@ void FFlLinkHandler::calculateChecksum(FFaCheckSum* cs,
   if (!cs) return;
 
 #ifdef FFL_DEBUG
-  std::cout <<"\nCalculating link checksum (csType="<< csType <<")"<< std::endl;
+  std::cout <<"\nFFlLinkHandler::calculateChecksum(csType="<< csType <<")\n";
 #endif
   bool checkStrainCoat = (csType & FFl::CS_STRCMASK) != FFl::CS_NOSTRCINFO;
 
@@ -381,14 +381,14 @@ void FFlLinkHandler::convertUnits(const FFaUnitCalculator* convCal)
 }
 
 
-void FFlLinkHandler::initiateCalculationFlag(bool trueOrFalse)
+void FFlLinkHandler::initiateCalculationFlag(bool status)
 {
   for (FFlElementBase* elm : myElements)
-    elm->setUpForCalculations(trueOrFalse);
+    elm->setUpForCalculations(status);
 }
 
 
-bool FFlLinkHandler::updateCalculationFlag(int groupID, bool trueOrFalse)
+bool FFlLinkHandler::updateCalculationFlag(int groupID, bool status)
 {
   FFlGroup* group = this->getGroup(groupID);
   if (!group)
@@ -398,18 +398,18 @@ bool FFlLinkHandler::updateCalculationFlag(int groupID, bool trueOrFalse)
   }
 
   for (const GroupElemRef& elm : *group)
-    elm->setUpForCalculations(trueOrFalse);
+    elm->setUpForCalculations(status);
 
   return true;
 }
 
 
-bool FFlLinkHandler::updateCalculationFlag(FFlPartBase* part, bool trueOrFalse)
+bool FFlLinkHandler::updateCalculationFlag(FFlPartBase* part, bool status)
 {
   FFlGroup* tmpGroup = dynamic_cast<FFlGroup*>(part);
   if (tmpGroup) {
     for (const GroupElemRef& elm : *tmpGroup)
-      elm->setUpForCalculations(trueOrFalse);
+      elm->setUpForCalculations(status);
     return true;
   }
 
@@ -417,13 +417,13 @@ bool FFlLinkHandler::updateCalculationFlag(FFlPartBase* part, bool trueOrFalse)
   if (attr) {
     for (FFlElementBase* elm : myElements)
       if (elm->hasAttribute(attr))
-        elm->setUpForCalculations(trueOrFalse);
+        elm->setUpForCalculations(status);
     return true;
   }
 
   FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part);
   if (elm) {
-    elm->setUpForCalculations(trueOrFalse);
+    elm->setUpForCalculations(status);
     return true;
   }
 
@@ -431,11 +431,12 @@ bool FFlLinkHandler::updateCalculationFlag(FFlPartBase* part, bool trueOrFalse)
 }
 
 
-bool FFlLinkHandler::updateCalculationFlag(const std::string& type, int id, bool flg)
+bool FFlLinkHandler::updateCalculationFlag(const std::string& type,
+                                           int id, bool status)
 {
   FFlAttributeBase* attrib = this->getAttribute(type,id);
   if (attrib)
-    return this->updateCalculationFlag(attrib,flg);
+    return this->updateCalculationFlag(attrib,status);
   else
     return false;
 }
@@ -679,8 +680,8 @@ void FFlLinkHandler::setRunningIdxOnAppearances()
 
 
 /*!
-  Returns the node with the given ID.
-  Returns NULL if no node has the given ID.
+  Returns the node with the given \a ID.
+  Returns NULL if no such node.
 */
 
 FFlLinkHandler::NodesIter FFlLinkHandler::getNodeIter(int ID) const
@@ -772,8 +773,8 @@ FFlVDetail* FFlLinkHandler::getDetail(int ID) const
 
 
 /*!
-  Returns the element with the given ID.
-  Returns NULL if no element has the ID.
+  Returns the element with the given \a ID.
+  Returns NULL if no such element.
 */
 
 FFlLinkHandler::ElementsIter FFlLinkHandler::getElementIter(int ID) const
@@ -878,8 +879,8 @@ int FFlLinkHandler::buildFiniteElementVec(bool allFElements) const
 
 /*!
   Returns the element with the given internal element number (finite elements
-  only, strain coat elements and other no-DOF elements are excluded).
-  Returns NULL if no element has the element number.
+  only, strain coat elements and other DOF-less elements are excluded).
+  Returns NULL if no such element.
 */
 
 FFlElementBase* FFlLinkHandler::getFiniteElement(int iel) const
@@ -895,8 +896,8 @@ FFlElementBase* FFlLinkHandler::getFiniteElement(int iel) const
 
 
 /*!
-  Returns the element group with the given ID.
-  Returns NULL if no group has the ID.
+  Returns the element group with the given \a ID.
+  Returns NULL if no such group.
 */
 
 FFlGroup* FFlLinkHandler::getGroup(int ID) const
@@ -907,8 +908,8 @@ FFlGroup* FFlLinkHandler::getGroup(int ID) const
 
 
 /*!
-  Returns the attribute of the given type and with the given ID.
-  Returns NULL if no such attribute has the ID.
+  Returns the attribute of the given \a type and with the given \a ID.
+  Returns NULL if no such attribute.
 */
 
 FFlAttributeBase* FFlLinkHandler::getAttribute(const std::string& type, int ID) const
@@ -924,7 +925,7 @@ FFlAttributeBase* FFlLinkHandler::getAttribute(const std::string& type, int ID) 
 
 
 /*!
-  Returns the set of all attributes of the given type.
+  Returns the set of all attributes of the given \a type.
 */
 
 const AttributeMap& FFlLinkHandler::getAttributes(const std::string& type) const
@@ -939,7 +940,7 @@ const AttributeMap& FFlLinkHandler::getAttributes(const std::string& type) const
 
 
 /*!
-  Returns all spider reference nodes in the model.
+  Returns all spider reference nodes in the FE model.
 */
 
 bool FFlLinkHandler::getRefNodes(std::vector<FFlNode*>& refNodes) const
@@ -956,8 +957,8 @@ bool FFlLinkHandler::getRefNodes(std::vector<FFlNode*>& refNodes) const
 
 
 /*!
-  Returns all loads with the given ID.
-  Returns false if no loads has the ID.
+  Returns all loads with the given \a ID.
+  Returns \e false if no such loads.
 */
 
 bool FFlLinkHandler::getLoads(int ID, LoadsVec& loads) const
@@ -977,7 +978,7 @@ bool FFlLinkHandler::getLoads(int ID, LoadsVec& loads) const
 
 
 /*!
-  Returns a set of the external load IDs.
+  Returns a set of the external load \a IDs.
 */
 
 void FFlLinkHandler::getLoadCases(std::set<int>& IDs) const
@@ -989,7 +990,7 @@ void FFlLinkHandler::getLoadCases(std::set<int>& IDs) const
 
 
 /*!
-  Returns the number of attributes of the given type.
+  Returns the number of attributes of the given \a type.
 */
 
 int FFlLinkHandler::getAttributeCount(const std::string& type) const
@@ -1013,7 +1014,7 @@ const ElmTypeCount& FFlLinkHandler::getElmTypeCount() const
 
 
 /*!
-  Returns the number of elements of the given type.
+  Returns the number of elements of the given \a type.
 */
 
 int FFlLinkHandler::getElementCount(const std::string& type) const
@@ -1027,8 +1028,9 @@ int FFlLinkHandler::getElementCount(const std::string& type) const
 
 
 /*!
-  Returns the number of elements of the given types. If checkCF is true,
-  only the elements for which the calculation flag is set are counted.
+  Returns the number of elements of the given \a types.
+  If \a checkCF is true, only the elements for which
+  the calculation flag is set are counted.
 */
 
 int FFlLinkHandler::getElementCount(int types, bool checkCF) const
@@ -1059,7 +1061,7 @@ int FFlLinkHandler::getElementCount(int types, bool checkCF) const
 
 
 /*!
-  Returns the total number of DOFs in the link.
+  Returns the total number of DOFs in the FE model.
   Unless \a includeExternalDofs is true, only the internal dofs are counted.
 */
 
@@ -1075,7 +1077,8 @@ int FFlLinkHandler::getDofCount(bool includeExternalDofs) const
 
 
 /*!
-  Returns the number of nodes in the link. Loose nodes, if any, are not counted.
+  Returns the number of nodes of given \a types.
+  Loose nodes, if any, are not counted.
 */
 
 int FFlLinkHandler::getNodeCount(int types) const
@@ -1251,7 +1254,8 @@ int FFlLinkHandler::addUniqueAttribute(FFlAttributeBase* newAtt, bool silence)
 }
 
 
-bool FFlLinkHandler::removeAttribute(const std::string& typeName, int ID, bool silence)
+bool FFlLinkHandler::removeAttribute(const std::string& typeName,
+                                     int ID, bool silence)
 {
   AttributeTypeMap::iterator atit = myAttributes.find(typeName);
   if (atit == myAttributes.end()) return false;
@@ -1328,9 +1332,9 @@ void FFlLinkHandler::getAllInternalCoordSys(std::vector<FaMat34>& mxes) const
 
 /*!
   Returns a node with (at least) the given number of DOFs (\a dofFilter), that
-  matches the given \a point. If more than one node matches the point, return
+  matches the given \a point. If more than one node match the point, return
   the node among these that is either a free node or a WAVGM reference node.
-  If more than one such matches exist, return the closest node among them.
+  If more than one such match exist, return the closest node among them.
 
   TODO: This method does not work well with large tolerances.
   The tolerance is used as a "all within is coincident".
@@ -1338,11 +1342,11 @@ void FFlLinkHandler::getAllInternalCoordSys(std::vector<FaMat34>& mxes) const
   It is supposed to prioritize the nodes like this:
   1. Replacement node for a WAVGM reference node
   2. WAVGM reference node
-  3. Closest Free node
+  3. Closest free node
   But if a free node is found that happens to be closer than a found
   reference node, the free node will be returned instead.
   There should be two tolerances in this method:
-  Coincident tolerance and Search tolerance.
+  Coincident tolerance and search tolerance.
   JJS 2009.03.27
 */
 
@@ -1951,7 +1955,7 @@ double FFlLinkHandler::getMeanElementSize() const
 
 
 /*!
-  Computes the mass properties of the link FE model, i.e., the total mass \a M,
+  Computes the mass properties of the FE model, i.e., the total mass \a M,
   the center of gravity \a Xcg and the inertia tensor \a I are computed.
 */
 
@@ -1986,6 +1990,7 @@ void FFlLinkHandler::getMassProperties(double& M, FaVec3& Xcg,
 
 
 #ifdef FT_USE_VERTEX
+
 /*!
   Adds a vertex to the vertex container.
   The running ID of the vertex is also set.
@@ -2157,6 +2162,7 @@ void FFlLinkHandler::sortVisuals() const
 }
 #endif
 
+
 /*!
   Creates a node based on the given position with the given number of \a DOFs.
   <i>Espen Medbo 2006</i>
@@ -2196,14 +2202,15 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
   else
     return -1; // Invalid spider type
 
-  std::vector<FFlNode*> nodes(1,static_cast<FFlNode*>(NULL));
+  FFlNode* refNode = NULL;
+  std::vector<FFlNode*> nodes;
   for (FFlNode* node : myNodes)
     if (node->hasDOFs() && node->getStatus() == FFlNode::INTERNAL)
       if (compound.isInside(node->getPos()))
         nodes.push_back(node);
 
   if (nodes.size() > 1)
-    nodes.front() = this->createNodeAtPoint(nodePos,6);
+    refNode = this->createNodeAtPoint(nodePos,6);
   else
   {
     // No FE nodes on the provided geometry
@@ -2212,17 +2219,21 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
   }
 
   cItems.clear();
-  cItems.addNode(nodes.front()->getID());
+  cItems.addNode(refNode->getID());
+  nodes.insert(nodes.begin(),refNode);
   newElm->setNodes(nodes);
   this->addElement(newElm,true);
   cItems.addElement(newElm->getID());
   ListUI <<"  -> Creating "<< (spiderType == 2 ? "RGD":"WAVGM")
          <<" element "<< newElm->getID()
-         <<" with reference node "<< nodes.front()->getID() <<"\n";
+         <<" with reference node "<< refNode->getID() <<"\n";
 
   if (spiderType == 3)
     // Create an attachable node co-located with the reference node
-    this->createAttachableNode(nodes.front(),nodes.front()->getPos(),&cItems);
+    refNode = this->createAttachableNode(refNode,refNode->getPos(),&cItems);
+
+  // Ensure the attachable node has external status
+  refNode->setExternal();
 
   // We do not need to create a property for the WAVGM element.
   // The FE reducer will assign a default property with unit weights.
@@ -2242,14 +2253,14 @@ int FFlLinkHandler::deleteConnectorProperties(const std::vector<int>& properties
     return 0;
 
   int nDeleted = 0;
-  for (int aid : propertiesID) {
-    AttributeMap::iterator ait = atit->second.find(aid);
-    if (ait != atit->second.end()) {
+  AttributeMap::iterator ait;
+  for (int aid : propertiesID)
+    if ((ait = atit->second.find(aid)) != atit->second.end())
+    {
       delete ait->second;
       atit->second.erase(ait);
       nDeleted++;
     }
-  }
 
   return nDeleted;
 }
@@ -2264,9 +2275,10 @@ int FFlLinkHandler::deleteConnectorProperties(const std::vector<int>& properties
 int FFlLinkHandler::deleteConnectorElements(const std::vector<int>& elementsID)
 {
   int nDeleted = 0;
-  for (int elm : elementsID) {
-    ElementsIter eit = this->getElementIter(elm);
-    if (eit != myElements.end()) {
+  ElementsIter eit;
+  for (int elm : elementsID)
+    if ((eit = this->getElementIter(elm)) != myElements.end())
+    {
       ListUI <<"  -> Deleting "<< (*eit)->getTypeName()
              <<" element "<< elm <<"\n";
       if ((*eit)->getTypeName() == "BUSH")
@@ -2275,7 +2287,6 @@ int FFlLinkHandler::deleteConnectorElements(const std::vector<int>& elementsID)
       myElements.erase(eit);
       nDeleted++;
     }
-  }
 
   this->sortElements();
   return nDeleted;
@@ -2291,21 +2302,26 @@ int FFlLinkHandler::deleteConnectorElements(const std::vector<int>& elementsID)
 int FFlLinkHandler::deleteConnectorNodes(const std::vector<int>& nodesID)
 {
   int nDeleted = 0;
-  for (int node : nodesID) {
-    NodesIter nit = this->getNodeIter(node);
-    if (nit != myNodes.end()) {
+  NodesIter nit;
+  for (int node : nodesID)
+    if ((nit = this->getNodeIter(node)) != myNodes.end())
+    {
       ListUI <<"  -> Deleting FE node "<< node <<"\n";
       delete *nit;
       myNodes.erase(nit);
       nDeleted++;
     }
-  }
 
   this->sortNodes();
   return nDeleted;
 }
 #endif
 
+
+/*!
+  This method will subdivide a 3-noded beam into two linear beam elements, and
+  a 6-noded triangle and a 8-noded quadrilateral into four linear equivalents.
+*/
 
 int FFlLinkHandler::splitElement(FFlElementBase* elm)
 {
@@ -2326,20 +2342,21 @@ int FFlLinkHandler::splitElement(FFlElementBase* elm)
   if (!elm->split(newElems,this,nod_id))
     return 0;
 
-  int oldElmID = elm->getID();
-  std::vector<int> newElmID(newElems.size());
-  for (size_t i = 0; i < newElems.size(); i++)
+  std::vector<int> newElmID;
+  newElmID.reserve(newElems.size());
+  for (FFlElementBase* newElm : newElems)
   {
-    newElmID[i] = newElems[i]->getID();
-    newElems[i]->useAttributesFrom(elm);
+    newElmID.push_back(newElm->getID());
+    newElm->useAttributesFrom(elm);
 #ifdef FT_USE_VISUALS
-    newElems[i]->useVisualsFrom(elm);
+    newElm->useVisualsFrom(elm);
 #endif
-    if (!this->addElement(newElems[i]))
-      return -1-i;
+    if (!this->addElement(newElm))
+      return -newElmID.size();
   }
 
   // Erase the parabolic element
+  int oldElmID = elm->getID();
   myElements.erase(std::find(myElements.begin(),myElements.end(),elm));
   delete elm;
 
