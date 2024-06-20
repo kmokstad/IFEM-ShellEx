@@ -103,6 +103,13 @@ public:
   virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
                                const TimeDomain& time, size_t);
 
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] eV Element-level primary solution vectors
+  //! \param[in] fe Finite element data at current point
+  virtual bool evalSol2(Vector& s, const Vectors& eV,
+                        const FiniteElement& fe, const Vec3&) const;
+
   //! \brief Returns whether there are any load values to write to VTF.
   virtual bool hasTractionValues() const;
 
@@ -112,6 +119,14 @@ public:
   //! \param geoBlk Running geometry block counter
   //! \param nBlock Running result block counter
   virtual bool writeGlvT(VTF* vtf, int iStep, int& geoBlk, int& nBlock) const;
+
+  //! \brief Returns the number of primary/secondary solution field components.
+  //! \param[in] fld which field set to consider (1=primary, 2=secondary)
+  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv : 18; }
+  //! \brief Returns the name of a secondary solution field component.
+  //! \param[in] i Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual std::string getField2Name(size_t i, const char* prefix) const;
 
 protected:
   //! \brief Returns whether element \a iel has pressure loads or not.

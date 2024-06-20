@@ -36,6 +36,10 @@ extern "C" {
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
                     double* Ekt, double* Em, int& iERR);
+  //! \brief Interface to 4-noded shell stress routine (FORTRAN-90 code).
+  void ifem_strs24_(const int& iel, const double* X0, const double& Thick,
+                    const double& Emod, const double& Rny, const double* Ev,
+                    double* SR, double* Sigma, int& iERR);
 }
 #endif
 
@@ -425,6 +429,51 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 }
 
 
+bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
+                           const FiniteElement& fe, const Vec3&) const
+{
+  int iERR = 0;
+  size_t nenod = fe.Xn.cols();
+  if (nenod == 1) // 1-noded concentrated mass element (no stresses)
+    s.clear();
+  else if (nenod == 3) // 3-noded shell element
+    s.clear();
+  else if (nenod == 4) // 4-noded shell element
+  {
+    s.resize(18,0.0);
+#ifdef HAS_ANDES
+    // Invoke Fortran wrapper for the 4-noded ANDES element
+    ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny,
+                 eV.front().data(), s.data(), s.data()+6, iERR);
+#endif
+  }
+  else
+  {
+    iERR = -98;
+    std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
+  }
+
+  if (s.size() >= 18)
+  {
+    // Calculate principal and von Mises stresses at the top and bottom surfaces
+    Vec3 sigma_p;
+    size_t j = 12;
+    for (size_t i = 9; i >= 6; i -= 3, j -= 6)
+    {
+      SymmTensor sigma({s[i],s[i+1],s[i+2]});
+      sigma.principal(sigma_p);
+      for (size_t k = 0; k < 3 && i > 6; k++)
+        s[j+k] = s[i+k];
+      s[j+3] = sigma_p.x;
+      s[j+4] = sigma_p.y;
+      s[j+5] = sigma.vonMises();
+    }
+  }
+
+  return iERR == 0;
+}
+
+
 bool AndesShell::havePressure (int iel) const
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
@@ -474,4 +523,23 @@ bool AndesShell::writeGlvT (VTF* vtf, int iStep,
 
   // Write surface pressures as discrete point vectors to the VTF-file
   return vtf->writeVectors(presVal,geoBlk,++nBlock,"Pressure",iStep);
+}
+
+
+std::string AndesShell::getField2Name (size_t i, const char* prefix) const
+{
+  static const char* s[12] = { "n_xx", "n_yy", "n_xy", "m_xx", "m_yy", "m_xy",
+                               "sigma_x", "sigma_y", "tau_xy",
+                               "sigma_1", "sigma_2", "sigma_m" };
+
+  std::string name(s[i < 6 ? i : 6 + i%6]);
+  if (i >= 12)
+    name = "Top " + name;
+  else if (i >= 6)
+    name = "Bottom " + name;
+
+  if (!prefix)
+    return name;
+
+  return prefix + std::string(" ") + name;
 }
