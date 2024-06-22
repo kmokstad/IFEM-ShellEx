@@ -13,6 +13,7 @@
 
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
+#include "IntegrandBase.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
 #ifdef HAS_FFLLIB
@@ -415,4 +416,109 @@ void ASMu2DNastran::addFlexibleCoupling (int iel, int lDof, const int* indC,
 
   delete[] rwork;
 #endif
+}
+
+
+/*!
+  This method overrides the parent class method to always evaluate the secondary
+  solution at the element nodes and then perform nodal averaging to obtain the
+  unique nodal values. It is assumed that all calculations are performed by the
+  IntegrandBase::evalSol() call, therefore no basis function evaluations here.
+*/
+
+bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
+                                  const int*, char) const
+{
+  sField.clear();
+
+  FiniteElement fe;
+  Vector        solPt;
+  Vectors       globSolPt(nnod);
+  IntVec        check(nnod,0);
+
+  // Evaluate the secondary solution field at each element node
+  for (size_t iel = 1; iel <= nel; iel++)
+    if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
+    {
+      if (!this->getElementCoordinates(fe.Xn,iel))
+        return false;
+
+      const IntVec& mnpc = MNPC[iel-1];
+      for (size_t loc = 0; loc < mnpc.size(); loc++)
+      {
+        if (mnpc.size() == 3)
+          switch (1+loc) {
+          case 1: fe.xi = 1.0; fe.eta = 0.0; break;
+          case 2: fe.xi = 0.0; fe.eta = 1.0; break;
+          case 3: fe.xi = 0.0; fe.eta = 0.0; break;
+          }
+        else if (mnpc.size() == 4)
+        {
+          fe.xi  = -1.0 + 2.0*(loc%2);
+          fe.eta = -1.0 + 2.0*(loc/2);
+        }
+
+        if (!integr.evalSol(solPt,fe,Vec3(),mnpc))
+          return false;
+        else if (solPt.empty())
+          continue; // a valid element with no secondary solution
+
+        if (sField.empty())
+          sField.resize(solPt.size(),nnod,true);
+
+        if (++check[mnpc[loc]] == 1)
+          globSolPt[mnpc[loc]] = solPt;
+        else
+          globSolPt[mnpc[loc]] += solPt;
+      }
+    }
+
+  // Nodal averaging
+  for (size_t i = 0; i < nnod; i++)
+    if (check[i])
+      sField.fillColumn(1+i,globSolPt[i] /= check[i]);
+
+  return true;
+}
+
+
+/*!
+  This method overrides the parent class method to always evaluate the secondary
+  solution at the center of each element. It is assumed that all calculations
+  are performed by the IntegrandBase::evalSol() call, and therefore no basis
+  function evaluations are needed here.
+*/
+
+bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
+                                  const RealArray*, bool) const
+{
+  sField.clear();
+
+  FiniteElement fe;
+  Vector        solPt;
+
+  // Evaluate the secondary solution field at each element center
+  for (size_t iel = 1; iel <= nel; iel++)
+    if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
+    {
+      if (!this->getElementCoordinates(fe.Xn,iel))
+        return false;
+
+      if (MNPC[iel-1].size() == 3)
+        fe.xi = fe.eta = 1.0/3.0;
+      else
+        fe.xi = fe.eta = 0.0;
+
+      if (!integr.evalSol(solPt,fe,Vec3(),MNPC[iel-1]))
+        return false;
+      else if (solPt.empty())
+        continue; // a valid element with no secondary solution
+
+      if (sField.empty())
+        sField.resize(solPt.size(),nel,true);
+
+      sField.fillColumn(iel,solPt);
+    }
+
+  return true;
 }

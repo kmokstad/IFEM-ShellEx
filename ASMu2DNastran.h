@@ -49,6 +49,17 @@ public:
   //! \brief Evaluates the surface pressure at current integration point.
   bool addPressureAt(Vec3& p, int iel, const RealArray& N) const;
 
+  //! \brief Evaluates the secondary solution field at all nodal points.
+  //! \param[out] sField Solution field
+  //! \param[in] integr Object with problem-specific data and methods
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
+                            const int*, char) const;
+  //! \brief Evaluates the secondary solution field at all element centers.
+  //! \param[out] sField Solution field
+  //! \param[in] integr Object with problem-specific data and methods
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
+                            const RealArray*, bool) const;
+
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.
   void addFlexibleCoupling(int iel, int lDof, const int* indC,
