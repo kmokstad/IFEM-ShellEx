@@ -481,12 +481,8 @@ bool AndesShell::havePressure (int iel) const
       return true;
     else if (!currentPatch)
       break;
-    else
-    {
-      const IntVec& eSet = currentPatch->getElementSet(press.first);
-      if (std::find(eSet.begin(),eSet.end(),iel) != eSet.end())
-        return true;
-    }
+    else if (currentPatch->isInElementSet(press.first,iel))
+      return true;
 
   return false;
 }
@@ -498,12 +494,8 @@ void AndesShell::addPressure (Vec3& p, const Vec3& X,
   for (const std::pair<const int,RealFunc*>& press : presFld)
     if (press.first < 0)
       p += (*press.second)(X)*n;
-    else
-    {
-      const IntVec& eSet = currentPatch->getElementSet(press.first);
-      if (std::find(eSet.begin(),eSet.end(),iel) != eSet.end())
-        p += (*press.second)(X)*n;
-    }
+    else if (currentPatch->isInElementSet(press.first,iel))
+      p += (*press.second)(X)*n;
 }
 
 

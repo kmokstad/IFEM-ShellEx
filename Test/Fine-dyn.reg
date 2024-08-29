@@ -13,7 +13,7 @@ Number of other elements:       0
 	Reading patch 1
   Parsing <topologysets>
 	Topology sets: SPC7 (1,1,4D)
-	               plate (1,2,5D)
+	               plate (1,1,5D)
   Parsing <patchfile>
   Parsing <topologysets>
 Parsing <boundaryconditions>
