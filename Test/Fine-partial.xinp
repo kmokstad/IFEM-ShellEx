@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">FEM_Fine.nas</patchfile>
+    <topologysets>
+      <set name="SPC7" type="nodes">
+        <item patch="1"/>
+      </set>
+      <set name="plate" type="elements">
+        <item patch="1" type="bbox">0.1   0.0  0.0   0.12  0.0 0.02</item>
+        <item patch="1" type="bbox">0.115 0.0 -0.01  0.125 0.0 0.005</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="SPC7" comp="123"/>
+  </boundaryconditions>
+
+  <elasticity>
+    <pressure set="plate" type="expression">1.0e6*sin(PI*(t-x/0.13))*sin(PI*(1.5*z-y/0.065))</pressure>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
+
+  <newmarksolver alpha2="0.001">
+    <nupdate>0</nupdate>
+    <timestepping>
+      <step start="0.0" end="1.0">0.05</step>
+    </timestepping>
+  </newmarksolver>
+
+  <timestepping>
+    <step start="0.0" end="1.0">0.1</step>
+  </timestepping>
+
+</simulation>
