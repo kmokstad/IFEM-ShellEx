@@ -103,12 +103,16 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
 
 void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
+  int iel = 0, missing = 0;
   for (const ASMbase* pch : myModel)
   {
-    int iel = 0;
     const ASMu2DNastran* shell = dynamic_cast<const ASMu2DNastran*>(pch);
     if (shell)
       for (double& t : elmThick)
-        shell->getThickness(++iel,t);
+        if (!shell->getThickness(pch->getElmID(++iel),t))
+          ++missing;
   }
+  if (missing > 1)
+    IFEM::cout <<" *** A total of "<< missing <<" elements lack thickness.\n"
+               <<"     Please check your model for inconsistency."<< std::endl;
 }

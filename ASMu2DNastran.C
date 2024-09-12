@@ -313,7 +313,12 @@ bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
 bool ASMu2DNastran::getThickness (int eId, double& t) const
 {
   std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
-  if (it == myProps.end()) return false; // silently ignore
+  if (it == myProps.end())
+  {
+    std::cerr <<" *** No properties for shell element "<< eId << std::endl;
+    return false;
+  }
+
 
   t = it->second.Thick;
 
@@ -352,9 +357,9 @@ bool ASMu2DNastran::getLoadVector (int eId, const Vec3& g, Vector& S) const
 }
 
 
-bool ASMu2DNastran::addPressureAt (Vec3& p, int iel, const RealArray& N) const
+bool ASMu2DNastran::addPressureAt (Vec3& p, int eId, const RealArray& N) const
 {
-  std::map<int,Vec3Vec>::const_iterator it = myLoads.find(iel);
+  std::map<int,Vec3Vec>::const_iterator it = myLoads.find(eId);
   if (it == myLoads.end() || it->second.empty()) return false;
 
   size_t n = it->second.size();
@@ -385,7 +390,7 @@ extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
 #endif
 
 
-void ASMu2DNastran::addFlexibleCoupling (int iel, int lDof, const int* indC,
+void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
                                          const std::vector<double>& weights,
                                          const IntVec& mnpc, const Matrix& Xnod)
 {
@@ -404,7 +409,7 @@ void ASMu2DNastran::addFlexibleCoupling (int iel, int lDof, const int* indC,
   double* omega = rwork+4*nM+3;
 
   //TODO: Convert this Fortran subroutine to C++
-  wavgmconstreqn_(iel,lDof,nM,nW,indC,Xnod.ptr(),weights.data(),epsX,
+  wavgmconstreqn_(eId,lDof,nM,nW,indC,Xnod.ptr(),weights.data(),epsX,
                   rwork+nM,rwork,omega,ips,lpu);
 
   MPC* cons = new MPC(MLGN[mnpc.front()],lDof);
