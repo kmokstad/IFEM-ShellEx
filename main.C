@@ -21,6 +21,9 @@
 #include "DataExporter.h"
 #include "HDF5Writer.h"
 #include "Profiler.h"
+#if INT_DEBUG > 2
+#include "SAM.h"
+#endif
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
 #endif
@@ -145,6 +148,8 @@ int main (int argc, char** argv)
       SIMbase::ignoreDirichlet = true;
     else if (!strcmp(argv[i],"-check"))
       iop = 100;
+    else if (!strcmp(argv[i],"-ignoreSol"))
+      iop = 200;
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;
@@ -275,6 +280,7 @@ int main (int argc, char** argv)
 
   switch (iop+model->opt.eig) {
   case 0:
+  case 200:
     // Static solution: Assemble [Km] and {R}
     model->setMode(SIM::STATIC);
     model->setQuadratureRule(2);
@@ -283,13 +289,32 @@ int main (int argc, char** argv)
       terminate(4);
 
     // Solve the linear system of equations
-    if (!model->solveSystem(displ,1))
+    if (iop == 200)
+      model->dumpEqSys(); // No solution, just dump the system matrices to file
+    else if (!model->solveSystem(displ,1))
       terminate(5);
     break;
 
-  case 3:
-  case 4:
-  case 6:
+  case 100:
+#if INT_DEBUG > 2
+    model->getSAM()->print(std::cout);
+#endif
+    break; // Model check
+
+  case 1:
+  case 2:
+    // Assemble and solve the regular eigenvalue problem
+    model->setMode(SIM::STIFF_ONLY);
+    model->setQuadratureRule(2);
+    model->initSystem(model->opt.solver,1,0);
+    if (!model->assembleSystem())
+      terminate(8);
+
+    if (!model->systemModes(modes))
+      terminate(9);
+    break;
+
+  default:
     // Free vibration: Assemble [Km] and [M]
     model->setMode(SIM::VIBRATION);
     model->setQuadratureRule(2);
@@ -298,7 +323,9 @@ int main (int argc, char** argv)
       terminate(8);
 
     // Solve the generalized eigenvalue problem
-    if (!model->systemModes(modes))
+    if (iop == 200)
+      model->dumpEqSys(); // No solution, just dump the system matrices to file
+    else if (!model->systemModes(modes))
       terminate(9);
   }
 
