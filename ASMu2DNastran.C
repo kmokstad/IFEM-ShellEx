@@ -17,6 +17,7 @@
 #include "MPC.h"
 #include "Vec3Oper.h"
 #ifdef HAS_FFLLIB
+#include "IFEM.h"
 #include "FFlLinkHandler.H"
 #include "FFlNastranReader.H"
 #include "FFlElementBase.H"
@@ -28,23 +29,31 @@
 #include "FFlFEParts/FFlPWAVGM.H"
 
 
+/*!
+  \brief Class for reading Nastran bulk data into a FFlLinkHandler object.
+*/
+
 class MyNastranReader : public FFlNastranReader
 {
 public:
+  //! \brief The constructor forwards to the parent class constructor.
   MyNastranReader(FFlLinkHandler& fePart, int lCount)
     : FFlNastranReader(&fePart,lCount) {}
-  virtual ~MyNastranReader() {};
+  //! \brief Empty destructor.
+  virtual ~MyNastranReader() {}
 
+  //! \brief Reads the FE model and resolves all topological references.
   bool readAndResolve(std::istream& is)
   {
     if (!this->resolve(this->read(is)))
       myLink->deleteGeometry(); // Parsing failure, delete all FE data
     else if (nWarnings+nNotes > 0)
-      std::cout <<"\n  ** Parsing FE data succeeded."
-                <<"\n     However, "<< nWarnings
-                <<" warning(s) and "<< nNotes <<" note(s) were reported.\n"
-                <<"     Review the messages and check the FE data file.\n";
-    return myLink->hasGeometry();
+      IFEM::cout <<"\n  ** Parsing FE data succeeded."
+                 <<"\n     However, "<< nWarnings
+                 <<" warning(s) and "<< nNotes <<" note(s) were reported.\n"
+                 <<"     Review the messages and check the FE data file.\n"
+                 << std::endl;
+    return myLink->hasGeometry() && myLink->resolve();
   }
 };
 #endif
@@ -73,49 +82,56 @@ bool ASMu2DNastran::read (std::istream& is)
 
   FFlLinkHandler  fem;
   MyNastranReader reader(fem,lCount);
-  if (!reader.readAndResolve(is) || !fem.resolve())
+  if (!reader.readAndResolve(is))
   {
-    std::cout <<"\n *** Parsing/resolving FE data failed.\n"
+    std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
               <<" resolved completely.\n";
     return false;
   }
 
-  nnod = fem.getNodeCount();
+  nnod = fem.getNodeCount(FFlLinkHandler::FFL_FEM);
   nel  = fem.getElementCount(FFlTypeInfoSpec::SHELL_ELM);
 #ifdef INT_DEBUG
   fem.dump();
 #else
-  std::cout <<"\nTotal number of nodes:          "<< nnod
-            <<"\nNumber of shell elements:       "<< nel
-            <<"\nNumber of constraint elements:  "
-            << fem.getElementCount(FFlTypeInfoSpec::CONSTRAINT_ELM)
-            <<"\nNumber of other elements:       "
-            << fem.getElementCount(FFlTypeInfoSpec::OTHER_ELM)
-            << std::endl;
+  IFEM::cout <<"\nTotal number of nodes:          "<< nnod
+             <<"\nNumber of shell elements:       "<< nel
+             <<"\nNumber of constraint elements:  "
+             << fem.getElementCount(FFlTypeInfoSpec::CONSTRAINT_ELM)
+             <<"\nNumber of other elements:       "
+             << fem.getElementCount(FFlTypeInfoSpec::OTHER_ELM)
+             << std::endl;
 #endif
+  size_t allNodes = fem.getNodeCount(FFlLinkHandler::FFL_ALL);
+  if (allNodes > nnod)
+    IFEM::cout <<"\n  ** Warning: This model contains "<< allNodes-nnod
+               <<" node(s) without any element connections (ignored)."
+               <<"\n     Please check the FE data file.\n"<< std::endl;
 
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
   myCoord.reserve(nnod);
 
   // Extract the nodal points
-  for (NodesCIter n = fem.nodesBegin(); n != fem.nodesEnd(); ++n)
+  for (size_t inod = 1; inod <= nnod; inod++)
   {
-    int nid = (*n)->getID();
-    const FaVec3& X = (*n)->getPos();
+    FFlNode* node = fem.getFENode(inod);
+    int nid = node->getID();
+    const FaVec3& X = node->getPos();
 #if INT_DEBUG > 1
     std::cout << myMLGN.size() <<" "<< nid <<": "<< X << std::endl;
 #endif
     myMLGN.push_back(nid);
     myCoord.push_back(Vec3(X.x(),X.y(),X.z()));
 
-    if ((*n)->isExternal()) // Create a node set for the supernodes
+    if (node->isExternal()) // Create a node set for the supernodes
       this->getNodeSet("ASET",lCount).push_back(myMLGN.size());
-    else if ((*n)->isFixed())
+    else if (node->isFixed())
     {
-      // Create a node set for prescribed nodes - one for each DOF constellation
-      std::string cstat = std::to_string(-(*n)->getStatus(-64));
+      // Create a node set for prescribed nodes,
+      // one for each DOF constellation
+      std::string cstat = std::to_string(-node->getStatus(-64));
       this->getNodeSet("SPC"+cstat,lCount).push_back(myMLGN.size());
     }
   }
@@ -156,16 +172,16 @@ bool ASMu2DNastran::read (std::istream& is)
         sprop.Rho  = mat->materialDensity.getValue();
       }
       else
-        std::cout <<"  ** No material attached to element "<< eid
-                  <<", using default properties"<< std::endl;
+        IFEM::cout <<"  ** No material attached to element "<< eid
+                   <<", using default properties"<< std::endl;
 
       // Extract shell thickness
       FFlPTHICK* thk = GET_ATTRIBUTE(e,PTHICK);
       if (thk)
         sprop.Thick = thk->thickness.getValue();
       else
-        std::cout <<"  ** No shell thickness attached to element "<< eid
-                  <<", using default value "<< sprop.Thick << std::endl;
+        IFEM::cout <<"  ** No shell thickness attached to element "<< eid
+                   <<", using default value "<< sprop.Thick << std::endl;
 
 #if INT_DEBUG > 1
       std::cout <<" t="<< sprop.Thick <<" E="<< sprop.Emod <<" nu="<< sprop.Rny
@@ -248,12 +264,12 @@ bool ASMu2DNastran::read (std::istream& is)
           }
       }
       else
-        std::cout <<"  ** No mass property attached to mass element "<< eid
-                  <<" (ignored)"<< std::endl;
+        IFEM::cout <<"  ** No mass property attached to mass element "<< eid
+                   <<" (ignored)"<< std::endl;
     }
     else
-      std::cout <<"  ** Ignored element "<< (*e)->getTypeName()
-                <<" "<< eid << std::endl;
+      IFEM::cout <<"  ** Ignored element "<< (*e)->getTypeName()
+                 <<" "<< eid << std::endl;
   }
 
   // Extract the pressure loads, if any
@@ -318,7 +334,6 @@ bool ASMu2DNastran::getThickness (int eId, double& t) const
     std::cerr <<" *** No properties for shell element "<< eId << std::endl;
     return false;
   }
-
 
   t = it->second.Thick;
 
