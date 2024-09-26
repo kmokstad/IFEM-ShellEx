@@ -27,9 +27,8 @@
   Constructor. Creates an empty group width id \e id and name \e groupName
 */
 
-FFlGroup::FFlGroup(int id, const std::string& groupName) : FFlNamedPartBase(id)
+FFlGroup::FFlGroup(int id, const std::string& groupName) : FFlGroupBase(id,groupName)
 {
-  this->setName(groupName);
   iAmSorted = true;
 }
 

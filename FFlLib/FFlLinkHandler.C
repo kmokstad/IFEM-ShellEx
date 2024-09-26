@@ -15,6 +15,7 @@
 #include "FFlLib/FFlVertex.H"
 #endif
 #include "FFlLib/FFlFEParts/FFlNode.H"
+#include "FFlLib/FFlNodeGroup.H"
 #include "FFlLib/FFlGroup.H"
 #include "FFlLib/FFlMemPool.H"
 #include "FFlLib/FFlLoadBase.H"
@@ -469,14 +470,16 @@ void FFlLinkHandler::updateGroupVisibilityStatus()
   }
 
   // run over all groups:
+  FFlGroup* group;
   for (const GroupMap::value_type& g : myGroupMap)
-  {
-    g.second->addVisibilityStatus(FFlNamedPartBase::FFL_USED);
-    for (const GroupElemRef& elm : *g.second)
-      g.second->addVisibilityStatus(elm->isVisible() ?
-				    FFlNamedPartBase::FFL_HAS_VIS_ELM :
-				    FFlNamedPartBase::FFL_HAS_HIDDEN_ELM);
-  }
+    if ((group = dynamic_cast<FFlGroup*>(g.second)))
+    {
+      group->addVisibilityStatus(FFlNamedPartBase::FFL_USED);
+      for (const GroupElemRef& elm : *group)
+        group->addVisibilityStatus(elm->isVisible() ?
+                                   FFlNamedPartBase::FFL_HAS_VIS_ELM :
+                                   FFlNamedPartBase::FFL_HAS_HIDDEN_ELM);
+    }
 }
 
 
@@ -903,7 +906,7 @@ FFlElementBase* FFlLinkHandler::getFiniteElement(int iel) const
 FFlGroup* FFlLinkHandler::getGroup(int ID) const
 {
   GroupCIter git = myGroupMap.find(ID);
-  return git == myGroupMap.end() ? NULL : git->second;
+  return git == myGroupMap.end() ? NULL : dynamic_cast<FFlGroup*>(git->second);
 }
 
 
@@ -1173,11 +1176,11 @@ int FFlLinkHandler::getNewVisualID() const
 #endif
 
 
-bool FFlLinkHandler::addGroup(FFlGroup* group, bool silence)
+bool FFlLinkHandler::addGroup(FFlGroupBase* group, bool silence)
 {
   if (!group) return false;
 
-  if (myGroupMap.insert(std::make_pair(group->getID(),group)).second)
+  if (myGroupMap.insert({group->getID(),group}).second)
   {
     isResolved = false;
     return true;
@@ -1783,11 +1786,23 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
                << load->getID() <<" failed\n";
 
   // resolve groups:
+  FFlGroup* eGroup;
+  FFlNodeGroup* nGroup;
   for (const GroupMap::value_type& g : myGroupMap)
-    if (!g.second->resolveElemRefs(myElements, nError >= maxErr))
-      if (nError++ < maxErr)
-        ListUI <<"\n *** Error: Resolving element group "
-               << g.second->getID() <<" failed\n";
+    if ((eGroup = dynamic_cast<FFlGroup*>(g.second)))
+    {
+      if (!eGroup->resolveElemRefs(myElements, nError >= maxErr))
+        if (nError++ < maxErr)
+          ListUI <<"\n *** Error: Resolving element group "
+                 << eGroup->getID() <<" failed\n";
+    }
+    else if ((nGroup = dynamic_cast<FFlNodeGroup*>(g.second)))
+    {
+      if (!nGroup->resolveNodeRefs(myNodes, nError >= maxErr))
+        if (nError++ < maxErr)
+          ListUI <<"\n *** Error: Resolving node group "
+                 << nGroup->getID() <<" failed\n";
+    }
 
   // resolve attributes:
   for (const AttributeTypeMap::value_type& am : myAttributes)
@@ -2361,8 +2376,10 @@ int FFlLinkHandler::splitElement(FFlElementBase* elm)
   delete elm;
 
   // Update element groups
+  FFlGroup* group;
   for (GroupMap::value_type& g : myGroupMap)
-    g.second->swapElement(oldElmID,newElmID);
+    if ((group = dynamic_cast<FFlGroup*>(g.second)))
+      group->swapElement(oldElmID,newElmID);
 
   return newElems.size();
 }
