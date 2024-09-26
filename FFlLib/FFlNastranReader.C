@@ -13,6 +13,8 @@
 #include "FFlLib/FFlLinkHandler.H"
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlGroup.H"
+#include "FFlLib/FFlFEParts/FFlNode.H"
+#include "FFlLib/FFlNodeGroup.H"
 
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaOS/FFaFilePath.H"
@@ -139,7 +141,7 @@ void FFlNastranReader::identifierCB (const std::string& fname, int& positiveId)
   startBulk = 0;
   positiveId = -1;
   identFoundSet = false;
-  std::ifstream fs(fname.c_str());
+  std::ifstream fs(fname);
   if (!fs) return;
 
   char line[256];
@@ -193,21 +195,28 @@ void FFlNastranReader::readerCB (const std::string& fname, FFlLinkHandler* link)
   mainPath = FFaFilePath::getPath(fname);
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: fileName = \""<< fname <<"\"\n"
-	    <<"FFlNastranReader: mainPath = \""<< mainPath <<"\""<< std::endl;
+            <<"FFlNastranReader: mainPath = \""<< mainPath <<"\""<< std::endl;
 #endif
   bool stillOk = reader.read(fname);
-  bool setsOk  = true;
+  if (stillOk && !identFoundSet)
+  {
+    // Check if Nastran SET definitions exists in the file
+    char line[256];
+    std::ifstream fs(fname);
+    for (int lc = 0; !fs.eof() && lc < MAX_HEADER_LINES && !identFoundSet; lc++)
+    {
+      fs.getline(line,255);
+      if (strncmp(line,setIdent,strlen(setIdent)) == 0)
+        identFoundSet = true;
+      else if (isBulkData(line))
+        break;
+    }
+  }
 
   if (identFoundSet)
-    setsOk = reader.processSet(fname,startBulk);
-  else if (reader.setsArePresent(fname))
-    setsOk = reader.processSet(fname,startBulk);
-
-  if (!setsOk)
   {
-    nWarnings++;
-    ListUI <<"\n  ** Warning: Invalid formatting of Nastran SET definitions.\n "
-           <<"             Resulting FFlGroups can not be handled correctly.\n";
+    std::ifstream fs(fname);
+    if (fs) reader.processSet(fs,startBulk);
   }
 
   if (!reader.resolve(stillOk))
@@ -222,15 +231,17 @@ void FFlNastranReader::readerCB (const std::string& fname, FFlLinkHandler* link)
 
 bool FFlNastranReader::read (const std::string& fname, bool includedFile)
 {
-  // If the fname is a relative path, make it into an absolute path, assuming
-  // the given fname is relative to the location of the main bulk data file
   std::string fileName(fname);
   if (includedFile)
+  {
+    // If the fname is a relative path, make it into an absolute path, assuming
+    // the given fname is relative to the location of the main bulk data file
     if (FFaFilePath::isRelativePath(fname) && !mainPath.empty())
       fileName = FFaFilePath::appendFileNameToPath(mainPath,fname);
-  FFaFilePath::checkName(fileName);
+    FFaFilePath::checkName(fileName);
+  }
 
-  std::ifstream fs(fileName.c_str());
+  std::ifstream fs(fileName);
   if (!fs)
   {
     ListUI <<"\n *** Error: Can not open Nastran bulk data file "
@@ -264,12 +275,12 @@ bool FFlNastranReader::read (const std::string& fname, bool includedFile)
   {
     nNotes++;
     ListUI <<"\n   * Note: "<< numOP2 <<" OP2-files were detected.\n"
-	   <<"           The FE part is assumed to be externally reduced.\n";
+           <<"           The FE part is assumed to be externally reduced.\n";
   }
 
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: starting bulk data parsing at line "
-	    << lineCounter+1 << std::endl;
+            << lineCounter+1 << std::endl;
 #endif
   return this->read(fs);
 }
@@ -323,28 +334,10 @@ bool FFlNastranReader::read (std::istream& is)
 
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: processed "<< lineCounter <<" lines (done)."
-	    << std::endl;
+            << std::endl;
 #endif
   STOPP_TIMER("read")
   return sizeOK && stillOK && procOK;
-}
-
-
-bool FFlNastranReader::setsArePresent (const std::string& fname)
-{
-  std::ifstream fs(fname.c_str());
-  if (!fs) return false;
-
-  char line[256];
-  for (int lCounter = 0; !fs.eof() && lCounter < MAX_HEADER_LINES; lCounter++)
-  {
-    fs.getline(line,255);
-    if (strncmp(line,setIdent,strlen(setIdent)) == 0)
-      return true;
-    else if (isBulkData(line))
-      return false;
-  }
-  return false;
 }
 
 
@@ -447,7 +440,7 @@ bool FFlNastranReader::getNextEntry (std::istream& is, BulkEntry& entry)
 
 #if FFL_DEBUG > 3
   std::cout <<"FFlNastranReader: entry=\""<< field <<"\" format="<< entry.ffmt
-	    << std::endl;
+            << std::endl;
 #endif
 
   // Lambda function with hacks needed to deal with non-standard continuations
@@ -819,22 +812,19 @@ bool FFlNastranReader::processThisEntry (BulkEntry& entry)
 }
 
 
-bool FFlNastranReader::processSet (const std::string& fname, const int startBulk)
+bool FFlNastranReader::processSet (std::istream& fs, int startBlk, bool nodeSet)
 {
   START_TIMER("processSet")
 
-  std::ifstream fs(fname.c_str());
-  if (!fs) return false;
-
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: starting SET parsing within lines 1-"
-	    << startBulk-1 << std::endl;
+	    << startBlk-1 << std::endl;
 #endif
 
   char line[256];
   int nError = 0;
-  FFlGroup* aGroup = NULL;
-  for (int lCounter = 0; !fs.eof() && lCounter < startBulk; lCounter++)
+  FFlGroupBase* aGroup = NULL;
+  for (int lCounter = 0; !fs.eof() && lCounter < startBlk; lCounter++)
   {
     fs.getline(line,255);
     // Check for comment line possibly containing a group name
@@ -866,7 +856,7 @@ bool FFlNastranReader::processSet (const std::string& fname, const int startBulk
           continue; // Ignore node groups from NX
 
       // Process the set definition and create an associated FFlGroup
-      aGroup = this->processThisSet(setLine,startLin,lCounter+1);
+      aGroup = this->processThisSet(setLine,startLin,lCounter+1,nodeSet);
       if (aGroup)
       {
         aGroup->sortElements(true);
@@ -900,24 +890,56 @@ bool FFlNastranReader::processSet (const std::string& fname, const int startBulk
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: SET parsing done."<< std::endl;
 #endif
+  if (nError > 0)
+  {
+    nWarnings++;
+    ListUI <<"\n  ** Warning: Invalid formatting of Nastran SET definitions.\n "
+           <<"             Resulting FFlGroups can not be handled correctly.\n";
+  }
   STOPP_TIMER("processSet")
   return nError == 0;
 }
 
 
-FFlGroup* FFlNastranReader::processThisSet (std::string& setLine,
+FFlGroupBase* FFlNastranReader::processThisSet (std::string& setLine,
 #ifdef FFL_DEBUG
-					    const int startL, const int stopL
+                                                const int startL,
+                                                const int stopL,
 #else
-					    const int, const int
+                                                const int, const int,
 #endif
+                                                bool nodes
 ){
   START_TIMER("processThisSet")
 
-  // Create an FFlGroup with the corresponding SET Id
-  char* endPtr;
-  int setId = strtol(setLine.c_str()+3,&endPtr,10);
-  FFlGroup* aGroup = new FFlGroup(setId,"Nastran SET");
+  FFlGroupBase* aGroup = NULL;
+
+  // Lambda function extracting next integer value from string buffer
+  auto&& parseNextInt = [setLine,aGroup](char*& charPtr, bool skipComma = true)
+  {
+    char* endPtr;
+    int ival = charPtr ? strtol(charPtr,&endPtr,10) : 0;
+    if (ival == 0)
+    {
+      ListUI <<"\n *** Syntax Error in Nastran SET definition: \""
+             << setLine <<" ...\" (ignored)\n";
+      delete aGroup;
+      STOPP_TIMER("processThisSet")
+    }
+    else if (skipComma)
+      charPtr = strtok(NULL," ,");
+    return ival;
+  };
+
+  // Create a group object with the corresponding SET Id
+  char* charPtr = const_cast<char*>(setLine.c_str() + 3);
+  int setId = parseNextInt(charPtr,false);
+  if (setId == 0)
+    return NULL;
+  else if (nodes)
+    aGroup = new FFlNodeGroup(setId,"Nastran SET");
+  else
+    aGroup = new FFlGroup(setId,"Nastran SET");
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: Processing SET "<< setId;
   if (startL == stopL)
@@ -930,17 +952,42 @@ FFlGroup* FFlNastranReader::processThisSet (std::string& setLine,
 
   int oldNotes = nNotes;
 
+  // Lambda function adding an element or node the to group
+  auto&& addGroupMember = [this,aGroup,setId,oldNotes,nodes](int ID)
+  {
+    // Note that we check for existing elements/nodes only if the *myLink
+    // is not empty, to facilitate parsing of set data before the bulk data.
+    // The resolving will in any case detect non-existing elements/nodes.
+    if (!nodes && (myLink->getElementCount() == 0 || myLink->getElement(ID)))
+      aGroup->addElement(ID);
+    else if (nodes && (myLink->getNodeCount() == 0 || myLink->getNode(ID)))
+      aGroup->addElement(ID);
+    else if (nNotes++ < oldNotes+10)
+      ListUI <<"\n   * Note: Ignoring non-existing "
+             << (nodes ? "node " : "element ") << ID
+             <<" in Nastran SET "<< setId;
+  };
+
   // Process the SET definition
   int lastNumberAdded = 0;
   const char* p = setLine.c_str() + setLine.find_first_of('=',1) + 1;
-  char* charPtr = strtok((char*)p," ,");
+  charPtr = strtok(const_cast<char*>(p)," ,");
   while (charPtr)
   {
     if (*charPtr == 'A') // "ALL" keyword
     {
-      ElementsCIter eit;
-      for (eit = myLink->elementsBegin(); eit != myLink->elementsEnd(); ++eit)
-        aGroup->addElement((*eit)->getID());
+      if (nodes)
+      {
+        NodesCIter nit;
+        for (nit = myLink->nodesBegin(); nit != myLink->nodesEnd(); ++nit)
+          aGroup->addElement((*nit)->getID());
+      }
+      else
+      {
+        ElementsCIter eit;
+        for (eit = myLink->elementsBegin(); eit != myLink->elementsEnd(); ++eit)
+          aGroup->addElement((*eit)->getID());
+      }
       STOPP_TIMER("processThisSet")
       return aGroup;
     }
@@ -948,97 +995,47 @@ FFlGroup* FFlNastranReader::processThisSet (std::string& setLine,
     {
       charPtr  = strtok(NULL," ,");
       int low  = lastNumberAdded+1;
-      int high = charPtr ? strtol(charPtr,&endPtr,10) : 0;
-      if (high == 0)
-      {
-        ListUI <<"\n *** Syntax Error in Nastran SET definition: \""
-               << setLine <<" ...\" (ignored)\n";
-        delete aGroup;
-        STOPP_TIMER("processThisSet")
-        return NULL;
-      }
-      charPtr = strtok(NULL," ,");
+      int high = parseNextInt(charPtr);
+      if (high == 0) return NULL;
 
       int excludedFromSet = -999;
-      if (charPtr)
-        if (*charPtr == 'E') // "EXCEPT" keyword
-        {
-          charPtr = strtok(NULL," ,");
-          excludedFromSet = charPtr ? strtol(charPtr,&endPtr,10) : 0;
-          if (excludedFromSet == 0)
-          {
-            ListUI <<"\n *** Syntax Error in Nastran SET definition: \""
-                   << setLine <<" ...\" (ignored)\n";
-            delete aGroup;
-            STOPP_TIMER("processThisSet")
-            return NULL;
-          }
-          charPtr = strtok(NULL," ,");
-        }
+      if (charPtr && *charPtr == 'E') // "EXCEPT" keyword
+      {
+        charPtr = strtok(NULL," ,");
+        excludedFromSet = parseNextInt(charPtr);
+        if (excludedFromSet == 0) return NULL;
+      }
 
       for (int j = low; j <= high; j++)
-        if (j == excludedFromSet)
-        {
-          if (!charPtr)
-            excludedFromSet = -999;
-          else
-          {
-            excludedFromSet = strtol(charPtr,&endPtr,10);
-            if (excludedFromSet == 0)
-            {
-              ListUI <<"\n *** Syntax Error in Nastran SET definition: \""
-                     << setLine <<" ...\" (ignored)\n";
-              delete aGroup;
-              STOPP_TIMER("processThisSet")
-              return NULL;
-            }
-            charPtr = strtok(NULL," ,");
-          }
-        }
-        else if (myLink->getElement(j))
-          aGroup->addElement(j);
-        else if (nNotes++ < oldNotes+10)
-          ListUI <<"\n   * Note: Ignoring non-existing element "<< j
-                 <<" in Nastran SET "<< setId <<"\n";
+        if (j != excludedFromSet)
+          addGroupMember(j);
+        else if (!charPtr)
+          excludedFromSet = -999;
+        else if ((excludedFromSet = parseNextInt(charPtr)) == 0)
+          return NULL;
 
       if (excludedFromSet > 0)
       {
         lastNumberAdded = excludedFromSet;
-        if (myLink->getElement(excludedFromSet))
-          aGroup->addElement(excludedFromSet);
-        else if (nNotes++ < oldNotes+10)
-          ListUI <<"\n   * Note: Ignoring non-existing element "
-                 << excludedFromSet <<" in Nastran SET "<< setId <<"\n";
+        addGroupMember(excludedFromSet);
       }
     }
     else
     {
-      int currNumb = strtol(charPtr,&endPtr,10);
-      if (currNumb == 0)
-      {
-        ListUI <<"\n *** Syntax Error in Nastran SET definition: \""
-               << setLine <<" ...\" (ignored)\n";
-        delete aGroup;
-        STOPP_TIMER("processThisSet")
-        return NULL;
-      }
-      charPtr = strtok(NULL," ,");
+      int currNumb = parseNextInt(charPtr);
+      if (currNumb == 0) return NULL;
       lastNumberAdded = currNumb;
-      if (myLink->getElement(currNumb))
-        aGroup->addElement(currNumb);
-      else if (nNotes++ < oldNotes+10)
-        ListUI <<"\n   * Note: Ignoring non-existing element "<< currNumb
-               <<" in Nastran SET "<< setId <<"\n";
+      addGroupMember(currNumb);
     }
   }
 
   if (nNotes > oldNotes+10)
   {
     nWarnings++;
-    ListUI <<"\n  ** Warning: "<< nNotes-oldNotes
-	   <<" non-existing elements were detected for Nastran SET "<< setId
-	   <<".\n              Only the 10 first are reported."
-	   <<"\n              Please verify that the model is consistent.\n";
+    ListUI <<"\n  ** Warning: "<< nNotes-oldNotes <<" non-existing "
+           << (nodes ? "node" : "element") <<"s were detected for Nastran SET "
+           << setId <<".\n              Only the 10 first are reported."
+           <<"\n              Please verify that the model is consistent.\n";
   }
 
   STOPP_TIMER("processThisSet")

@@ -16,6 +16,7 @@
 #include "FFlTypeInfoSpec.H"
 #include "FFlLinkCSMask.H"
 
+class FFlGroupBase;
 class FFlGroup;
 class FFlNode;
 class FFlVertex;
@@ -52,7 +53,7 @@ typedef std::vector<FaVec3*>             VertexVec;
 typedef VertexVec::const_iterator        VertexCIter;
 #endif
 
-typedef std::map<int,FFlGroup*>          GroupMap;
+typedef std::map<int,FFlGroupBase*>      GroupMap;
 typedef GroupMap::const_iterator         GroupCIter;
 
 typedef std::vector<FFlLoadBase*>        LoadsVec;
@@ -85,7 +86,7 @@ public:
   // Adding entities
   bool addElement(FFlElementBase* anElem, bool sortOnInsert = false);
   bool addNode(FFlNode* aNode, bool sortOnInsert = false);
-  bool addGroup(FFlGroup* group, bool silence = false);
+  bool addGroup(FFlGroupBase* group, bool silence = false);
   void addLoad(FFlLoadBase* load, bool sortOnInsert = false);
   bool addAttribute(FFlAttributeBase* attr, bool silence = false);
   bool addAttribute(FFlAttributeBase* attr, bool silence, const std::string& name);

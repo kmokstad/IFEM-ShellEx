@@ -22,7 +22,7 @@
 class FFlAttributeBase;
 class FFlElementBase;
 class FFlLoadBase;
-class FFlGroup;
+class FFlGroupBase;
 class FFaCheckSum;
 
 
@@ -160,11 +160,11 @@ protected:
 
   void processAssignFile (const std::string& line);
 
-  // Detection and parsing of Nastran sets
-  bool setsArePresent (const std::string& fileName);
-  bool processSet     (const std::string& fileName, const int startBulk);
-  FFlGroup* processThisSet (std::string& setLine,
-			    const int startL, const int stopL);
+  // Parsing of Nastran sets
+  bool processSet (std::istream& is, int startBulk, bool nodeSet = false);
+  FFlGroupBase* processThisSet (std::string& setLine,
+                                const int startL, const int stopL,
+                                bool nodes);
 
   // Read next bulk-entry from the input stream
   bool getNextEntry (std::istream& is, BulkEntry& entry);
