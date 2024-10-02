@@ -27,6 +27,7 @@
 #include "FFlFEParts/FFlPMASS.H"
 #include "FFlFEParts/FFlPTHICK.H"
 #include "FFlFEParts/FFlPWAVGM.H"
+#include <climits>
 
 
 /*!
@@ -45,6 +46,7 @@ public:
   //! \brief Reads the FE model and resolves all topological references.
   bool readAndResolve(std::istream& is)
   {
+    this->processSet(is,INT_MAX,true);
     if (!this->resolve(this->read(is)))
       myLink->deleteGeometry(); // Parsing failure, delete all FE data
     else if (nWarnings+nNotes > 0)
@@ -66,11 +68,11 @@ bool ASMu2DNastran::read (std::istream& is)
   myCoord.clear();
   myLoads.clear();
 
-  // Fast-forward until "BEGIN BULK"
+  // Fast-forward until "BEGIN BULK" or "SET"
   int lCount = 0;
   char cline[256];
   while (is.getline(cline,255))
-    if (strncmp(cline,"BEGIN BULK",10))
+    if (strncmp(cline,"BEGIN BULK",10) && strncmp(cline,"SET ",4))
       ++lCount;
     else
       break;
