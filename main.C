@@ -21,7 +21,7 @@
 #include "DataExporter.h"
 #include "HDF5Writer.h"
 #include "Profiler.h"
-#if INT_DEBUG > 2
+#ifdef INT_DEBUG
 #include "SAM.h"
 #endif
 #ifdef HAS_FFLLIB
@@ -113,7 +113,9 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
   \arg -mlc : Solve the linear static problem as a multi-load-case problem
   \arg -qstatic : Solve the linear dynamics problem as quasi-static
   \arg -dynamic : Solve the linear dynamics problem using modal transformation
+  \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -check : Data check only, read model and output to VTF (no solution)
+  \arg -ignoreSol : Assembly only and output to VTF (skip solution)
   \arg -fixDup \a tol : Resolve co-located nodes by merging them into one
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
@@ -127,6 +129,7 @@ int main (int argc, char** argv)
   utl::profiler->start("Initialization");
 
   int iop = 0;
+  bool vizRHS = false;
   bool fixDup = false;
   bool mlcase = false;
   bool nodalR = false;
@@ -150,6 +153,8 @@ int main (int argc, char** argv)
       iop = 100;
     else if (!strcmp(argv[i],"-ignoreSol"))
       iop = 200;
+    else if (!strcmp(argv[i],"-vizRHS"))
+      vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;
@@ -194,8 +199,10 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]\n"
-              <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]]\n"
+              <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]"
+              <<" [-ignoreSol]\n"
+              <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
+              <<" [-vizRHS]]\n"
               <<"       [-fixDup [<tol>]] [-refsol <files>]\n";
     delete prof;
     return 0;
@@ -278,6 +285,7 @@ int main (int argc, char** argv)
     }
   }
 
+  Vector load;
   switch (iop+model->opt.eig) {
   case 0:
   case 200:
@@ -287,6 +295,14 @@ int main (int argc, char** argv)
     model->initSystem(model->opt.solver);
     if (!model->assembleSystem(Elastic::time))
       terminate(4);
+
+    if (vizRHS)
+    {
+      model->extractLoadVec(load,0,"external load");
+#ifdef INT_DEBUG
+      model->getSAM()->printVector(std::cout,load,"\nLoad vector");
+#endif
+    }
 
     // Solve the linear system of equations
     if (iop == 200)
@@ -385,6 +401,10 @@ int main (int argc, char** argv)
     static_cast<SIMAndesShell*>(model)->getShellThicknesses(data);
     if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
       terminate(15);
+
+    // Write load vector to VTF-file
+    if (vizRHS && !model->writeGlvV(load,"Load vector",iStep,nBlock,1))
+      terminate(20);
 
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
