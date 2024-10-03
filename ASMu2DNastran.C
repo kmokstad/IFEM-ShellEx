@@ -126,13 +126,13 @@ bool ASMu2DNastran::read (std::istream& is)
     myCoord.push_back(Vec3(X.x(),X.y(),X.z()));
 
     if (node->isExternal()) // Create a node set for the supernodes
-      this->getNodeSet("ASET",lCount).push_back(myMLGN.size());
+      this->addToNodeSet("ASET",myMLGN.size());
     else if (node->isFixed())
     {
       // Create a node set for prescribed nodes,
       // one for each DOF constellation
       std::string cstat = std::to_string(-node->getStatus(-64));
-      this->getNodeSet("SPC"+cstat,lCount).push_back(myMLGN.size());
+      this->addToNodeSet("SPC"+cstat,myMLGN.size());
     }
   }
 
@@ -419,7 +419,7 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 #endif
   const int lpu = 6;
   const double epsX = 1.0e-4;
-  const double Zero = 1.0e-6;
+  const double Zero = 1.0e-8;
   double* rwork = new double[10*nM+3];
   double* omega = rwork+4*nM+3;
 
@@ -433,7 +433,13 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
       for (int mDof = 1; mDof <= 6; mDof++, omega++)
         if (*omega < -Zero || *omega > Zero)
           cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
-
+#ifdef INT_DEBUG
+        else
+          std::cout <<"  ** Ignoring small coupling coefficient "<< *omega
+                    <<" to local dof "<< mDof
+                    <<" of master node "<< MLGN[mnpc[iM]]
+                    <<" in RBE3 element "<< eId << std::endl;
+#endif
   delete[] rwork;
 #endif
 }
