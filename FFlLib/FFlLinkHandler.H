@@ -67,6 +67,8 @@ typedef std::vector<FFlVisualBase*>        VisualsVec;
 typedef VisualsVec::const_iterator         VisualsCIter;
 #endif
 
+typedef std::vector<FFlTypeInfoSpec::Cathegory> CathegoryVec;
+
 typedef std::pair<FFlElementBase*,int> FFlrElement;
 typedef std::vector<FFlrElement>       FFlrElementVec;
 typedef std::vector<FFlrElementVec>    FFlrVxToElmMap;
@@ -195,20 +197,24 @@ public:
 
   void getMassProperties(double& M, FaVec3& Xcg, FFaTensor3& I) const;
 
-  NodesCIter findFreeNodeAtPoint(const FaVec3& point, double tol,
-                                 int dofFilter = -1) const;
-  NodesCIter findClosestNode(const FaVec3& point) const;
+  FFlNode* findFreeNodeAtPoint(const FaVec3& point, double tol,
+                               int dofFilter = -1) const;
+  FFlNode* findClosestNode(const FaVec3& point) const;
 
   FFlNode* createAttachableNode(FFlNode* fromNode, const FaVec3& nodePos,
                                 FFlConnectorItems* cItems = NULL);
 
-  ElementsCIter findClosestElement(const FaVec3& point,
-                                   const std::vector<FFlTypeInfoSpec::Cathegory>&) const;
-  FFlElementBase* findClosestElement(const FaVec3& point, const FFlGroup& group) const;
-  FFlElementBase* findClosestElement(const FaVec3& point, FFlGroup* group = NULL) const;
+  FFlElementBase* findClosestElement(const FaVec3& point,
+                                     const CathegoryVec& wantedTypes) const;
+  FFlElementBase* findClosestElement(const FaVec3& point,
+                                     const FFlGroup& group) const;
+  FFlElementBase* findClosestElement(const FaVec3& point,
+                                     FFlGroup* group = NULL) const;
 
-  FFlElementBase* findPoint(const FFlGroup& group, const FaVec3& point, double* xi) const;
-  FFlElementBase* findPoint(const FaVec3& point, double* xi, int groupID = 0) const;
+  FFlElementBase* findPoint(const FFlGroup& group, const FaVec3& point,
+                            double* xi) const;
+  FFlElementBase* findPoint(const FaVec3& point,
+                            double* xi, int groupID = 0) const;
 
   // Strain coat creation (these methods are defined in FFlStrainCoatCreator.C)
 

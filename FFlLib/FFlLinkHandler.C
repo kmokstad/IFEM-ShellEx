@@ -1350,83 +1350,79 @@ void FFlLinkHandler::getAllInternalCoordSys(std::vector<FaMat34>& mxes) const
   JJS 2009.03.27
 */
 
-NodesCIter FFlLinkHandler::findFreeNodeAtPoint(const FaVec3& point,
-					       double tolerance,
-					       int dofFilter) const
+FFlNode* FFlLinkHandler::findFreeNodeAtPoint(const FaVec3& point,
+                                             double tol, int dofFilter) const
 {
-  NodesCIter closest = myNodes.end();
+  FFlNode* closest = NULL;
   double closestdist = DBL_MAX;
-  double sqrTol = tolerance > sqrt(DBL_MAX) ? DBL_MAX : tolerance*tolerance;
+  double sqrTol = tol > sqrt(DBL_MAX) ? DBL_MAX : tol*tol;
   double sqrdist, xd, yd, zd;
 
-  for (NodesCIter nit = myNodes.begin(); nit != myNodes.end(); nit++)
-    if ((*nit)->hasDOFs(dofFilter) || (*nit)->isExternal() || (*nit)->isRefNode())
-    {
-      const FaVec3& pos = (*nit)->getPos();
-      if ((xd = fabs(pos.x() - point.x())) < tolerance)
-        if ((yd = fabs(pos.y() - point.y())) < tolerance)
-          if ((zd = fabs(pos.z() - point.z())) < tolerance)
+  for (FFlNode* node : myNodes)
+    if (node->hasDOFs(dofFilter) || node->isExternal() || node->isRefNode())
+      if ((xd = fabs(node->getPos().x() - point.x())) < tol)
+        if ((yd = fabs(node->getPos().y() - point.y())) < tol)
+          if ((zd = fabs(node->getPos().z() - point.z())) < tol)
             if ((sqrdist = xd*xd+yd*yd+zd*zd) < sqrTol)
             {
               if (closestdist >= sqrTol)
               {
-                // The first matching node
-                closest     = nit;
+                // This is the first matching node
+                closest     = node;
                 closestdist = sqrdist;
               }
-              else if (!(*closest)->isAttachable() && (*nit)->isAttachable())
+              else if (node->isAttachable() && !closest->isAttachable())
               {
-                // The previous node found was dependent, replace it with *nit
-                closest     = nit;
+                // The previous node found was dependent, replace it with this
+                closest     = node;
                 closestdist = sqrdist;
               }
-              else if (!(*closest)->isSlaveNode() && (*nit)->isRefNode())
+              else if (node->isRefNode() && !closest->isSlaveNode())
               {
                 // The previous node found was a free node (not connected to a
                 // constraint element) whereas this node is a reference node.
                 // Check if they are connected via an auto-added BUSH element.
-                if (!areBUSHconnected(*closest,*nit))
+                if (!this->areBUSHconnected(closest,node))
                 {
                   // Not connected, use the found reference node instead
-                  closest     = nit;
+                  closest     = node;
                   closestdist = sqrdist;
                 }
               }
-	      else if (!(*nit)->isSlaveNode())
+	      else if (!node->isSlaveNode())
 	      {
-		if ((*closest)->isRefNode())
+		if (closest->isRefNode())
 		{
 		  // The previous node found was a reference node whereas this
 		  // node is a free node. Check if they are BUSH-connected.
-		  if (areBUSHconnected(*nit,*closest))
+		  if (this->areBUSHconnected(node,closest))
 		  {
 		    // They are connected, use the found free node instead
-		    closest     = nit;
+		    closest     = node;
 		    closestdist = sqrdist;
 		  }
 		}
-		else if ((*nit)->getMaxDOFs() > (*closest)->getMaxDOFs())
+		else if (node->getMaxDOFs() > closest->getMaxDOFs())
 		{
 		  // This node has 6 DOFs whereas the previous one has only 3.
 		  // Choose the node having the most DOFs.
-		  closest     = nit;
+		  closest     = node;
 		  closestdist = sqrdist;
 		}
 		else if (sqrdist < closestdist)
-		  if ((*closest)->getStatus(1) == (*nit)->getStatus(1))
+		  if (closest->getStatus(1) == node->getStatus(1))
 		  {
 		    // This node matches better than the previous node found
-		    closest     = nit;
+		    closest     = node;
 		    closestdist = sqrdist;
 		  }
               }
             }
-    }
 
 #ifdef FFL_DEBUG
-  if (closest == myNodes.end())
+  if (!closest)
     std::cout <<" *** No FE node found at point ="<< point
-              <<", tol = "<< tolerance <<" dofFilter ="<< dofFilter << std::endl;
+              <<", tol = "<< tol <<" dofFilter ="<< dofFilter << std::endl;
 #endif
 
   return closest;
@@ -1517,21 +1513,18 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
   Returns the node that is closest to the given \a point.
 */
 
-NodesCIter FFlLinkHandler::findClosestNode(const FaVec3& point) const
+FFlNode* FFlLinkHandler::findClosestNode(const FaVec3& point) const
 {
-  NodesCIter closest = myNodes.end();
+  FFlNode* closest = NULL;
   double closestdist = DBL_MAX;
   double sqrdist;
 
-  for (NodesCIter nit = myNodes.begin(); nit != myNodes.end(); nit++)
-  {
-    sqrdist = (point - (*nit)->getPos()).sqrLength();
-    if (sqrdist <= closestdist)
+  for (FFlNode* node : myNodes)
+    if ((sqrdist = (point - node->getPos()).sqrLength()) <= closestdist)
     {
-      closest     = nit;
+      closest     = node;
       closestdist = sqrdist;
     }
-  }
 
   return closest;
 }
@@ -1543,27 +1536,25 @@ NodesCIter FFlLinkHandler::findClosestNode(const FaVec3& point) const
   If \a wantedTypes is empty, any element is accepted.
 */
 
-ElementsCIter FFlLinkHandler::findClosestElement(const FaVec3& point,
-                                                 const std::vector<FFlTypeInfoSpec::Cathegory>& wantedTypes) const
+FFlElementBase* FFlLinkHandler::findClosestElement(const FaVec3& point,
+                                                   const CathegoryVec& wantedTypes) const
 {
-  ElementsCIter closest = myElements.end();
+  FFlElementBase* closest = NULL;
   double closestdist = DBL_MAX;
+  double sqrdist;
 
   // OTHER_ELM = the total number of element cathegories
   std::vector<bool> typeOk(FFlTypeInfoSpec::OTHER_ELM+1,wantedTypes.empty());
   for (FFlTypeInfoSpec::Cathegory type : wantedTypes)
     typeOk[type] = true;
 
-  for (ElementsCIter eIt = myElements.begin(); eIt != myElements.end(); eIt++)
-    if (typeOk[(*eIt)->getCathegory()])
-    {
-      double sqrdist = (point - (*eIt)->getNodeCenter()).sqrLength();
-      if (sqrdist <= closestdist)
+  for (FFlElementBase* elm : myElements)
+    if (typeOk[elm->getCathegory()])
+      if ((sqrdist = (point - elm->getNodeCenter()).sqrLength()) <= closestdist)
       {
-        closest     = eIt;
+        closest     = elm;
         closestdist = sqrdist;
       }
-    }
 
   return closest;
 }
@@ -1579,16 +1570,14 @@ FFlElementBase* FFlLinkHandler::findClosestElement(const FaVec3& point,
 {
   FFlElementBase* closest = NULL;
   double closestdist = DBL_MAX;
+  double sqrdist;
 
   for (const GroupElemRef& elm : group)
-  {
-    double sqrdist = (point - elm->getNodeCenter()).sqrLength();
-    if (sqrdist <= closestdist)
+    if ((sqrdist = (point - elm->getNodeCenter()).sqrLength()) <= closestdist)
     {
       closest     = elm.getReference();
       closestdist = sqrdist;
     }
-  }
 
   return closest;
 }
@@ -1604,10 +1593,8 @@ FFlElementBase* FFlLinkHandler::findClosestElement(const FaVec3& point,
 {
   if (group)
     return this->findClosestElement(point,*group);
-
-  std::vector<FFlTypeInfoSpec::Cathegory> allTypes;
-  ElementsCIter closest = this->findClosestElement(point,allTypes);
-  return closest == myElements.end() ? NULL : *closest;
+  else
+    return this->findClosestElement(point,{});
 }
 
 
@@ -1641,10 +1628,10 @@ FFlElementBase* FFlLinkHandler::findPoint(const FaVec3& point, double* xi,
   {
     // The invertMapping method is implemented for shell elements only.
     // Filter out all other element types from the element search.
-    std::vector<FFlTypeInfoSpec::Cathegory> shell({FFlTypeInfoSpec::SHELL_ELM});
-    ElementsCIter eit = this->findClosestElement(point,shell);
-    if (eit != myElements.end() && (*eit)->invertMapping(point,xi))
-      return *eit;
+    CathegoryVec shell({ FFlTypeInfoSpec::SHELL_ELM });
+    FFlElementBase* elm = this->findClosestElement(point,shell);
+    if (elm && elm->invertMapping(point,xi))
+      return elm;
 
     // Check all shell elements with its center closer to the target point
     // than the size of the smallest subscriping ball of the element
