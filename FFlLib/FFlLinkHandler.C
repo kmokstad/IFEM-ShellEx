@@ -2150,69 +2150,49 @@ void FFlLinkHandler::sortVisuals() const
 #endif
 
 
-/*!
-  Creates a node based on the given position with the given number of \a DOFs.
-  <i>Espen Medbo 2006</i>
-*/
-
-FFlNode* FFlLinkHandler::createNodeAtPoint(const FaVec3& nodePos, int DOFs)
-{
-  FFlNode* newNode = new FFlNode(this->getNewNodeID(),nodePos);
-  newNode->pushDOFs(DOFs);
-  ListUI <<"  -> Creating FE node "<< newNode->getID() <<"\n";
-  this->addNode(newNode,true);
-
-  return newNode;
-}
-
-
 #ifdef FT_USE_CONNECTORS
 
 /*!
   Creates a connector based on input geometry and the nodal position.
-  The elements, properties and nodes are returned through \a cItems.
+  The elements and nodes are returned through \a cItems.
   The \a spiderType is either:
    2 - RiGiD element (RBE2)
    3 - Weighted AVerage Motion element (RBE3)
-  <i>Espen Medbo 2006</i>
 */
 
 int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
                                     const FaVec3& nodePos, int spiderType,
                                     FFlConnectorItems& cItems)
 {
-  FFlElementBase* newElm = NULL;
-  if (spiderType == 2)
-    newElm = ElementFactory::instance()->create("RGD",this->getNewElmID());
-  else if (spiderType == 3)
-    newElm = ElementFactory::instance()->create("WAVGM",this->getNewElmID());
-  else
+  if (spiderType < 2 || spiderType > 3)
     return -1; // Invalid spider type
 
-  FFlNode* refNode = NULL;
   std::vector<FFlNode*> nodes;
   for (FFlNode* node : myNodes)
     if (node->hasDOFs() && node->getStatus() == FFlNode::INTERNAL)
       if (compound.isInside(node->getPos()))
         nodes.push_back(node);
 
-  if (nodes.size() > 1)
-    refNode = this->createNodeAtPoint(nodePos,6);
-  else
-  {
-    // No FE nodes on the provided geometry
-    delete newElm;
-    return 0;
-  }
+  if (nodes.size() < 2)
+    return 0; // No FE nodes on the provided geometry
 
   cItems.clear();
+
+  FFlNode* refNode = new FFlNode(this->getNewNodeID(),nodePos);
+  refNode->pushDOFs(6);
+  this->addNode(refNode,true);
   cItems.addNode(refNode->getID());
+  ListUI <<"  -> Creating FE node "<< refNode->getID() <<"\n";
   nodes.insert(nodes.begin(),refNode);
-  newElm->setNodes(nodes);
-  this->addElement(newElm,true);
-  cItems.addElement(newElm->getID());
+
+  const char* spider[2] = { "RGD", "WAVGM" };
+  FFlElementBase* newEl = ElementFactory::instance()->create(spider[spiderType-2],
+                                                             this->getNewElmID());
+  newEl->setNodes(nodes);
+  this->addElement(newEl,true);
+  cItems.addElement(newEl->getID());
   ListUI <<"  -> Creating "<< (spiderType == 2 ? "RGD":"WAVGM")
-         <<" element "<< newElm->getID()
+         <<" element "<< newEl->getID()
          <<" with reference node "<< refNode->getID() <<"\n";
 
   if (spiderType == 3)
@@ -2222,48 +2202,21 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
   // Ensure the attachable node has external status
   refNode->setExternal();
 
-  // We do not need to create a property for the WAVGM element.
-  // The FE reducer will assign a default property with unit weights.
   return nodes.size();
 }
 
 
 /*!
-  Delete the element properties of the connector.
-  <i>Espen Medbo 2006</i>
+  Deletes the elements and nodes in the connector.
 */
 
-int FFlLinkHandler::deleteConnectorProperties(const std::vector<int>& propertiesID)
-{
-  AttributeTypeMap::iterator atit = myAttributes.find("PWAVGM");
-  if (atit == myAttributes.end())
-    return 0;
-
-  int nDeleted = 0;
-  AttributeMap::iterator ait;
-  for (int aid : propertiesID)
-    if ((ait = atit->second.find(aid)) != atit->second.end())
-    {
-      delete ait->second;
-      atit->second.erase(ait);
-      nDeleted++;
-    }
-
-  return nDeleted;
-}
-
-
-/*!
-  Delete the elements in the connector.
-  Takes the elements vector from the triad as an argument.
-  <i>Espen Medbo 2006</i>
-*/
-
-int FFlLinkHandler::deleteConnectorElements(const std::vector<int>& elementsID)
+int FFlLinkHandler::deleteConnector(const FFlConnectorItems& cItems)
 {
   int nDeleted = 0;
   ElementsIter eit;
-  for (int elm : elementsID)
+  NodesIter nit;
+
+  for (int elm : cItems.getElements())
     if ((eit = this->getElementIter(elm)) != myElements.end())
     {
       ListUI <<"  -> Deleting "<< (*eit)->getTypeName()
@@ -2275,22 +2228,7 @@ int FFlLinkHandler::deleteConnectorElements(const std::vector<int>& elementsID)
       nDeleted++;
     }
 
-  this->sortElements();
-  return nDeleted;
-}
-
-
-/*!
-  Delete the nodes in the connector.
-  Takes the nodes vector from the triad as an argument.
-  <i>Espen Medbo 2006</i>
-*/
-
-int FFlLinkHandler::deleteConnectorNodes(const std::vector<int>& nodesID)
-{
-  int nDeleted = 0;
-  NodesIter nit;
-  for (int node : nodesID)
+  for (int node : cItems.getNodes())
     if ((nit = this->getNodeIter(node)) != myNodes.end())
     {
       ListUI <<"  -> Deleting FE node "<< node <<"\n";
@@ -2299,7 +2237,9 @@ int FFlLinkHandler::deleteConnectorNodes(const std::vector<int>& nodesID)
       nDeleted++;
     }
 
+  this->sortElements();
   this->sortNodes();
+
   return nDeleted;
 }
 #endif

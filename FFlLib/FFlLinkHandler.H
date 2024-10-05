@@ -274,16 +274,11 @@ public:
 
   void dump() const;
 
-  FFlNode* createNodeAtPoint(const FaVec3& nodePos, int DOFs = 0);
-
 #ifdef FT_USE_CONNECTORS
   int createConnector(const FFaCompoundGeometry& compound,
                       const FaVec3& nodePos, int spiderType,
                       FFlConnectorItems& cItems);
-
-  int deleteConnectorProperties(const std::vector<int>& propertiesID);
-  int deleteConnectorElements(const std::vector<int>& elementsID);
-  int deleteConnectorNodes(const std::vector<int>& nodesID);
+  int deleteConnector(const FFlConnectorItems& cItems);
 #endif
 
 protected:
