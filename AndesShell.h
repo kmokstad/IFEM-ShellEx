@@ -18,6 +18,7 @@
 #include <set>
 
 class ASMu2DNastran;
+class ScalarFunc;
 class RealFunc;
 
 
@@ -41,6 +42,9 @@ public:
 
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
+
+  //! \brief Checks if the point \a Xc is inside the thickness loss area or not.
+  bool isInLossArea(const Vec3& Xc) const;
 
   //! \brief Defines the solution mode before the element assembly is started.
   //! \param[in] mode The solution mode to use
@@ -142,6 +146,7 @@ protected:
   void addPressure(Vec3& p, const Vec3& X, const Vec3& n, int iel) const;
 
 private:
+  double Thck0; //!< Initial (uniform) shell thickness
   double Thick; //!< Current shell thickness
   double Emod;  //!< Current Young's modules
   double Rny;   //!< Current Poisson's ratio
@@ -152,6 +157,7 @@ private:
   double trOutside; //!< Thickness loss level outside given box domain
   Vec3 Xlow; //!< Lower bound of thickness loss box
   Vec3 Xupp; //!< Uppoer bound of thickness loss box
+  ScalarFunc* thickLoss; //!< Thickness loss function
 
   const ASMu2DNastran* currentPatch; //!< Pointer to underlying FE model
 

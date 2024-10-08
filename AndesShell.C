@@ -16,7 +16,7 @@
 #include "FiniteElement.h"
 #include "NewmarkMats.h"
 #include "TimeDomain.h"
-#include "Function.h"
+#include "Functions.h"
 #include "Vec3Oper.h"
 #include "Utilities.h"
 #include "VTF.h"
@@ -54,11 +54,12 @@ AndesShell::AndesShell (unsigned short int n, bool modal)
   // Default material properties
   Emod  = 2.1e11;
   Rny   = 0.3;
-  Thick = 0.1;
+  Thick = Thck0 = 0.1;
   Rho   = 7.85e3;
   ovrMat = false;
 
   trInside = trOutside = 0.0;
+  thickLoss = nullptr;
 
   isModal = modal;
 
@@ -98,13 +99,31 @@ Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem, bool)
     IFEM::cout << std::endl;
   }
 
-  const tinyxml2::XMLElement* child = elem->FirstChildElement("thickloss");
+  const tinyxml2::XMLElement* child = elem->FirstChildElement("thickness");
+  const char* value = child ? utl::getValue(child,"thickness") : nullptr;
+  if (value)
+  {
+    Thck0 = Thick = atof(value);
+    IFEM::cout <<"\tConstant thickness: "<< Thck0 << std::endl;
+  }
+
+  child = elem->FirstChildElement("thickloss");
   if (child && child->FirstChild())
   {
+    std::string ctrInside;
     utl::getAttribute(child,"t1",trOutside);
-    utl::getAttribute(child,"t2",trInside);
+    utl::getAttribute(child,"t2",ctrInside);
     std::istringstream(child->FirstChild()->Value()) >> Xlow >> Xupp;
-    IFEM::cout <<"\tThickness loss: t1="<< trOutside <<" t2="<< trInside
+    if (ctrInside.find("t") != std::string::npos)
+    {
+      IFEM::cout <<"\tThickness loss function: ";
+      thickLoss = utl::parseTimeFunc(ctrInside.c_str(),"expression");
+    }
+    else if ((trInside = atoi(ctrInside.c_str())) < 0.0)
+      trInside = 0.0;
+    if (trOutside < 0.0)
+      trOutside = 0.0;
+    IFEM::cout <<"\tThickness loss: t1="<< trOutside <<" t2="<< ctrInside
                <<"  Xlower = "<< Xlow <<"  Xupper = "<< Xupp << std::endl;
   }
 
@@ -229,7 +248,7 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 
 int AndesShell::getIntegrandType () const
 {
-  return trInside > 0.0 && trOutside > 0.0 ? ELEMENT_CENTER : STANDARD;
+  return thickLoss || trInside+trOutside > 0.0 ? ELEMENT_CENTER : STANDARD;
 }
 
 
@@ -256,23 +275,32 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
     return false;
   else if (fe.Xn.cols() == 1 || (eKm+eM <= 0 && fe.Xn.cols() != 3))
     return true;
-  else if (!currentPatch)
-    return false;
 
   bool ok = true;
-  if (ovrMat) // Override the patch-level material properties
+  if (!currentPatch)
+    Thick = Thck0;
+  else if (ovrMat) // Override the patch-level material properties
   {
     double dum1, dum2, dum3;
     ok = currentPatch->getProps(fe.iel,dum1,dum2,dum3,Thick);
   }
-  else // Use patch-level material properties
+  else // Use the patch-level material properties
     ok = currentPatch->getProps(fe.iel,Emod,Rny,Rho,Thick);
 
   // Scale the thickness depending on location inside or outside given box
-  if (trInside > 0.0 && trOutside > 0.0)
-    Thick *= 1.0 - (Xlow < Xc && Xc < Xupp ? trInside : trOutside);
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&Xc);
+  if (Xt && thickLoss)
+    trInside = std::min(std::max((*thickLoss)(Xt->t),0.0),1.0);
+  if (trInside+trOutside > 0.0)
+    Thick *= 1.0 - (Xc.inside(Xlow,Xupp) ? trInside : trOutside);
 
   return ok;
+}
+
+
+bool AndesShell::isInLossArea (const Vec3& Xc) const
+{
+  return thickLoss || trInside+trOutside > 0.0 ? Xc.inside(Xlow,Xupp) : false;
 }
 
 
