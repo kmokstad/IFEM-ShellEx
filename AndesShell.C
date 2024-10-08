@@ -125,7 +125,14 @@ void AndesShell::setMode (SIM::SolutionMode mode)
 
   this->ElasticBase::setMode(mode);
 
-  if (mode == SIM::STATIC || (isModal && mode == SIM::RHS_ONLY)) iS  = 0;
+  if (mode == SIM::STATIC || (isModal && mode == SIM::RHS_ONLY))
+    iS = 0;
+  else if (mode == SIM::DYNAMIC && eS == 1 && intPrm[4] == 0.5)
+  {
+    eS = 3; // Store external forces separately, for visualization
+    vecNames.push_back("(empty)");
+    vecNames.push_back("external forces");
+  }
 }
 
 
@@ -190,7 +197,7 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
       break;
 
     case SIM::DYNAMIC:
-      result->resize(3,1);
+      result->resize(3,eS);
       break;
 
     case SIM::VIBRATION:
