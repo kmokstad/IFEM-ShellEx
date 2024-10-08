@@ -167,11 +167,11 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
                                            const TimeDomain& time)
 {
-  if (itg != myProblem || !myEqSys)
+  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
     return true;
 
   bool ok = true;
-  SystemVector* R = myEqSys->getVector(0);
+  SystemVector* R = myEqSys->getVector(myEqSys->getNoRHS()-1);
   if (R) // Assemble external nodal point loads
     for (const PointLoad& load : myLoads)
     {
