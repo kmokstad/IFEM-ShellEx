@@ -14,6 +14,7 @@
 #include "IFEM.h"
 #include "SIMenums.h"
 #include "SIMShellModal.h"
+#include "SIMAndesSplit.h"
 #include "NonlinearDriver.h"
 #include "ElasticityUtils.h"
 #include "ElasticityArgs.h"
@@ -121,6 +122,7 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
   \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
   \arg -vtfgrp \a file1 \a file2 ... : Extra files for element set visualisation
   \arg -refsol \a file1 \a file2 ... : Files with reference solution
+  \arg -split : Split the model into two material regions
 */
 
 int main (int argc, char** argv)
@@ -133,6 +135,7 @@ int main (int argc, char** argv)
   bool fixDup = false;
   bool mlcase = false;
   bool nodalR = false;
+  bool splitM = false;
   char dynSol = false;
   char* infile = nullptr;
   ElasticityArgs args;
@@ -181,6 +184,8 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-refsol",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         disfiles.push_back(argv[++i]);
+    else if (!strncmp(argv[i],"-split",6))
+      splitM = true;
     else if (!infile)
     {
       infile = argv[i];
@@ -203,7 +208,7 @@ int main (int argc, char** argv)
               <<" [-ignoreSol]\n"
               <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
               <<" [-vizRHS]]\n"
-              <<"       [-fixDup [<tol>]] [-refsol <files>]\n";
+              <<"       [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
     delete prof;
     return 0;
   }
@@ -239,7 +244,13 @@ int main (int argc, char** argv)
 
   // Create the simulation model
   std::vector<Mode> modes;
-  SIMoutput* model = modalS ? new SIMShellModal(modes) : new SIMAndesShell();
+  SIMoutput* model;
+  if (modalS)
+    model = new SIMShellModal(modes);
+  else if (splitM)
+    model = new SIMAndesSplit();
+  else
+    model = new SIMAndesShell();
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
