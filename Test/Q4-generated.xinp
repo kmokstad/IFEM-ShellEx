@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">plate28x20.nas</patchfile>
+    <topologysets>
+      <set name="SPC7" type="nodes">
+        <item patch="1"/>
+      </set>
+      <set name="plate" type="face">
+        <item patch="1"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="SPC7" comp="123"/>
+  </boundaryconditions>
+
+  <elasticity>
+    <nodeload node="305" dof="3">1.0e9</nodeload>
+    <material E="2.1e11" nu="0.3" rho="1000.0" override="true">
+      <thickloss t1="0.0" t2="if(above(t,1.0),1.0,0.0)">0.85 0.15 -0.1 1.15 0.45 0.1</thickloss>
+    </material>
+  </elasticity>
+
+  <discretization type="lagrange"/>
+
+  <nonlinearsolver>
+    <nupdate>-1</nupdate>
+    <timestepping>
+      <step start="0.0" end="2.0">2</step>
+    </timestepping>
+  </nonlinearsolver>
+
+  <postprocessing>
+    <dump_lhs_matrix format="matrix_market" step="1:6">dumpA.dat</dump_lhs_matrix>
+    <dump_rhs_vector format="matrix_market" step="3 6">dumpR.dat</dump_rhs_vector>
+    <dump_sol_vector format="matrix_market" step="1 2">dumpS.dat</dump_sol_vector>
+  </postprocessing>
+
+</simulation>

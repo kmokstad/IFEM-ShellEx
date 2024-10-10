@@ -1,0 +1,56 @@
+Q4-generated.xinp -mlc -split
+
+Input file: Q4-generated.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Basis function values are precalculated but not cached
+Using the multi-load-case simulation driver.
+Parsing input file Q4-generated.xinp
+Parsing <discretization>
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file plate28x20.nas
+Total number of nodes:          609
+Number of shell elements:       560
+Number of constraint elements:  0
+Number of other elements:       0
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: SPC7 (1,1,4D)
+	               plate (1,0,2D)
+  Parsing <patchfile>
+  Parsing <topologysets>
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 123: (fixed)
+Parsing <elasticity>
+  Parsing <nodeload>
+	Node 305 dof 3 Load: 1e+09
+  Parsing <material>
+	Patch-level material properties are overridden: E=2.1e+11 nu=0.3 rho=1000
+	Thickness loss function: (expression) if(above(t,1.0),1.0,0.0)
+	Thickness loss: t1=0 t2=if(above(t,1.0),1.0,0.0)  Xlower = 0.85 0.15 -0.1  Xupper = 1.15 0.45 0.1
+Parsing <nonlinearsolver>
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 4
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 123
+ >>> SAM model summary <<<
+Number of elements    560
+Number of nodes       609
+Number of dofs        3654
+Number of unknowns    3366
+Splitting the domain into two material regions: 524 36
+  step=1  time=1
+  Primary solution summary: L2-norm            : 0.547727
+                            Max Z-displacement : 0.77625
+  Total reaction forces: Sum(R) = 0 0 0
+  step=2  time=2
+  Primary solution summary: L2-norm            : 0.642236
+                            Max Z-displacement : 0.910544
+  Total reaction forces: Sum(R) = 0 0 0
+  Time integration completed.

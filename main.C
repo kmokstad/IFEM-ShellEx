@@ -14,6 +14,7 @@
 #include "IFEM.h"
 #include "SIMenums.h"
 #include "SIMShellModal.h"
+#include "SIMAndesSplit.h"
 #include "NonlinearDriver.h"
 #include "ElasticityUtils.h"
 #include "ElasticityArgs.h"
@@ -113,6 +114,7 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
+  \arg -split : Split the model into two material regions
 */
 
 int main (int argc, char** argv)
@@ -125,6 +127,7 @@ int main (int argc, char** argv)
   bool fixDup = false;
   bool mlcase = false;
   char nodalR = false;
+  bool splitM = false;
   char dynSol = false;
   bool dumpNodeMap = false;
   char* infile = nullptr;
@@ -178,6 +181,8 @@ int main (int argc, char** argv)
         disfiles.push_back(argv[++i]);
     else if (!strncmp(argv[i],"-dumpNod",8))
       dumpNodeMap = true;
+    else if (!strncmp(argv[i],"-split",6))
+      splitM = true;
     else if (!infile)
     {
       infile = argv[i];
@@ -201,7 +206,7 @@ int main (int argc, char** argv)
               <<"       [-hdf5 [<filename>] [-dumpNodeMap]]\n"
               <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
               <<" [-vizRHS]]\n"
-              <<"       [-fixDup [<tol>]] [-refsol <files>]\n";
+              <<"       [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
     delete prof;
     return 0;
   }
@@ -237,8 +242,14 @@ int main (int argc, char** argv)
 
   // Create the simulation model
   std::vector<Mode> modes;
-  SIMAndesShell* model = modal ? new SIMShellModal(modes) : new SIMAndesShell();
   DataExporter* writer = nullptr;
+  SIMAndesShell* model = nullptr;
+  if (modal)
+    model = new SIMShellModal(modes);
+  else if (splitM)
+    model = new SIMAndesSplit();
+  else
+    model = new SIMAndesShell();
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
@@ -385,8 +396,6 @@ int main (int argc, char** argv)
 
   if (model->opt.format >= 0)
   {
-    SIMAndesShell* shell = static_cast<SIMAndesShell*>(model);
-
     int geoBlk = 0, nBlock = 0;
     size_t iStep = 1, nStep = 0;
     double time = 0.0;
@@ -408,12 +417,12 @@ int main (int argc, char** argv)
       terminate(14);
 
     Vector data;
-    shell->getShellThicknesses(data);
+    model->getShellThicknesses(data);
     if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
       terminate(15);
 
     std::string Grp("Group 1");
-    for (int g = 1; g < 10 && shell->getElementGroup(g,data); g++, ++Grp.back())
+    for (int g = 1; g < 10 && model->getElementGroup(g,data); g++, ++Grp.back())
       if (!model->writeGlvE(data,iStep,nBlock,Grp.c_str(),100+g,true))
         terminate(15);
 
