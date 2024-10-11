@@ -43,10 +43,12 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
   use kindModule       , only : dp, epsDiv0_p
   use manipMatrixModule, only : writeObject
 
+  implicit none
+
   logical , parameter     :: reComputeCG = .true.
   integer , parameter     :: nndof = 6
-  integer , intent(in)    :: iel, lDof, nM, indC(nndof), ipsw, lpu
-  real(dp), intent(in)    :: tenc(3,1+nM), weight(mW), epsX
+  integer , intent(in)    :: iel, lDof, nM, nW, indC(nndof), ipsw, lpu
+  real(dp), intent(in)    :: tenc(3,1+nM), weight(nW), epsX
   real(dp), intent(inout) :: dX(3,1+nM), work(nM)
   real(dp), intent(out)   :: omega(nndof*nM)
 
