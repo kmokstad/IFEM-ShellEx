@@ -57,8 +57,9 @@ public:
   //! \brief Evaluates the secondary solution field at all element centers.
   //! \param[out] sField Solution field
   //! \param[in] integr Object with problem-specific data and methods
+  //! \param[in] atElmCenters If \e false, evaluate at nodal points instead
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
-                            const RealArray*, bool) const;
+                            const RealArray*, bool atElmCenters) const;
 
 protected:
   //! \brief Adds MPCs representing a flexible coupling to this patch.

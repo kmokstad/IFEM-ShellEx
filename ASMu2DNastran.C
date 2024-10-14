@@ -119,7 +119,7 @@ bool ASMu2DNastran::read (std::istream& is)
     FFlNode* node = fem.getFENode(inod);
     int nid = node->getID();
     const FaVec3& X = node->getPos();
-#if INT_DEBUG > 1
+#if INT_DEBUG > 10
     std::cout << myMLGN.size() <<" "<< nid <<": "<< X << std::endl;
 #endif
     myMLGN.push_back(nid);
@@ -155,7 +155,7 @@ bool ASMu2DNastran::read (std::istream& is)
         swapNode34 = true;
       }
 
-#if INT_DEBUG > 1
+#if INT_DEBUG > 10
       std::cout <<"Shell element "<< myMLGE.size() <<" "<< eid <<":";
       for (int node : mnpc) std::cout <<" "<< MLGN[node];
 #endif
@@ -183,14 +183,14 @@ bool ASMu2DNastran::read (std::istream& is)
         IFEM::cout <<"  ** No shell thickness attached to element "<< eid
                    <<", using default value "<< sprop.Thick << std::endl;
 
-#if INT_DEBUG > 1
+#if INT_DEBUG > 10
       std::cout <<" t="<< sprop.Thick <<" E="<< sprop.Emod <<" nu="<< sprop.Rny
                 <<" rho="<< sprop.Rho << std::endl;
 #endif
     }
     else if ((*e)->getTypeName() == "RGD" && mnpc.size() > 1)
     {
-#if INT_DEBUG > 1
+#if INT_DEBUG > 5
       std::cout <<"Rigid element "<< eid <<": master = "<< MLGN[mnpc.front()]
                 <<" slaves =";
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
@@ -202,7 +202,7 @@ bool ASMu2DNastran::read (std::istream& is)
     }
     else if ((*e)->getTypeName() == "WAVGM" && mnpc.size() > 1)
     {
-#if INT_DEBUG > 1
+#if INT_DEBUG > 5
       std::cout <<"Weighted average motion element "<< eid
                 <<": reference node = "<< MLGN[mnpc.front()]
                 <<"\n\tmasters =";
@@ -248,7 +248,7 @@ bool ASMu2DNastran::read (std::istream& is)
         const std::vector<double>& Mvec = mass->M.getValue();
         std::vector<double>::const_iterator m = Mvec.begin();
 
-#if INT_DEBUG > 1
+#if INT_DEBUG > 5
         std::cout <<"Mass element "<< myMLGE.size() <<" "<< eid
                   <<": node = "<< MLGN[mnpc.front()] << std::endl;
 #endif
@@ -293,7 +293,7 @@ bool ASMu2DNastran::read (std::istream& is)
             elLoad.push_back(P.getPt());
           if (elLoad.size() == 4)
             std::swap(elLoad[2],elLoad[3]);
-#if INT_DEBUG > 1
+#if INT_DEBUG > 5
           std::cout <<"Surface pressure on element "<< iel <<":";
           for (const Vec3& p : elLoad) std::cout <<"  "<< p;
           std::cout << std::endl;
@@ -447,22 +447,35 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 
 /*!
   This method overrides the parent class method to always evaluate the secondary
-  solution at the element nodes and then perform nodal averaging to obtain the
-  unique nodal values. It is assumed that all calculations are performed by the
-  IntegrandBase::evalSol() call, therefore no basis function evaluations here.
+  solution at the nodal points of the patch.
 */
 
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const int*, char) const
 {
+  return this->evalSolution(sField,integr,nullptr,false);
+}
+
+
+/*!
+  This method overrides the parent class method to always evaluate the secondary
+  solution at the element nodes and then perform nodal averaging to obtain the
+  unique nodal values, or perform direct evaluation at the element centers.
+  It is assumed that all calculations are performed by the
+  IntegrandBase::evalSol() call, therefore no basis function evaluations here.
+*/
+
+bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
+                                  const RealArray*, bool atElmCenters) const
+{
   sField.clear();
 
   FiniteElement fe;
   Vector        solPt;
-  Vectors       globSolPt(nnod);
-  IntVec        check(nnod,0);
+  Vectors       globSolPt(atElmCenters ? 0 : nnod);
+  IntVec        checkPt(atElmCenters ? 0 : nnod,0);
 
-  // Evaluate the secondary solution field at each element node
+  // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 1; iel <= nel; iel++)
     if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
     {
@@ -470,29 +483,36 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
         return false;
 
       const IntVec& mnpc = MNPC[iel-1];
-      for (size_t loc = 0; loc < mnpc.size(); loc++)
+      const size_t nenod = atElmCenters ? 1 : mnpc.size();
+      for (size_t loc = 0; loc < nenod; loc++)
       {
-        if (mnpc.size() == 3)
+        if (nenod == 3)
           switch (1+loc) {
           case 1: fe.xi = 1.0; fe.eta = 0.0; break;
           case 2: fe.xi = 0.0; fe.eta = 1.0; break;
           case 3: fe.xi = 0.0; fe.eta = 0.0; break;
           }
-        else if (mnpc.size() == 4)
+        else if (nenod == 4)
         {
           fe.xi  = -1.0 + 2.0*(loc%2);
           fe.eta = -1.0 + 2.0*(loc/2);
         }
+        else if (mnpc.size() == 3)
+          fe.xi = fe.eta = 1.0/3.0;
+        else
+          fe.xi = fe.eta = 0.0;
 
         if (!integr.evalSol(solPt,fe,Vec3(),mnpc))
           return false;
         else if (solPt.empty())
-          continue; // a valid element with no secondary solution
+          break; // a valid element with no secondary solution
 
         if (sField.empty())
-          sField.resize(solPt.size(),nnod,true);
+          sField.resize(solPt.size(), atElmCenters ? nel : nnod, true);
 
-        if (++check[mnpc[loc]] == 1)
+        if (atElmCenters)
+          sField.fillColumn(iel,solPt);
+        else if (++checkPt[mnpc[loc]] == 1)
           globSolPt[mnpc[loc]] = solPt;
         else
           globSolPt[mnpc[loc]] += solPt;
@@ -500,51 +520,9 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
     }
 
   // Nodal averaging
-  for (size_t i = 0; i < nnod; i++)
-    if (check[i])
-      sField.fillColumn(1+i,globSolPt[i] /= check[i]);
-
-  return true;
-}
-
-
-/*!
-  This method overrides the parent class method to always evaluate the secondary
-  solution at the center of each element. It is assumed that all calculations
-  are performed by the IntegrandBase::evalSol() call, and therefore no basis
-  function evaluations are needed here.
-*/
-
-bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
-                                  const RealArray*, bool) const
-{
-  sField.clear();
-
-  FiniteElement fe;
-  Vector        solPt;
-
-  // Evaluate the secondary solution field at each element center
-  for (size_t iel = 1; iel <= nel; iel++)
-    if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
-    {
-      if (!this->getElementCoordinates(fe.Xn,iel))
-        return false;
-
-      if (MNPC[iel-1].size() == 3)
-        fe.xi = fe.eta = 1.0/3.0;
-      else
-        fe.xi = fe.eta = 0.0;
-
-      if (!integr.evalSol(solPt,fe,Vec3(),MNPC[iel-1]))
-        return false;
-      else if (solPt.empty())
-        continue; // a valid element with no secondary solution
-
-      if (sField.empty())
-        sField.resize(solPt.size(),nel,true);
-
-      sField.fillColumn(iel,solPt);
-    }
+  for (size_t i = 0; i < checkPt.size(); i++)
+    if (checkPt[i])
+      sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
 
   return true;
 }
