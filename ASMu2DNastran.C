@@ -328,14 +328,19 @@ bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
 
 bool ASMu2DNastran::getThickness (int eId, double& t) const
 {
-  std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
-  if (it == myProps.end())
+  if (myMass.find(eId) != myMass.end())
+    t = 0.0; // Silently ignore mass elements
+  else
   {
-    std::cerr <<" *** No properties for shell element "<< eId << std::endl;
-    return false;
+    std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
+    if (it != myProps.end())
+      t = it->second.Thick;
+    else
+    {
+      std::cerr <<" *** No properties for shell element "<< eId << std::endl;
+      return false;
+    }
   }
-
-  t = it->second.Thick;
 
   return true;
 }
