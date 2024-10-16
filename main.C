@@ -132,7 +132,7 @@ int main (int argc, char** argv)
   bool vizRHS = false;
   bool fixDup = false;
   bool mlcase = false;
-  bool nodalR = false;
+  char nodalR = false;
   char dynSol = false;
   char* infile = nullptr;
   ElasticityArgs args;
@@ -171,7 +171,9 @@ int main (int argc, char** argv)
     {
       while (i+1 < argc && argv[i+1][0] != '-')
         if (!strcmp(argv[++i],"nodal"))
-          nodalR = true;
+          nodalR = 'd';
+        else if (!strcmp(argv[i],"modes"))
+          nodalR = 'm';
         else
           resfiles.push_back(argv[i]);
     }
@@ -415,6 +417,35 @@ int main (int argc, char** argv)
     if (model->writeGlvS1(displ.back(),iStep,nBlock,time,"Reference",20,-1) < 0)
       terminate(17);
 
+    if (modes.empty() && resfiles.size() == 1 && nodalR == 'm')
+    {
+      // Read mode shapes from external file
+      std::string firstLine;
+      std::ifstream ifs(resfiles.front());
+      if (std::getline(ifs,firstLine))
+      {
+        // Use the first line to count the number of modes
+        RealArray values;
+        char* endPt = const_cast<char*>(firstLine.c_str());
+        while (endPt && strlen(endPt) > 0)
+          values.push_back(strtod(endPt,&endPt));
+        modes.resize(values.size());
+        size_t iDof = 0;
+        for (Mode& mode : modes)
+        {
+          mode.eigVec.resize(model->getNoDOFs());
+          mode.eigVec.front() = values[iDof++];
+          mode.eigVal = mode.eigNo = iDof;
+        }
+        // Now read the rest of the file - one line for each DOF
+        for (iDof = 1; ifs.good() && iDof < modes.front().eigVec.size(); iDof++)
+          for (Mode& mode : modes)
+            ifs >> mode.eigVec[iDof];
+      }
+      resfiles.clear();
+      nodalR = false;
+    }
+
     // Write eigenmodes
     for (const Mode& mode : modes)
       if (!model->writeGlvM(mode,true,nBlock))
@@ -449,7 +480,7 @@ int main (int argc, char** argv)
 
     if (!resfiles.empty())
     {
-      // Write external  results (from OSP calculations)
+      // Write external results (from OSP calculations)
       std::vector<Vectors> extResults(resfiles.size());
       std::vector<double> times;
       for (size_t i = 0; i < resfiles.size(); i++)
