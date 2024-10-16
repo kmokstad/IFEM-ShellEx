@@ -27,6 +27,8 @@
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
 #endif
+
+#include <array>
 #include <fstream>
 #include <stdlib.h>
 #include <string.h>
