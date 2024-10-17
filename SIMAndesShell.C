@@ -162,6 +162,29 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 }
 
 
+bool SIMAndesShell::getElementGroup (int idx, RealArray& elGroup) const
+{
+  elGroup.clear();
+
+  int iel = 0;
+  for (const ASMbase* pch : myModel)
+  {
+    const ASMu2DLag* shell = dynamic_cast<const ASMu2DLag*>(pch);
+    if (shell && !shell->getElementSet(idx).empty())
+    {
+      if (elGroup.empty())
+        elGroup.resize(this->getNoElms(false,true),0.0);
+      for (size_t jel = 1; jel <= pch->getNoElms(true); iel++, jel++)
+        elGroup[iel] = pch->getElmID(jel) > 0 && shell->isInElementSet(idx,jel);
+    }
+    else
+      iel += pch->getNoElms(true);
+  }
+
+  return !elGroup.empty();
+}
+
+
 bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 {
   bool ok = this->SIMElasticity<SIM2D>::renumberNodes(nodeMap);

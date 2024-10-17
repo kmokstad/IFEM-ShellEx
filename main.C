@@ -293,7 +293,7 @@ int main (int argc, char** argv)
   case 200:
     // Static solution: Assemble [Km] and {R}
     model->setMode(SIM::STATIC);
-    model->setQuadratureRule(2);
+    model->setQuadratureRule(2,true);
     model->initSystem(model->opt.solver);
     if (!model->assembleSystem(Elastic::time))
       terminate(4);
@@ -383,6 +383,8 @@ int main (int argc, char** argv)
 
   if (model->opt.format >= 0)
   {
+    SIMAndesShell* shell = static_cast<SIMAndesShell*>(model);
+
     int geoBlk = 0, nBlock = 0;
     size_t iStep = 1, nStep = 0;
     double time = 0.0;
@@ -390,6 +392,10 @@ int main (int argc, char** argv)
     // Write VTF-file with model geometry
     if (!model->writeGlvG(geoBlk,infile))
       terminate(12);
+
+    // Write surface pressures, if any
+    if (!model->writeGlvT(iStep,geoBlk,nBlock))
+      terminate(13);
 
     // Write Dirichlet boundary conditions
     if (!model->writeGlvBC(nBlock))
@@ -399,10 +405,15 @@ int main (int argc, char** argv)
     if (!model->writeGlvNo(nBlock))
       terminate(14);
 
-    Vector data(model->getNoElms());
-    static_cast<SIMAndesShell*>(model)->getShellThicknesses(data);
+    Vector data;
+    shell->getShellThicknesses(data);
     if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
       terminate(15);
+
+    std::string Grp("Group 1");
+    for (int g = 1; g < 10 && shell->getElementGroup(g,data); g++, ++Grp.back())
+      if (!model->writeGlvE(data,iStep,nBlock,Grp.c_str(),100+g,true))
+        terminate(15);
 
     // Write load vector to VTF-file
     if (vizRHS && !model->writeGlvV(load,"Load vector",iStep,nBlock,1))
