@@ -827,7 +827,7 @@ bool FFlNastranReader::resolveWeldElement (FFlElementBase* curElm,
           {
             // The patch to project node nS onto is explicitly defined by a
             // series of nodes for which a WAVGM element already has been made
-            std::map<int,FFlElementBase*>::iterator wit = weld[i-1].find(EID);
+            ElementMap::iterator wit = weld[i-1].find(EID);
             if (wit == weld[i-1].end())
             {
 	      std::cerr <<"FFlNastranReader::resolveWeldElement: Internal error."
@@ -1343,7 +1343,7 @@ bool FFlNastranReader::resolveLoads ()
 ////////////////////////////////////////////////////////////////////////////////
 
 bool FFlNastranReader::resolveLoadFace (const FFlLoadBase* load,
-                                        const std::pair<int,int>& nodes) const
+                                        const IntPair& nodes) const
 {
   int EID, faceNum = 0;
   if (!load->getTarget(EID,faceNum))
