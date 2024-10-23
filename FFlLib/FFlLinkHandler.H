@@ -91,7 +91,8 @@ public:
   void addLoad(FFlLoadBase* load, bool sortOnInsert = false);
   bool addAttribute(FFlAttributeBase* attr, bool silence = false);
   bool addAttribute(FFlAttributeBase* attr, bool silence, const std::string& name);
-  int  addUniqueAttribute(FFlAttributeBase* newAtt, bool silence = false);
+  int  addUniqueAttribute(FFlAttributeBase* attr, bool silence = false);
+  int  addUniqueAttributeCS(FFlAttributeBase*& attr);
   bool removeAttribute(const std::string& typeName, int ID, bool silence = false);
 #ifdef FT_USE_VISUALS
   void addVisual(FFlVisualBase* visual, bool sortOnInsert = false);
@@ -323,13 +324,14 @@ protected:
   mutable VisualsVec    myVisuals;
   mutable bool          areVisualsSorted;
 #endif
-
-  GroupMap              myGroupMap;
-  AttributeTypeMap      myAttributes;
 #ifdef FT_USE_VERTEX
   VertexVec             myVertices;
   FFlrVxToElmMap        myVxMapping;
 #endif
+  GroupMap              myGroupMap;
+  AttributeTypeMap      myAttributes;
+
+  std::map<unsigned int,FFlAttributeBase*> uniqueAtts;
 
   bool                  isResolved;    // Flag to avoid resolving more than once
   bool                  hasLooseNodes; // true if unconnected nodes are present
@@ -341,6 +343,7 @@ protected:
   std::vector<std::string> myOP2files; // files with externally reduced matrices
   size_t                nGenDofs;      // as read from Nastran bulk data file
 
+  mutable FFaCheckSum*  myChkSum;
   FFlFEResultBase*      myResults;
   FFaProfiler*          myProfiler;
 };

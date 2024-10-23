@@ -3750,17 +3750,18 @@ bool FFlNastranReader::process_RBE3 (std::vector<std::string>& entry)
               break;
             }
 
-  FFlPWAVGM* myAtt = CREATE_ATTRIBUTE(FFlPWAVGM,"PWAVGM",EID);
-  myAtt->refC = sortDOFs(REFC);
-  myAtt->weightMatrix.data().swap(tmpW);
+  FFlPWAVGM* newAtt = CREATE_ATTRIBUTE(FFlPWAVGM,"PWAVGM",EID);
+  newAtt->refC = sortDOFs(REFC);
+  newAtt->weightMatrix.data().swap(tmpW);
 
   // Compute the component indices
   for (size_t i = 0; i < nRow; i++)
     for (size_t j = 0; j < 6; j++)
       if (isDigitIn(C[i],j+1))
-        myAtt->indC[j] = i*nCol+1;
+        newAtt->indC[j] = i*nCol+1;
 
-  int PID = this->addUniqueAttribute(myAtt);
+  FFlAttributeBase* myAtt = newAtt;
+  int PID = myLink->addUniqueAttributeCS(myAtt);
   sizeOK = myLink->addElement(createElement("WAVGM",EID,G,PID));
 
   STOPP_TIMER("process_RBE3")
@@ -3863,33 +3864,6 @@ bool FFlNastranReader::process_SPC1 (std::vector<std::string>& entry)
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-int FFlNastranReader::addUniqueAttribute (FFlAttributeBase* newAtt)
-{
-  if (!attChkSum) attChkSum = new FFaCheckSum();
-
-  // Calculate the checksum of the new attribute to determine its uniqueness
-  attChkSum->reset();
-  newAtt->calculateChecksum(attChkSum,FFl::CS_NOIDINFO);
-  unsigned int cs = attChkSum->getCurrent();
-
-  // Check if an identical attribute already exists
-  std::map<unsigned int,FFlAttributeBase*>::iterator cit = uniqueAtts.find(cs);
-  if (cit != uniqueAtts.end())
-  {
-    delete newAtt;
-    return cit->second->getID();
-  }
-
-#ifdef FFL_DEBUG
-  newAtt->print("Unique attribute ");
-#endif
-  uniqueAtts[cs] = newAtt;
-
-  return myLink->addAttribute(newAtt) ? newAtt->getID() : 0;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 bool FFlNastranReader::insertBeamPropMat (const char* bulk, int PID, int MID)

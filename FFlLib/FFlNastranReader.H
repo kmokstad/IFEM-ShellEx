@@ -125,9 +125,6 @@ private:
   LoadFaceMap                loadFace; // Pressure load --> element face nodes
   std::map<FFlLoadBase*,int> loadCID; // Load --> coord. system ID for direction
 
-  FFaCheckSum*                             attChkSum;
-  std::map<unsigned int,FFlAttributeBase*> uniqueAtts;
-
 protected:
   static int nWarnings, nNotes; // Accumulates the number of warnings and notes
 
@@ -214,8 +211,6 @@ protected:
 			 std::vector<std::string>& entry);
 
   bool insertBeamPropMat (const char* bulk, int PID, int MID);
-
-  int addUniqueAttribute (FFlAttributeBase* newAtt);
 
   IntMap::iterator setDofFlag (int n, int flg);
 
