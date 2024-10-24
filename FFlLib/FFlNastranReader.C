@@ -386,6 +386,11 @@ bool FFlNastranReader::resolve (bool stillOK)
 #endif
   if (stillOK) stillOK = this->resolveLoads();
 #ifdef FFL_DEBUG
+  std::cout <<"FFlNastranReader: resolving MPCs ..."<< std::endl;
+#endif
+  if (stillOK) stillOK = FFl::convertMPCsToWAVGM(myLink,myMPCs);
+  myMPCs.clear();
+#ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: resolve done."<< std::endl;
 #endif
 

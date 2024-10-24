@@ -9,6 +9,7 @@
 #define FFL_NASTRAN_READER_H
 
 #include "FFlLib/FFlIOAdaptors/FFlReaderBase.H"
+#include "FFlLib/FFlUtils.H"
 #include "FFaLib/FFaAlgebra/FFaMat34.H"
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 #include <string>
@@ -124,6 +125,8 @@ private:
 
   LoadFaceMap                loadFace; // Pressure load --> element face nodes
   std::map<FFlLoadBase*,int> loadCID; // Load --> coord. system ID for direction
+
+  FFl::MPCMap myMPCs;
 
 protected:
   static int nWarnings, nNotes; // Accumulates the number of warnings and notes
@@ -251,6 +254,7 @@ protected:
   DEF_PROCESSOR( MAT8   ) // Material properties
   DEF_PROCESSOR( MAT9   ) // Material properties
   DEF_PROCESSOR( MOMENT ) // Concentrated moment at grid point
+  DEF_PROCESSOR( MPC    ) // Multi-point constraints
   DEF_PROCESSOR( PBAR   ) // Properties for CBAR
   DEF_PROCESSOR( PBARL  ) // Properties for CBAR with cross section dimensions
   DEF_PROCESSOR( PBEAM  ) // Properties for CBEAM

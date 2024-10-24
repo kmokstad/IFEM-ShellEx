@@ -179,6 +179,7 @@ bool FFlNastranReader::processThisEntry (const std::string& name,
   if (name == "RBE2")   return process_RBE2   (entry);
   if (name == "RBE3")   return process_RBE3   (entry);
   if (name == "RBAR")   return process_RBAR   (entry);
+  if (name == "MPC")    return process_MPC    (entry);
   if (name == "CWELD")  return process_CWELD  (entry);
   if (name == "CBEAM")  return process_CBEAM  (entry);
   if (name == "CBAR")   return process_CBAR   (entry);
@@ -254,6 +255,7 @@ bool FFlNastranReader::processThisEntry (const std::string& name,
 
   return true;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////// ASET ///
@@ -2449,6 +2451,7 @@ bool FFlNastranReader::process_MAT9 (std::vector<std::string>& entry)
   return true;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////// PCOMP //
 ////////////////////////////////////////////////////////////////////////////////
@@ -2506,6 +2509,7 @@ bool FFlNastranReader::process_PCOMP (std::vector<std::string>& entry)
   return true;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////// MOMENT /
 ////////////////////////////////////////////////////////////////////////////////
@@ -2543,6 +2547,75 @@ bool FFlNastranReader::process_MOMENT (std::vector<std::string>& entry)
   if (CID > 0) loadCID[theLoad] = CID;
 
   STOPP_TIMER("process_MOMENT")
+  return true;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////// MPC ////
+////////////////////////////////////////////////////////////////////////////////
+
+bool FFlNastranReader::process_MPC (std::vector<std::string>& entry)
+{
+  START_TIMER("process_MPC")
+
+  if (entry.size() < 7) entry.resize(7,"");
+
+  int    SID  = 0;
+  size_t nMst = 1 + (entry.size()-6)/4;
+  std::vector<int>    G(1+nMst,0), C(1+nMst,0);
+  std::vector<double> A(1+nMst,0.0);
+
+  CONVERT_ENTRY ("MPC",
+		 fieldValue(entry[0],SID) &&
+		 fieldValue(entry[1],G[0]) &&
+		 fieldValue(entry[2],C[0]) &&
+		 fieldValue(entry[3],A[0]) &&
+		 fieldValue(entry[4],G[1]) &&
+		 fieldValue(entry[5],C[1]) &&
+		 fieldValue(entry[6],A[1]));
+
+  size_t i = 8;
+  for (size_t j = 2; i+2 < entry.size(); j++)
+  {
+    CONVERT_ENTRY ("MPC",
+		   fieldValue(entry[i+1],G[j]) &&
+		   fieldValue(entry[i+2],C[j]) &&
+		   (i+3 >= entry.size() || fieldValue(entry[i+3],A[j])));
+    i += j%2 ? 5 : 3;
+  }
+
+#ifdef FFL_DEBUG
+  std::cout <<"Multi-point constraint, SID = "<< SID <<": ";
+  for (i = 0; i < G.size(); i++)
+  {
+    if (i == 0)
+      std::cout << A.front();
+    else if (A[i] < 0.0)
+      std::cout <<" - "<< -A[i];
+    else if (A[i] > 0.0)
+      std::cout <<" + "<< A[i];
+    else
+      continue;
+    std::cout <<"*("<< G[i] <<","<< C[i] <<")";
+  }
+  std::cout <<" = 0"<< std::endl;
+#endif
+
+  if (fabs(A.front()) < 1.0e-12)
+  {
+    ListUI <<"\n *** Error: A1 ("<< A.front() <<") must be non-zero"
+           <<" for MPC "<< SID <<".\n";
+    STOPP_TIMER("process_MPC")
+    return false;
+  }
+
+  FFl::DepDOFs& masters = myMPCs[G.front()][C.front()];
+  masters.reserve(G.size()-1);
+  for (i = 1; i < G.size(); i++)
+    masters.push_back(FFl::DepDOF(G[i],C[i],-A[i]/A.front()));
+
+  STOPP_TIMER("process_MPC")
   return true;
 }
 
@@ -3341,14 +3414,13 @@ bool FFlNastranReader::process_PSOLID (std::vector<std::string>& entry)
 {
   START_TIMER("process_PSOLID")
 
-  int PID = 0, MID = 0, CORDM = 0;
+  int PID = 0, MID = 0;
 
-  if (entry.size() < 7) entry.resize(7,"");
+  if (entry.size() < 2) entry.resize(2,"");
 
   CONVERT_ENTRY ("PSOLID",
 		 fieldValue(entry[0],PID) &&
-		 fieldValue(entry[1],MID) &&
-		 fieldValue(entry[2],CORDM));
+		 fieldValue(entry[1],MID));
 
 #ifdef FFL_DEBUG
   std::cout <<"Solid property, ID = "<< PID <<" --> material ID = "<< MID
@@ -3579,59 +3651,57 @@ bool FFlNastranReader::process_RBE2 (std::vector<std::string>& entry)
 /////////////////////////////////////////////////////////////////////// RBE3 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-// Some auxilliary functions for processing of component numbers in process_RBE3
-
-static bool isDigitIn (int target, const int digit)
-{
-  while (target > 0)
-  {
-    if (target%10 == digit) return true;
-    target /= 10;
-  }
-  return false;
-}
-
-static bool isSubset (int target, int value)
-{
-  while (value > 0)
-  {
-    if (!isDigitIn(target,value%10)) return false;
-    value /= 10;
-  }
-  return true;
-}
-
-static bool setMinusIfSubset (int& target, int value)
-{
-  if (!isSubset(target,value)) return false;
-
-  int digit, result = 0, expon = 1;
-  while (target > 0)
-  {
-    digit = target%10;
-    if (!isDigitIn(value,digit)) result += digit*expon;
-    expon *= 10;
-    target /= 10;
-  }
-  target = result;
-  return true;
-}
-
-
-/*!
-  \brief Group of independent nodes with common weight and component numbers.
-*/
-
-struct NodeGroup
-{
-  double WT = 0.0;    //!< Common weighting factor
-  int    C  = 0;      //!< Component numbers
-  std::vector<int> G; //!< List of node numbers
-};
-
-
 bool FFlNastranReader::process_RBE3 (std::vector<std::string>& entry)
 {
+  // Lambda function checking if given target integer contains given digit
+  auto&& isDigitIn = [](int target, const int digit)
+  {
+    while (target > 0)
+      if (target%10 == digit)
+        return true;
+      else
+        target /= 10;
+    return false;
+  };
+
+  // Lambda function checking if given target integer contains a set of digits.
+  auto&& isSubset = [&isDigitIn](int target, int value)
+  {
+    while (value > 0)
+      if (!isDigitIn(target,value%10))
+        return false;
+      else
+        value /= 10;
+    return true;
+  };
+
+  // Lambda function removong a set of digits from given target integer.
+  auto&& setMinusIfSubset = [&isSubset,&isDigitIn](int& target, int value)
+  {
+    if (!isSubset(target,value))
+      return false;
+
+    int digit, result = 0, expon = 1;
+    while (target > 0)
+    {
+      digit = target%10;
+      if (!isDigitIn(value,digit))
+        result += digit*expon;
+      expon *= 10;
+      target /= 10;
+    }
+
+    target = result;
+    return true;
+  };
+
+  struct NodeGroup
+  {
+    double WT = 0.0;
+    int    C  = 0;
+    std::vector<int> G;
+  };
+
   START_TIMER("process_RBE3")
 
   int n, EID, REFC = 0;
@@ -3772,7 +3842,6 @@ bool FFlNastranReader::process_RBE3 (std::vector<std::string>& entry)
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////// SPC ///
 ////////////////////////////////////////////////////////////////////////////////
-
 
 FFlNastranReader::IntMap::iterator FFlNastranReader::setDofFlag (int n, int flg)
 {
