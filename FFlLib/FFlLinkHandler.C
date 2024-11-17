@@ -948,16 +948,33 @@ const AttributeMap& FFlLinkHandler::getAttributes(const std::string& type) const
 
 
 /*!
-  Returns all spider reference nodes in the FE model.
+  Returns all spider reference nodes in the FE model,
+  which are not connected to other elements than the spider itself.
 */
 
 bool FFlLinkHandler::getRefNodes(std::vector<FFlNode*>& refNodes) const
 {
   refNodes.clear();
+  if (myNodes.empty())
+    return false;
+
+  // Find the largest external node number in the model
+  int Nmax = (*std::max_element(myNodes.begin(), myNodes.end(),
+                                [](FFlNode* a, FFlNode* b)
+                                {return a->getID() < b->getID(); }))->getID();
+#ifdef FFL_DEBUG
+  std::cout <<"Largest external node number: "<< Nmax << std::endl;
+#endif
+
+  // Determine the number of elements connected to each node
+  std::vector<short int> elmConnections(Nmax,0);
+  for (FFlElementBase* elm : myElements)
+    for (NodeCIter nit = elm->nodesBegin(); nit != elm->nodesEnd(); ++nit)
+      ++elmConnections[(*nit)->getID()];
 
   for (FFlElementBase* elm : myElements)
     if (elm->getCathegory() == FFlTypeInfoSpec::CONSTRAINT_ELM &&
-        elm->getNodeCount() > 2)
+        elm->getNodeCount() > 2 && elmConnections[elm->getNodeID(1)] == 1)
       refNodes.push_back(elm->getNode(1));
 
   return refNodes.empty();
