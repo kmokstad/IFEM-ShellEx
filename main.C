@@ -27,6 +27,7 @@
 #ifdef HAS_FFLLIB
 #include "FFlLib/FFlFEParts/FFlAllFEParts.H"
 #endif
+#include <array>
 #include <fstream>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +38,7 @@
   \brief Reads the input file and invokes the multi-load-case simulation driver.
 */
 
-int mlcSim (char* infile, SIMbase* model, bool fixDup)
+int mlcSim (char* infile, SIMbase* model, bool fixDup, bool dumpNodeMap)
 {
   IFEM::cout <<"\nUsing the multi-load-case simulation driver."<< std::endl;
   NonlinearDriver simulator(*model,true);
@@ -80,8 +81,10 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
     writer = new DataExporter(true,model->opt.saveInc);
     writer->registerWriter(new HDF5Writer(fileName,model->getProcessAdm()));
 
-    int results = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
-    writer->registerField("u","solution",DataExporter::SIM,results);
+    int result = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
+    if (!model->opt.pSolOnly)  result |= DataExporter::SECONDARY;
+    if (dumpNodeMap)           result |= DataExporter::L2G_NODE;
+    writer->registerField("u","solution",DataExporter::SIM,result);
     writer->setFieldValue("u",model,&simulator.getSolution());
   }
 
@@ -113,7 +116,6 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
   \arg -mlc : Solve the linear static problem as a multi-load-case problem
   \arg -qstatic : Solve the linear dynamics problem as quasi-static
   \arg -dynamic : Solve the linear dynamics problem using modal transformation
-  \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -ignoreSol : Assembly only and output to VTF (skip solution)
   \arg -fixDup \a tol : Resolve co-located nodes by merging them into one
@@ -121,6 +123,9 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup)
   \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
   \arg -vtfgrp \a file1 \a file2 ... : Extra files for element set visualisation
   \arg -refsol \a file1 \a file2 ... : Files with reference solution
+  \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
+  \arg -hdf5 : Write primary and secondary solution to HDF5 file
+  \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
 */
 
 int main (int argc, char** argv)
@@ -134,6 +139,7 @@ int main (int argc, char** argv)
   bool mlcase = false;
   char nodalR = false;
   char dynSol = false;
+  bool dumpNodeMap = false;
   char* infile = nullptr;
   ElasticityArgs args;
   std::vector<std::string> resfiles, grpfiles, disfiles;
@@ -183,6 +189,8 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-refsol",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         disfiles.push_back(argv[++i]);
+    else if (!strncmp(argv[i],"-dumpNod",8))
+      dumpNodeMap = true;
     else if (!infile)
     {
       infile = argv[i];
@@ -203,6 +211,7 @@ int main (int argc, char** argv)
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
               <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]"
               <<" [-ignoreSol]\n"
+              <<"       [-hdf5 [<filename>] [-dumpNodeMap]]\n"
               <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
               <<" [-vizRHS]]\n"
               <<"       [-fixDup [<tol>]] [-refsol <files>]\n";
@@ -242,20 +251,22 @@ int main (int argc, char** argv)
   // Create the simulation model
   std::vector<Mode> modes;
   SIMoutput* model = modalS ? new SIMShellModal(modes) : new SIMAndesShell();
+  DataExporter* writer = nullptr;
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
-  auto&& terminate = [model,prof,dynSol](int status)
+  auto&& terminate = [model,writer,prof,dynSol](int status)
   {
     if (status > 10 && !dynSol)
       utl::profiler->stop("Postprocessing");
     delete model;
+    delete writer;
     delete prof;
     exit(status);
   };
 
   if (mlcase) // Solve the multi-load-case linear static problem
-    terminate(mlcSim(infile,model,fixDup));
+    terminate(mlcSim(infile,model,fixDup,dumpNodeMap));
 
   if (dynSol && !modalS) // Invoke the linear Newmark time integration simulator
     terminate(dynamicSim(infile,model,fixDup));
@@ -285,6 +296,22 @@ int main (int argc, char** argv)
       for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
         ifs >> displ.back()[idof];
     }
+  }
+
+  // Open HDF5 result database, if requested
+  if (model->opt.dumpHDF5(infile))
+  {
+    const std::string& fileName = model->opt.hdf5;
+    IFEM::cout <<"\nWriting HDF5 file "<< fileName <<".hdf5"<< std::endl;
+
+    writer = new DataExporter(true,model->opt.saveInc);
+    writer->registerWriter(new HDF5Writer(fileName,model->getProcessAdm()));
+
+    int result = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
+    if (!model->opt.pSolOnly)  result |= DataExporter::SECONDARY;
+    if (dumpNodeMap)           result |= DataExporter::L2G_NODE;
+    writer->registerField("u","solution",DataExporter::SIM,result);
+    writer->setFieldValue("u",model,&displ.front());
   }
 
   Vector load;
@@ -525,7 +552,11 @@ int main (int argc, char** argv)
         model->writeGlvStep(iStep+1,times[iStep-1]);
       }
     }
+    model->closeGlv();
   }
+
+  if (writer)
+    writer->dumpTimeLevel();
 
   utl::profiler->stop("Postprocessing");
   terminate(0);
