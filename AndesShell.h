@@ -103,13 +103,6 @@ public:
   virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
                                const TimeDomain& time, size_t);
 
-  //! \brief Evaluates the secondary solution at a result point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] eV Element-level primary solution vectors
-  //! \param[in] fe Finite element data at current point
-  virtual bool evalSol2(Vector& s, const Vectors& eV,
-                        const FiniteElement& fe, const Vec3&) const;
-
   //! \brief Returns whether there are any load values to write to VTF.
   virtual bool hasTractionValues() const;
 
@@ -122,13 +115,23 @@ public:
 
   //! \brief Returns the number of primary/secondary solution field components.
   //! \param[in] fld which field set to consider (1=primary, 2=secondary)
-  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv : 18; }
+  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv : n2v; }
   //! \brief Returns the name of a secondary solution field component.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField2Name(size_t i, const char* prefix) const;
 
+  //! \brief Specifies recovery of von Mises stresses only.
+  void vonMisesOnly() { n2v = 2; }
+
 protected:
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] eV Element-level primary solution vectors
+  //! \param[in] fe Finite element data at current point
+  virtual bool evalSol2(Vector& s, const Vectors& eV,
+                        const FiniteElement& fe, const Vec3&) const;
+
   //! \brief Returns whether element \a iel has pressure loads or not.
   bool havePressure(int iel = -1) const;
   //! \brief Evaluates the surface pressure function(s) at specified point.
@@ -161,6 +164,8 @@ private:
 
   Matrices myKmats; //!< Element stiffness matrix buffer
   Matrices myMmats; //!< Element mass matrix buffer
+
+  size_t n2v; //!< Number of secondary variables to output
 
   bool isModal; //!< Flag for modal dynamics simulation
 };

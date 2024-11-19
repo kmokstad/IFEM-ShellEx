@@ -16,6 +16,8 @@
 #include "AndesShell.h"
 #include "AlgEqSystem.h"
 #include "SAM.h"
+#include "DataExporter.h"
+#include "HDF5Writer.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "IFEM.h"
@@ -107,6 +109,12 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
 
       this->getIntegrand()->parseMatProp(child,true);
     }
+
+  if (!strcasecmp(elem->Value(),"postprocessing") && myProblem)
+    for (child = elem->FirstChildElement(); child;
+         child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"vonMises_only"))
+        static_cast<AndesShell*>(myProblem)->vonMisesOnly();
 
   return true;
 }
@@ -215,4 +223,22 @@ bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
     }
 
   return ok;
+}
+
+
+DataExporter* SIMAndesShell::getHDF5writer (const Vector& psol,
+                                            double dumpNodeMap) const
+{
+  IFEM::cout <<"\nWriting HDF5 file "<< opt.hdf5 <<".hdf5"<< std::endl;
+
+  DataExporter* writer = new DataExporter(true,opt.saveInc);
+  writer->registerWriter(new HDF5Writer(opt.hdf5,adm));
+
+  int result = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
+  if (!opt.pSolOnly) result |= DataExporter::SECONDARY;
+  if (dumpNodeMap)   result |= DataExporter::L2G_NODE;
+  writer->registerField("u","solution",DataExporter::SIM,result);
+  writer->setFieldValue("u",this,&psol);
+
+  return writer;
 }

@@ -49,6 +49,7 @@ AndesShell::AndesShell (unsigned short int n, bool modal)
   nsd = 3; // Number of spatial dimenstions
   npv = 6; // Number of primary unknowns per node
   nSV = n; // Number of solution vectors in core
+  n2v = 18; // Number of secondary variables for output
 
   // Default material properties
   Emod  = 2.1e11;
@@ -447,7 +448,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
     s.clear();
   else if (nenod == 4) // 4-noded shell element
   {
-    s.resize(18,0.0);
+    s.resize(n2v > 12 ? n2v : 12, 0.0);
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, Rny,
@@ -475,6 +476,15 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
       s[j+4] = sigma_p.y;
       s[j+5] = sigma.vonMises();
     }
+  }
+  else if (s.size() >= 12)
+  {
+    // Calculate von Mises stresses only
+    RealArray vms;
+    vms.reserve(n2v);
+    for (size_t i = 6; i < 12; i += 3)
+      vms.push_back(SymmTensor({s[i],s[i+1],s[i+2]}).vonMises());
+    s.swap(vms);
   }
 
   return iERR == 0;
@@ -530,6 +540,9 @@ std::string AndesShell::getField2Name (size_t i, const char* prefix) const
   static const char* s[12] = { "n_xx", "n_yy", "n_xy", "m_xx", "m_yy", "m_xy",
                                "sigma_x", "sigma_y", "tau_xy",
                                "sigma_1", "sigma_2", "sigma_m" };
+
+  if (n2v == 2) // output von Mises stresses only
+    i = 6*i + 11;
 
   std::string name(s[i < 6 ? i : 6 + i%6]);
   if (i >= 12)

@@ -37,4 +37,8 @@
     <step start="0.0" end="1.0">0.1</step>
   </timestepping>
 
+  <postprocessing>
+    <vonMises_only/>
+  </postprocessing>
+
 </simulation>

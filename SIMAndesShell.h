@@ -17,6 +17,8 @@
 #include "SIMElasticity.h"
 #include "SIM2D.h"
 
+class DataExporter;
+
 
 /*!
   \brief Driver class for FE analysis using the ANDES shell elements.
@@ -31,6 +33,11 @@ public:
   explicit SIMAndesShell(unsigned char n = 1, bool m = false);
   //! \brief The destructor deletes the nodal point load functions.
   virtual ~SIMAndesShell();
+
+  //! \brief Creates a HDF5 data exporter for the simulator.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] dumpNodeMap If \e true, write node mapping to the HDF5 as well
+  DataExporter* getHDF5writer(const Vector& psol, double dumpNodeMap) const;
 
   //! \brief Retrieves the shell thickness of all elements in the model.
   void getShellThicknesses(RealArray& elmThick) const;

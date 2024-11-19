@@ -19,7 +19,6 @@
 #include "ElasticityArgs.h"
 #include "DynamicSim.h"
 #include "DataExporter.h"
-#include "HDF5Writer.h"
 #include "Profiler.h"
 #ifdef INT_DEBUG
 #include "SAM.h"
@@ -38,7 +37,7 @@
   \brief Reads the input file and invokes the multi-load-case simulation driver.
 */
 
-int mlcSim (char* infile, SIMbase* model, bool fixDup, bool dumpNodeMap)
+int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
 {
   IFEM::cout <<"\nUsing the multi-load-case simulation driver."<< std::endl;
   NonlinearDriver simulator(*model,true);
@@ -74,19 +73,7 @@ int mlcSim (char* infile, SIMbase* model, bool fixDup, bool dumpNodeMap)
   // Open HDF5 result database, if requested
   DataExporter* writer = nullptr;
   if (model->opt.dumpHDF5(infile))
-  {
-    const std::string& fileName = model->opt.hdf5;
-    IFEM::cout <<"\nWriting HDF5 file "<< fileName <<".hdf5"<< std::endl;
-
-    writer = new DataExporter(true,model->opt.saveInc);
-    writer->registerWriter(new HDF5Writer(fileName,model->getProcessAdm()));
-
-    int result = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
-    if (!model->opt.pSolOnly)  result |= DataExporter::SECONDARY;
-    if (dumpNodeMap)           result |= DataExporter::L2G_NODE;
-    writer->registerField("u","solution",DataExporter::SIM,result);
-    writer->setFieldValue("u",model,&simulator.getSolution());
-  }
+    writer = model->getHDF5writer(simulator.getSolution(),dumpNodeMap);
 
   // Now invoke the main solution driver
   int status = simulator.solveProblem(writer);
@@ -227,7 +214,7 @@ int main (int argc, char** argv)
   // Boundary conditions can be ignored only in generalized eigenvalue analysis
   if (args.eig < 3) SIMbase::ignoreDirichlet = false;
 
-  bool modalS = dynSol && args.eig >= 3 && args.eig != 5; // Modal solution
+  bool modal = dynSol && args.eig >= 3 && args.eig != 5; // Modal solution
 
   IFEM::cout <<"\nInput file: "<< infile;
   IFEM::getOptions().print(IFEM::cout);
@@ -250,7 +237,7 @@ int main (int argc, char** argv)
 
   // Create the simulation model
   std::vector<Mode> modes;
-  SIMoutput* model = modalS ? new SIMShellModal(modes) : new SIMAndesShell();
+  SIMAndesShell* model = modal ? new SIMShellModal(modes) : new SIMAndesShell();
   DataExporter* writer = nullptr;
 
   // Lambda function for cleaning the heap-allocated objects on termination.
@@ -268,7 +255,7 @@ int main (int argc, char** argv)
   if (mlcase) // Solve the multi-load-case linear static problem
     terminate(mlcSim(infile,model,fixDup,dumpNodeMap));
 
-  if (dynSol && !modalS) // Invoke the linear Newmark time integration simulator
+  if (dynSol && !modal) // Invoke the linear Newmark time integration simulator
     terminate(dynamicSim(infile,model,fixDup));
 
   // Read in model definitions
@@ -300,19 +287,7 @@ int main (int argc, char** argv)
 
   // Open HDF5 result database, if requested
   if (model->opt.dumpHDF5(infile))
-  {
-    const std::string& fileName = model->opt.hdf5;
-    IFEM::cout <<"\nWriting HDF5 file "<< fileName <<".hdf5"<< std::endl;
-
-    writer = new DataExporter(true,model->opt.saveInc);
-    writer->registerWriter(new HDF5Writer(fileName,model->getProcessAdm()));
-
-    int result = DataExporter::PRIMARY | DataExporter::DISPLACEMENT;
-    if (!model->opt.pSolOnly)  result |= DataExporter::SECONDARY;
-    if (dumpNodeMap)           result |= DataExporter::L2G_NODE;
-    writer->registerField("u","solution",DataExporter::SIM,result);
-    writer->setFieldValue("u",model,&displ.front());
-  }
+    writer = model->getHDF5writer(displ.front(),dumpNodeMap);
 
   Vector load;
   switch (iop+model->opt.eig) {
@@ -374,7 +349,7 @@ int main (int argc, char** argv)
       terminate(9);
   }
 
-  if (modalS) // Solve the dynamics problem using modal transformation
+  if (modal) // Solve the dynamics problem using modal transformation
     terminate(modalSim(infile,modes.size(),false,dynSol=='s',model));
 
   utl::profiler->start("Postprocessing");
