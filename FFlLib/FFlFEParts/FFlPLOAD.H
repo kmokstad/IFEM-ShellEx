@@ -35,6 +35,7 @@ public:
   virtual int getLoad(std::vector<FaVec3>& p, int& face) const;
 
 protected:
+  using FFlLoadBase::getTarget;
   virtual const FFlElementBase* getTarget(int& face) const = 0;
 
 private:
