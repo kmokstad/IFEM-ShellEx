@@ -128,16 +128,12 @@ FaVec3 FFlQUAD4::mapping(double xi, double eta, double) const
 
 bool FFlQUAD4::invertMapping(const FaVec3& X, double* Xi) const
 {
-  FaVec3 v1(this->getNode(1)->getPos());
-  FaVec3 v2(this->getNode(2)->getPos());
-  FaVec3 v3(this->getNode(3)->getPos());
-  FaVec3 v4(this->getNode(4)->getPos());
-  FaMat33 T = T.makeGlobalizedCS(v1,v2,v3,v4).transpose();
-  FaVec3 Xp = T*X;
-  FaVec3 X1 = T*v1;
-  FaVec3 X2 = T*v2;
-  FaVec3 X3 = T*v3;
-  FaVec3 X4 = T*v4;
+  FaMat33 T = this->getGlobalizedElmCS().transpose();
+  FaVec3 Xp = T * X;
+  FaVec3 X1 = T * this->getNode(1)->getPos();
+  FaVec3 X2 = T * this->getNode(2)->getPos();
+  FaVec3 X3 = T * this->getNode(3)->getPos();
+  FaVec3 X4 = T * this->getNode(4)->getPos();
 
   // Initialize auxilliary variables
   double A[2][4];
@@ -221,7 +217,7 @@ bool FFlQUAD4::invertMapping(const FaVec3& X, double* Xi) const
     return false;
   }
 
-  double elArea = 0.5*(((v2-v1)^(v3-v1)).length() + ((v3-v1)^(v4-v1)).length());
+  double elArea = 0.5*(((X2-X1)^(X3-X1)).length() + ((X3-X1)^(X4-X1)).length());
   double elDia2 = elArea*4.0/M_PI;
   double distXp = Xp.z() - 0.25*(X1.z()+X2.z()+X3.z()+X4.z());
   if (distXp*distXp > offPlaneTol*offPlaneTol*elDia2)
