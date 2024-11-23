@@ -114,3 +114,18 @@ bool FFlTRI6::getVolumeAndInertia(double& volume, FaVec3& cog,
   FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,inertia);
   return true;
 }
+
+
+int FFlTRI6::getNodalCoor(double* X, double* Y, double* Z) const
+{
+  int ierr = this->FFlElementBase::getNodalCoor(X,Y,Z);
+  if (ierr < 0) return ierr;
+
+  // Reorder the nodes such that the 3 mid-side nodes are ordered last
+  // 1-2-3-4-5-6 --> 1-3-5-2-4-6
+  std::swap(X[1],X[2]); std::swap(X[2],X[4]); std::swap(X[3],X[4]);
+  std::swap(Y[1],Y[2]); std::swap(Y[2],Y[4]); std::swap(Y[3],Y[4]);
+  std::swap(Z[1],Z[2]); std::swap(Z[2],Z[4]); std::swap(Z[3],Z[4]);
+
+  return ierr;
+}

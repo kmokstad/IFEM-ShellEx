@@ -31,6 +31,8 @@ public:
   FFL_FE_ATTRIBUTE_SPEC(FFlBUSH);
   FFL_TYPE_INFO(FFlBUSH);
 
+  virtual int getNodalCoor(double* X, double* Y, double* Z) const;
+
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
 #endif

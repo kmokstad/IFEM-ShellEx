@@ -34,6 +34,8 @@ public:
   virtual double getMassDensity() const;
   virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
 				   FFaTensor3& inertia) const;
+  virtual int getNodalCoor(double* X, double* Y, double* Z) const;
+  FaVec3 getLocalZdirection() const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;

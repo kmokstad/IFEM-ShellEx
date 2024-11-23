@@ -69,6 +69,9 @@ public:
   //! \brief Returns the topological specification of the element.
   virtual FFlFEElementTopSpec* getFEElementTopSpec() const = 0;
 
+  //! \brief Returns the nodal coordinates for this element.
+  virtual int getNodalCoor(double* X, double* Y, double* Z) const;
+
 private:
   void initNodeVector() const;
 

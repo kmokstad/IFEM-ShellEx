@@ -287,3 +287,22 @@ bool FFlFENodeRefs::getFaceNodes(std::vector<FFlNode*>& nodes, short int face,
 
   return std::find(nodes.begin(),nodes.end(),(FFlNode*)0) == nodes.end();
 }
+
+
+int FFlFENodeRefs::getNodalCoor(double* X, double* Y, double* Z) const
+{
+  size_t inod = 0;
+  for (const NodeRef& node : myNodes)
+    if (node.isResolved())
+    {
+      const FaVec3& pos = node->getPos();
+      X[inod] = pos.x();
+      Y[inod] = pos.y();
+      Z[inod] = pos.z();
+      inod++;
+    }
+    else
+      ListUI <<" *** Error: Element node "<< node.getID() <<" not resolved\n";
+
+  return inod == myNodes.size() ? 0 : -3;
+}
