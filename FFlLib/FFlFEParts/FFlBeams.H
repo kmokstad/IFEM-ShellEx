@@ -5,8 +5,8 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef FFL_BEAM3_H
-#define FFL_BEAM3_H
+#ifndef FFL_BEAMS_H
+#define FFL_BEAMS_H
 
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlFEElementTopSpec.H"
@@ -15,7 +15,35 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+
+class FFlBEAM2 : public FFlElementBase
+{
+public:
+  FFlBEAM2(int ID) : FFlElementBase(ID) {}
+  virtual ~FFlBEAM2() {}
+
+  static void init();
+
+  FFL_FE_ELEMENT_FACTORY_INIT(FFlBEAM2);
+  FFL_FE_ELEMENT_TOP_SPEC(FFlBEAM2);
+  FFL_FE_ATTRIBUTE_SPEC(FFlBEAM2);
+  FFL_TYPE_INFO(FFlBEAM2);
+
+  virtual double getMassDensity() const;
+  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
+                                   FFaTensor3& inertia) const;
+  virtual int getNodalCoor(double* X, double* Y, double* Z) const;
+  FaVec3 getLocalZdirection() const;
+
+#ifdef FT_USE_MEMPOOL
+  FFA_MAKE_MEMPOOL;
+#endif
+};
 
 
 class FFlBEAM3 : public FFlElementBase
@@ -43,9 +71,7 @@ public:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlBEAM3>  FFlBEAM3AttributeSpec;
-typedef FFaSingelton<FFlFEElementTopSpec,FFlBEAM3> FFlBEAM3ElementTopSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlBEAM3>     FFlBEAM3TypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

@@ -14,18 +14,9 @@
 #include "FFlLib/FFlFEParts/FFlCMASS.H"
 #include "FFlLib/FFlFEParts/FFlSPRING.H"
 #include "FFlLib/FFlFEParts/FFlBUSH.H"
-#include "FFlLib/FFlFEParts/FFlBEAM2.H"
-#include "FFlLib/FFlFEParts/FFlBEAM3.H"
-#include "FFlLib/FFlFEParts/FFlTRI3.H"
-#include "FFlLib/FFlFEParts/FFlTRI6.H"
-#include "FFlLib/FFlFEParts/FFlQUAD4.H"
-#include "FFlLib/FFlFEParts/FFlQUAD8.H"
-#include "FFlLib/FFlFEParts/FFlTET4.H"
-#include "FFlLib/FFlFEParts/FFlTET10.H"
-#include "FFlLib/FFlFEParts/FFlWEDG6.H"
-#include "FFlLib/FFlFEParts/FFlWEDG15.H"
-#include "FFlLib/FFlFEParts/FFlHEX8.H"
-#include "FFlLib/FFlFEParts/FFlHEX20.H"
+#include "FFlLib/FFlFEParts/FFlBeams.H"
+#include "FFlLib/FFlFEParts/FFlShells.H"
+#include "FFlLib/FFlFEParts/FFlSolids.H"
 #include "FFlLib/FFlFEParts/FFlRBAR.H"
 #include "FFlLib/FFlFEParts/FFlRGD.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
@@ -33,7 +24,10 @@
 #include "FFlLib/FFlFEParts/FFlSTRCoat.H"
 #endif
 
-typedef FFaSingelton<FFaMemPoolMgr,FFlElementBase> FFlMemPoolMgr;
+#ifdef FF_NAMESPACE
+using namespace FF_NAMESPACE;
+#endif
+using FFlMemPoolMgr = FFaSingelton<FFaMemPoolMgr,FFlElementBase>;
 
 FFaMemPool FFlNode   ::ourMemPool(sizeof(FFlNode));
 #ifdef FT_USE_VERTEX

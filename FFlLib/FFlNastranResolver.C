@@ -9,6 +9,7 @@
 #include "FFlLib/FFlLinkHandler.H"
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlFEParts/FFlNode.H"
+#include "FFlLib/FFlFEParts/FFlLoads.H"
 #include "FFlLib/FFlFEParts/FFlPORIENT.H"
 #include "FFlLib/FFlFEParts/FFlPBEAMSECTION.H"
 #include "FFlLib/FFlFEParts/FFlPBEAMECCENT.H"
@@ -17,9 +18,7 @@
 #include "FFlLib/FFlFEParts/FFlPSPRING.H"
 #include "FFlLib/FFlFEParts/FFlPMASS.H"
 #include "FFlLib/FFlFEParts/FFlPMAT.H"
-#include "FFlLib/FFlFEParts/FFlPMATSHELL.H"
 #include "FFlLib/FFlFEParts/FFlPEFFLENGTH.H"
-#include "FFlLib/FFlFEParts/FFlCLOAD.H"
 
 #include "FFaLib/FFaAlgebra/FFaAlgebra.H"
 #include "FFaLib/FFaAlgebra/FFaMat33.H"

@@ -135,8 +135,8 @@ void FFl::releaseAllElements()
 #endif
   ElementFactory::removeInstance();
 
-  releaseAttribute<FFlCFORCE>();
-  releaseAttribute<FFlCMOMENT>();
+  releaseTypeInfo<FFlCFORCE>();
+  releaseTypeInfo<FFlCMOMENT>();
   releaseAttribute<FFlFACELOAD>();
   releaseAttribute<FFlSURFLOAD>();
   LoadFactory::removeInstance();
