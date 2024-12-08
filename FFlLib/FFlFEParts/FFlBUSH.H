@@ -15,7 +15,10 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 class FFlBUSH : public FFlElementBase
@@ -38,9 +41,7 @@ public:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlBUSH>  FFlBUSHAttributeSpec;
-typedef FFaSingelton<FFlFEElementTopSpec,FFlBUSH> FFlBUSHElementTopSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlBUSH>     FFlBUSHTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

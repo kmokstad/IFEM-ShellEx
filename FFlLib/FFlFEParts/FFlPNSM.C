@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPNSM.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPNSM::FFlPNSM(int id) : FFlAttributeBase(id)
 {
@@ -37,11 +41,17 @@ void FFlPNSM::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPNSM::init()
 {
-  FFlPNSMTypeInfoSpec::instance()->setTypeName("PNSM");
-  FFlPNSMTypeInfoSpec::instance()->setDescription("Non-structural masses");
-  FFlPNSMTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::MATERIAL_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPNSM>;
+
+  TypeInfoSpec::instance()->setTypeName("PNSM");
+  TypeInfoSpec::instance()->setDescription("Non-structural masses");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::MATERIAL_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPNSMTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPNSM::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

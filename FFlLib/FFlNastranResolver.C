@@ -46,6 +46,11 @@ static void printMatrix6 (const double A[6][6])
 #define GET_ATTRIBUTE(type,name,id) \
   dynamic_cast<type*>(myLink->getAttribute(name,id))
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 bool FFlNastranReader::resolveCoordinates ()
@@ -1399,3 +1404,7 @@ bool FFlNastranReader::resolveLoadDirection (const FFlLoadBase* load, int CID)
 
   return false; // Surface loads not yet implemented
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

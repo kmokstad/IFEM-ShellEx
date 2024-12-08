@@ -8,23 +8,31 @@
 #include "FFlLib/FFlFEParts/FFlBUSH.H"
 #include "FFlLib/FFlFEParts/FFlPBUSHECCENT.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlBUSH::init()
 {
-  FFlBUSHTypeInfoSpec::instance()->setTypeName("BUSH");
-  FFlBUSHTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
+  using TypeInfoSpec   = FFaSingelton<FFlTypeInfoSpec,FFlBUSH>;
+  using AttributeSpec  = FFaSingelton<FFlFEAttributeSpec,FFlBUSH>;
+  using ElementTopSpec = FFaSingelton<FFlFEElementTopSpec,FFlBUSH>;
 
-  ElementFactory::instance()->registerCreator(FFlBUSHTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlBUSH::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("BUSH");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
 
-  FFlBUSHAttributeSpec::instance()->addLegalAttribute("PBUSHCOEFF", false);
-  FFlBUSHAttributeSpec::instance()->addLegalAttribute("PBUSHECCENT", false);
-  FFlBUSHAttributeSpec::instance()->addLegalAttribute("PBUSHORIENT", false);
-  FFlBUSHAttributeSpec::instance()->addLegalAttribute("PORIENT", false);
-  FFlBUSHAttributeSpec::instance()->addLegalAttribute("PCOORDSYS", false);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlBUSH::create,int,FFlElementBase*&));
 
-  FFlBUSHElementTopSpec::instance()->setNodeCount(2);
-  FFlBUSHElementTopSpec::instance()->setNodeDOFs(6);
+  AttributeSpec::instance()->addLegalAttribute("PBUSHCOEFF",false);
+  AttributeSpec::instance()->addLegalAttribute("PBUSHECCENT",false);
+  AttributeSpec::instance()->addLegalAttribute("PBUSHORIENT",false);
+  AttributeSpec::instance()->addLegalAttribute("PORIENT",false);
+  AttributeSpec::instance()->addLegalAttribute("PCOORDSYS",false);
+
+  ElementTopSpec::instance()->setNodeCount(2);
+  ElementTopSpec::instance()->setNodeDOFs(6);
 }
 
 
@@ -51,3 +59,7 @@ int FFlBUSH::getNodalCoor(double* X, double* Y, double* Z) const
 
   return ierr;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

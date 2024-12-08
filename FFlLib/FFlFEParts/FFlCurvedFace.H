@@ -10,8 +10,13 @@
 
 #include <vector>
 
-class FFlNode;
 class FaVec3;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlNode;
 
 
 class FFlCurvedFace
@@ -25,4 +30,7 @@ private:
   static void shapeDerivs8(double* N1, double* N2, double X1, double X2);
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

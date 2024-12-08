@@ -7,6 +7,10 @@
 
 #include "FFlPWAVGM.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPWAVGM::FFlPWAVGM(int id) : FFlAttributeBase(id)
 {
@@ -53,12 +57,14 @@ bool FFlPWAVGM::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPWAVGM::init()
 {
-  FFlPWAVGMTypeInfoSpec::instance()->setTypeName("PWAVGM");
-  FFlPWAVGMTypeInfoSpec::instance()->setDescription("Weighted average motion properties");
-  FFlPWAVGMTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPWAVGM>;
+
+  TypeInfoSpec::instance()->setTypeName("PWAVGM");
+  TypeInfoSpec::instance()->setDescription("Weighted average motion properties");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPWAVGMTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPWAVGM::create,int,FFlAttributeBase*&));
 }
 
@@ -97,3 +103,7 @@ FFlAttributeBase* FFlPWAVGM::removeWeights (const std::vector<int>& nodes, size_
 
   return newAtt;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

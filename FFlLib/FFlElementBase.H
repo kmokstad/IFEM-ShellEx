@@ -17,13 +17,18 @@
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFaLib/FFaPatterns/FFaGenericFactory.H"
 
-class FFlLinkHandler;
 class FFlFEResultBase;
 class FFlFEElmResult;
 class FFaCheckSum;
 class FFaTensor3;
 class FaMat33;
 class FaVec3;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlLinkHandler;
 
 
 class FFlElementBase : public FFlPartBase,
@@ -36,7 +41,7 @@ class FFlElementBase : public FFlPartBase,
 #endif
 {
 protected:
-  typedef std::vector<FFlElementBase*> Elements;
+  using Elements = std::vector<FFlElementBase*>;
 
   FFlElementBase(int ID = -1);
   FFlElementBase(const FFlElementBase& obj);
@@ -96,11 +101,14 @@ private:
 };
 
 
-typedef FFaGenericFactory<FFlElementBase> ElementFactory;
+using ElementFactory = FFaGenericFactory<FFlElementBase>;
 
 #define FFL_FE_ELEMENT_FACTORY_INIT(clName) public: \
   static void create(int ID, FFlElementBase*& elm) { elm = new clName(ID); } \
   clName& operator=(const clName&) = delete; \
   virtual FFlElementBase* clone() const { return new clName(*this); }
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

@@ -15,6 +15,10 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPRGD : public FFlAttributeBase
 {
@@ -34,8 +38,7 @@ public:
   FFlField<int> dependentDofs;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPRGD>    FFlPRGDTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPRGD> FFlPRGDAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

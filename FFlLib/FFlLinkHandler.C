@@ -41,6 +41,10 @@
 #include "FFaLib/FFaProfiler/FFaProfiler.H"
 #endif
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlLinkHandler::FFlLinkHandler(size_t maxNodes, size_t maxElms)
 {
@@ -2332,3 +2336,7 @@ int FFlLinkHandler::splitElement(FFlElementBase* elm)
 
   return newElems.size();
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

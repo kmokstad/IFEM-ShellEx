@@ -15,7 +15,10 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 /* TODO,kmo: This is not very elegant. The only difference between the two
@@ -61,13 +64,7 @@ public:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlSPRING>   FFlSPRINGAttributeSpec;
-typedef FFaSingelton<FFlFEElementTopSpec,FFlSPRING>  FFlSPRINGElementTopSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlSPRING>      FFlSPRINGTypeInfoSpec;
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlRSPRING>  FFlRSPRINGAttributeSpec;
-typedef FFaSingelton<FFlFEElementTopSpec,FFlRSPRING> FFlRSPRINGElementTopSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlRSPRING>     FFlRSPRINGTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

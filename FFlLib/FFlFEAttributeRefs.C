@@ -15,6 +15,10 @@
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlFEAttributeRefs::FFlFEAttributeRefs(const FFlFEAttributeRefs& obj)
 {
@@ -156,14 +160,10 @@ bool FFlFEAttributeRefs::hasAttribute(const std::vector<FFlAttributeBase*>& av) 
 }
 
 
-// typedefs used in the attribute resolving
-typedef std::map<std::string,AttributeMap> AttributeTypeMap;
-typedef AttributeTypeMap::const_iterator   AttributeTypeMapCIter;
-
-bool FFlFEAttributeRefs::resolve(const AttributeTypeMap& possibleReferences,
+bool FFlFEAttributeRefs::resolve(const AttribTypMap& possibleRefs,
                                  bool suppressErrmsg)
 {
-  if (possibleReferences.empty() && !myAttributes.empty())
+  if (possibleRefs.empty() && !myAttributes.empty())
   {
     ListUI <<"\n *** Error: No attributes!\n";
     return false;
@@ -175,14 +175,14 @@ bool FFlFEAttributeRefs::resolve(const AttributeTypeMap& possibleReferences,
   {
     // find correct sub-map in the input argument
     const std::string& attrName = this->getFEAttributeSpec()->getAttributeName(attr.first);
-    AttributeTypeMapCIter refIt = possibleReferences.find(attrName);
+    AttribTypMap::const_iterator refIt = possibleRefs.find(attrName);
 
     // Workaround for conversion of obsolete field names into new name
-    if (refIt == possibleReferences.end())
+    if (refIt == possibleRefs.end())
       if (attrName == "PBEAMORIENT" || attrName == "PBUSHORIENT")
-        refIt = possibleReferences.find("PORIENT");
+        refIt = possibleRefs.find("PORIENT");
 
-    if (refIt != possibleReferences.end())
+    if (refIt != possibleRefs.end())
       if (attr.second.resolve(refIt->second))
         continue;
 
@@ -260,3 +260,7 @@ int FFlFEAttributeRefs::getAttributeID(const std::string& atType) const
   // No message if no attribute of given type or illegal attribute type
   return 0;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

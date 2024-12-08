@@ -15,7 +15,10 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 class FFlRBAR : public FFlElementBase
@@ -36,9 +39,7 @@ public:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlRBAR>  FFlRBARAttributeSpec;
-typedef FFaSingelton<FFlFEElementTopSpec,FFlRBAR> FFlRBARElementTopSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlRBAR>     FFlRBARTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

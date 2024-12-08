@@ -64,6 +64,10 @@
 #define CREATE_ATTRIBUTE(type,name,id) \
   dynamic_cast<type*>(AttributeFactory::instance()->create(name,id))
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -3957,3 +3961,7 @@ bool FFlNastranReader::insertBeamPropMat (const char* bulk, int PID, int MID)
 
   return true;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

@@ -17,6 +17,10 @@
 
 #include <array>
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPSPRING : public FFlAttributeBase
 {
@@ -40,8 +44,7 @@ public:
   FFlField<int> type; //!< Needed to determine correct unit conversion
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPSPRING>    FFlPSPRINGTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPSPRING> FFlPSPRINGAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

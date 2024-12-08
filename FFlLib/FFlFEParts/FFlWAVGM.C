@@ -9,6 +9,10 @@
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlWAVGM::FFlWAVGM(int id) : FFlElementBase(id)
 {
@@ -155,13 +159,16 @@ void FFlWAVGM::getMasterNodes(std::vector<FFlNode*>& nodeRefs) const
 
 void FFlWAVGM::init()
 {
-  FFlWAVGMTypeInfoSpec::instance()->setTypeName("WAVGM");
-  FFlWAVGMTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
+  using TypeInfoSpec  = FFaSingelton<FFlTypeInfoSpec,FFlWAVGM>;
+  using AttributeSpec = FFaSingelton<FFlFEAttributeSpec,FFlWAVGM>;
 
-  ElementFactory::instance()->registerCreator(FFlWAVGMTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlWAVGM::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("WAVGM");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
 
-  FFlWAVGMAttributeSpec::instance()->addLegalAttribute("PWAVGM", false);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlWAVGM::create,int,FFlElementBase*&));
+
+  AttributeSpec::instance()->addLegalAttribute("PWAVGM",false);
 }
 
 
@@ -198,3 +205,7 @@ bool FFlWAVGM::removeMasterNodes(std::vector<int>& nodeRefs)
   nodeRefs.swap(nodeIdx);
   return true;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

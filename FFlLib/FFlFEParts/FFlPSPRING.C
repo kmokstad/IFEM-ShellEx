@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPSPRING.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPSPRING::FFlPSPRING(int id) : FFlAttributeBase(id)
 {
@@ -44,11 +48,17 @@ void FFlPSPRING::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPSPRING::init()
 {
-  FFlPSPRINGTypeInfoSpec::instance()->setTypeName("PSPRING");
-  FFlPSPRINGTypeInfoSpec::instance()->setDescription("Spring element properties");
-  FFlPSPRINGTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPSPRING>;
+
+  TypeInfoSpec::instance()->setTypeName("PSPRING");
+  TypeInfoSpec::instance()->setDescription("Spring element properties");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPSPRINGTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPSPRING::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

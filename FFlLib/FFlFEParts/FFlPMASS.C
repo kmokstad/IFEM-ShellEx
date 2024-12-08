@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPMASS.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPMASS::FFlPMASS(int id) : FFlAttributeBase(id)
 {
@@ -25,7 +29,7 @@ FFlPMASS::FFlPMASS(const FFlPMASS& obj) : FFlAttributeBase(obj)
 void FFlPMASS::convertUnits(const FFaUnitCalculator* convCal)
 {
   int i, j;
-  std::vector<double>::iterator mit = M.data().begin();
+  DoubleVec::iterator mit = M.data().begin();
   for (i = 0; i < 6; i++)
     for (j = 0; j <= i; j++)
       if (mit == M.data().end())
@@ -41,7 +45,7 @@ void FFlPMASS::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPMASS::calculateChecksum(FFaCheckSum* cs, int csMask) const
 {
-  FFlAttributeBase::calculateChecksum(cs, csMask);
+  this->FFlAttributeBase::calculateChecksum(cs, csMask);
 
   // Add zeroes to fill up a full 6x6 matrix to match older files
   for (int i = M.getValue().size(); i < 21; i++)
@@ -51,11 +55,17 @@ void FFlPMASS::calculateChecksum(FFaCheckSum* cs, int csMask) const
 
 void FFlPMASS::init()
 {
-  FFlPMASSTypeInfoSpec::instance()->setTypeName("PMASS");
-  FFlPMASSTypeInfoSpec::instance()->setDescription("Concentrated mass properties");
-  FFlPMASSTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::MASS_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPMASS>;
+
+  TypeInfoSpec::instance()->setTypeName("PMASS");
+  TypeInfoSpec::instance()->setDescription("Concentrated mass properties");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::MASS_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPMASSTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPMASS::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

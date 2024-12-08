@@ -9,6 +9,10 @@
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 /*!
   This method computes the outward-pointing normal vector at each nodal point
@@ -124,3 +128,7 @@ void FFlCurvedFace::shapeDerivs8(double* N1, double* N2, double X1, double X2)
   N2[4] =  0.25*(1.0+X1) - 0.5*(N2[3]+N2[5]);
   N2[6] =  0.25*(1.0-X1) - 0.5*(N2[5]+N2[7]);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

@@ -10,8 +10,13 @@
 
 #include <cstddef>
 
-class FFlLinkHandler;
 class FFaProfiler;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlLinkHandler;
 
 
 class FFlReaderBase
@@ -30,4 +35,7 @@ protected:
   FFaProfiler*    myProfiler;
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

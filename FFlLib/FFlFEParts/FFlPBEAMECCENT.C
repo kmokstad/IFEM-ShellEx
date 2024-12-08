@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPBEAMECCENT.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPBEAMECCENT::FFlPBEAMECCENT(int id) : FFlAttributeBase(id)
 {
@@ -38,12 +42,14 @@ void FFlPBEAMECCENT::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPBEAMECCENT::init()
 {
-  FFlPBEAMECCENTTypeInfoSpec::instance()->setTypeName("PBEAMECCENT");
-  FFlPBEAMECCENTTypeInfoSpec::instance()->setDescription("Beam eccentricities");
-  FFlPBEAMECCENTTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBEAMECCENT>;
+
+  TypeInfoSpec::instance()->setTypeName("PBEAMECCENT");
+  TypeInfoSpec::instance()->setDescription("Beam eccentricities");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPBEAMECCENTTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPBEAMECCENT::create,int,FFlAttributeBase*&));
 }
 
@@ -55,3 +61,7 @@ void FFlPBEAMECCENT::resize(size_t n)
   else
     this->FFlAttributeBase::resize(n/3);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

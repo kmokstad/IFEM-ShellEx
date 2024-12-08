@@ -15,7 +15,10 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 class FFlRGDTopSpec : public FFlFEElementTopSpec
@@ -74,8 +77,7 @@ protected:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlRGD> FFlRGDAttributeSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlRGD>    FFlRGDTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

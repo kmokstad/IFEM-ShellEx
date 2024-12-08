@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPBUSHECCENT.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPBUSHECCENT::FFlPBUSHECCENT(int id) : FFlAttributeBase(id)
 {
@@ -31,11 +35,17 @@ void FFlPBUSHECCENT::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPBUSHECCENT::init()
 {
-  FFlPBUSHECCENTTypeInfoSpec::instance()->setTypeName("PBUSHECCENT");
-  FFlPBUSHECCENTTypeInfoSpec::instance()->setDescription("Spring element eccentricities");
-  FFlPBUSHECCENTTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBUSHECCENT>;
+
+  TypeInfoSpec::instance()->setTypeName("PBUSHECCENT");
+  TypeInfoSpec::instance()->setDescription("Spring element eccentricities");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPBUSHECCENTTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPBUSHECCENT::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

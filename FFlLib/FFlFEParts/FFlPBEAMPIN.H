@@ -15,6 +15,10 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPBEAMPIN : public FFlAttributeBase
 {
@@ -35,8 +39,7 @@ public:
   FFlField<int> PB;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPBEAMPIN>    FFlPBEAMPINTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPBEAMPIN> FFlPBEAMPINAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

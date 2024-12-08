@@ -7,6 +7,10 @@
 
 #include "FFlPBEAMPIN.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPBEAMPIN::FFlPBEAMPIN(int id) : FFlAttributeBase(id)
 {
@@ -42,13 +46,17 @@ bool FFlPBEAMPIN::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPBEAMPIN::init()
 {
-  FFlPBEAMPINTypeInfoSpec::instance()->setTypeName("PBEAMPIN");
-  FFlPBEAMPINTypeInfoSpec::instance()->setDescription("Beam pin flags");
-  FFlPBEAMPINTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBEAMPIN>;
+
+  TypeInfoSpec::instance()->setTypeName("PBEAMPIN");
+  TypeInfoSpec::instance()->setDescription("Beam pin flags");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPBEAMPINTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPBEAMPIN::create,int,FFlAttributeBase*&));
 }
 
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

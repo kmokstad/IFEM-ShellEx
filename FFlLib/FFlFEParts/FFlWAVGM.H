@@ -15,7 +15,10 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 class FFlWAVGMTopSpec : public FFlFEElementTopSpec
@@ -72,8 +75,7 @@ protected:
 #endif
 };
 
-
-typedef FFaSingelton<FFlFEAttributeSpec,FFlWAVGM> FFlWAVGMAttributeSpec;
-typedef FFaSingelton<FFlTypeInfoSpec,FFlWAVGM>    FFlWAVGMTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

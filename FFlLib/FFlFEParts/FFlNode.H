@@ -14,19 +14,23 @@
 #ifdef FT_USE_MEMPOOL
 #include "FFaLib/FFaPatterns/FFaMemPool.H"
 #endif
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
 #ifndef FT_USE_VERTEX
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 #else
 class FaVec3;
 class FFlVertex;
 #endif
-class FFlPCOORDSYS;
-class FFlAttributeBase;
+class FFaCheckSum;
+class FFaUnitCalculator;
 class FFlFEResultBase;
 class FFlFENodeResult;
-class FFaUnitCalculator;
-class FFaCheckSum;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlAttributeBase;
+class FFlPCOORDSYS;
 
 
 class FFlNode : public FFlPartBase
@@ -120,7 +124,7 @@ protected:
 #endif
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlNode> FFlNodeTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

@@ -20,11 +20,16 @@
 
 #define DEF_PROCESSOR(rec) bool process_##rec (std::vector<std::string>& entry);
 
+class FFaCheckSum;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 class FFlAttributeBase;
 class FFlElementBase;
 class FFlLoadBase;
 class FFlGroup;
-class FFaCheckSum;
 
 
 class FFlNastranReader : public FFlReaderBase
@@ -276,4 +281,7 @@ protected:
   DEF_PROCESSOR( SPC1   ) // Single-point constraints, alternate form
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

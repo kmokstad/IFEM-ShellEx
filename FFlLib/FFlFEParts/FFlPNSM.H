@@ -15,6 +15,10 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPNSM : public FFlAttributeBase
 {
@@ -35,8 +39,7 @@ public:
   FFlField<int> isShell; // used to determine the proper unit conversion
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPNSM>    FFlPNSMTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPNSM> FFlPNSMAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

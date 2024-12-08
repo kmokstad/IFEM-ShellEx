@@ -15,6 +15,10 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPEFFLENGTH : public FFlAttributeBase
 {		
@@ -35,8 +39,7 @@ public:
   FFlField<double> length;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPEFFLENGTH>    FFlPEFFLENGTHTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPEFFLENGTH> FFlPEFFLENGTHAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

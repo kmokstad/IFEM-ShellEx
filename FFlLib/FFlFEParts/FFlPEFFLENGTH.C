@@ -5,10 +5,12 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlLib/FFlFEParts/FFlPSPRING.H"
 #include "FFlLib/FFlFEParts/FFlPEFFLENGTH.H"
-
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 FFlPEFFLENGTH::FFlPEFFLENGTH(int id) : FFlAttributeBase(id)
@@ -39,11 +41,17 @@ bool FFlPEFFLENGTH::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPEFFLENGTH::init()
 {
-  FFlPEFFLENGTHTypeInfoSpec::instance()->setTypeName("PEFFLENGTH");
-  FFlPEFFLENGTHTypeInfoSpec::instance()->setDescription("Effective beam lengths");
-  FFlPEFFLENGTHTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPEFFLENGTH>;
+
+  TypeInfoSpec::instance()->setTypeName("PEFFLENGTH");
+  TypeInfoSpec::instance()->setDescription("Effective beam lengths");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPEFFLENGTHTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPEFFLENGTH::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

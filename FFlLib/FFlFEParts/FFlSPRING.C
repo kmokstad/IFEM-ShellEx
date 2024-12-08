@@ -7,30 +7,48 @@
 
 #include "FFlLib/FFlFEParts/FFlSPRING.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlSPRING::init()
 {
-  FFlSPRINGTypeInfoSpec::instance()->setTypeName("SPRING");
-  FFlSPRINGTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
+  using TypeInfoSpec   = FFaSingelton<FFlTypeInfoSpec,FFlSPRING>;
+  using AttributeSpec  = FFaSingelton<FFlFEAttributeSpec,FFlSPRING>;
+  using ElementTopSpec = FFaSingelton<FFlFEElementTopSpec,FFlSPRING>;
 
-  ElementFactory::instance()->registerCreator(FFlSPRINGTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlSPRING::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("SPRING");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
 
-  FFlSPRINGAttributeSpec::instance()->addLegalAttribute("PSPRING");
-  FFlSPRINGElementTopSpec::instance()->setNodeCount(2);
-  FFlSPRINGElementTopSpec::instance()->setNodeDOFs(3);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlSPRING::create,int,FFlElementBase*&));
+
+  AttributeSpec::instance()->addLegalAttribute("PSPRING");
+
+  ElementTopSpec::instance()->setNodeCount(2);
+  ElementTopSpec::instance()->setNodeDOFs(3);
 }
 
 
 void FFlRSPRING::init()
 {
-  FFlRSPRINGTypeInfoSpec::instance()->setTypeName("RSPRING");
-  FFlRSPRINGTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
+  using TypeInfoSpec   = FFaSingelton<FFlTypeInfoSpec,FFlRSPRING>;
+  using AttributeSpec  = FFaSingelton<FFlFEAttributeSpec,FFlRSPRING>;
+  using ElementTopSpec = FFaSingelton<FFlFEElementTopSpec,FFlRSPRING>;
 
-  ElementFactory::instance()->registerCreator(FFlRSPRINGTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlRSPRING::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("RSPRING");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
 
-  FFlRSPRINGAttributeSpec::instance()->addLegalAttribute("PSPRING");
-  FFlRSPRINGElementTopSpec::instance()->setNodeCount(2);
-  FFlRSPRINGElementTopSpec::instance()->setNodeDOFs(6);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlRSPRING::create,int,FFlElementBase*&));
+
+  AttributeSpec::instance()->addLegalAttribute("PSPRING");
+
+  ElementTopSpec::instance()->setNodeCount(2);
+  ElementTopSpec::instance()->setNodeDOFs(6);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

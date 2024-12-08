@@ -7,6 +7,10 @@
 
 #include "FFlPRBAR.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPRBAR::FFlPRBAR(int id) : FFlAttributeBase(id)
 {
@@ -52,11 +56,17 @@ bool FFlPRBAR::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPRBAR::init()
 {
-  FFlPRBARTypeInfoSpec::instance()->setTypeName("PRBAR");
-  FFlPRBARTypeInfoSpec::instance()->setDescription("Rigid bar properties");
-  FFlPRBARTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPRBAR>;
+
+  TypeInfoSpec::instance()->setTypeName("PRBAR");
+  TypeInfoSpec::instance()->setDescription("Rigid bar properties");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPRBARTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPRBAR::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

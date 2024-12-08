@@ -17,6 +17,10 @@
 #include "FFaLib/FFaAlgebra/FFaTensor3.H"
 #include "FFaLib/FFaAlgebra/FFaMat33.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlElementBase::FFlElementBase(int id) : FFlPartBase(id)
 {
@@ -124,3 +128,7 @@ bool FFlElementBase::invertMapping(const FaVec3&, double*) const
             << this->getTypeName() <<" elements."<< std::endl;
   return false;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

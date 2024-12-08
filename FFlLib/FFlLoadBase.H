@@ -13,11 +13,16 @@
 #include "FFaLib/FFaPatterns/FFaGenericFactory.H"
 
 class FFlFieldBase;
-class FFlElementBase;
-class FFlNode;
 class FFaCheckSum;
 class FFaUnitCalculator;
 class FaVec3;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlElementBase;
+class FFlNode;
 
 
 class FFlLoadBase : public FFlPartBase,
@@ -66,7 +71,7 @@ private:
 };
 
 
-typedef FFaGenericFactory<FFlLoadBase> LoadFactory;
+using LoadFactory = FFaGenericFactory<FFlLoadBase>;
 
 
 #define FFL_LOAD_FACTORY_INIT(clName)			\
@@ -77,4 +82,7 @@ public:							\
   virtual FFlLoadBase* clone() const			\
   { return new clName(*this); }
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

@@ -13,20 +13,11 @@
 #include <vector>
 #include <string>
 
-#include "FFlTypeInfoSpec.H"
-#include "FFlLinkCSMask.H"
+#include "FFlLib/FFlTypeInfoSpec.H"
+#include "FFlLib/FFlLinkCSMask.H"
 
-class FFlGroup;
-class FFlNode;
-class FFlVertex;
 class FFlPartBase;
 class FFlNamedPartBase;
-class FFlElementBase;
-class FFlLoadBase;
-class FFlAttributeBase;
-class FFlVisualBase;
-class FFlVDetail;
-class FFlVAppearance;
 class FFlFEResultBase;
 class FFlrFELinkResult;
 class FFlFaceGenerator;
@@ -39,39 +30,54 @@ class FFaTensor3;
 class FaMat34;
 class FaVec3;
 
-typedef std::set<FFlElementBase*>        ElementsSet;
-typedef std::vector<FFlElementBase*>     ElementsVec;
-typedef ElementsVec::const_iterator      ElementsCIter;
-typedef std::map<std::string,size_t>     ElmTypeCount;
+using ElmTypeCount = std::map<std::string,size_t>;
+using CathegoryVec = std::vector<FFlTypeInfoSpec::Cathegory>;
 
-typedef std::vector<FFlNode*>            NodesVec;
-typedef NodesVec::const_iterator         NodesCIter;
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlNode;
+class FFlVertex;
+class FFlElementBase;
+class FFlAttributeBase;
+class FFlLoadBase;
+class FFlVisualBase;
+class FFlVDetail;
+class FFlVAppearance;
+class FFlGroup;
+
+using NodesVec   = std::vector<FFlNode*>;
+using NodesCIter = NodesVec::const_iterator;
+
+using ElementsSet   = std::set<FFlElementBase*>;
+using ElementsVec   = std::vector<FFlElementBase*>;
+using ElementsCIter = ElementsVec::const_iterator;
+
+using AttributeMap       = std::map<int,FFlAttributeBase*>;
+using AttributeTypeMap   = std::map<std::string,AttributeMap>;
+using AttributeTypeCIter = AttributeTypeMap::const_iterator;
+
+using LoadsVec   = std::vector<FFlLoadBase*>;
+using LoadsCIter = LoadsVec::const_iterator;
+
+using GroupMap   = std::map<int,FFlGroup*>;
+using GroupCIter = GroupMap::const_iterator;
 
 #ifdef FT_USE_VERTEX
-typedef std::vector<FaVec3*>             VertexVec;
-typedef VertexVec::const_iterator        VertexCIter;
+using VertexVec   = std::vector<FaVec3*>;
+using VertexCIter = VertexVec::const_iterator;
+
+using FFlrElement    = std::pair<FFlElementBase*,int>;
+using FFlrElementVec = std::vector<FFlrElement>;
+using FFlrVxToElmMap = std::vector<FFlrElementVec>;
 #endif
-
-typedef std::map<int,FFlGroup*>          GroupMap;
-typedef GroupMap::const_iterator         GroupCIter;
-
-typedef std::vector<FFlLoadBase*>        LoadsVec;
-typedef LoadsVec::const_iterator         LoadsCIter;
-
-typedef std::map<int,FFlAttributeBase*>    AttributeMap;
-typedef std::map<std::string,AttributeMap> AttributeTypeMap;
-typedef AttributeTypeMap::const_iterator   AttributeTypeCIter;
 
 #ifdef FT_USE_VISUALS
-typedef std::vector<FFlVisualBase*>        VisualsVec;
-typedef VisualsVec::const_iterator         VisualsCIter;
+using VisualsVec   = std::vector<FFlVisualBase*>;
+using VisualsCIter = VisualsVec::const_iterator;
 #endif
-
-typedef std::vector<FFlTypeInfoSpec::Cathegory> CathegoryVec;
-
-typedef std::pair<FFlElementBase*,int> FFlrElement;
-typedef std::vector<FFlrElement>       FFlrElementVec;
-typedef std::vector<FFlrElementVec>    FFlrVxToElmMap;
 
 
 class FFlLinkHandler
@@ -283,10 +289,10 @@ public:
 #endif
 
 protected:
-  typedef NodesVec::iterator    NodesIter;
-  typedef ElementsVec::iterator ElementsIter;
+  using NodesIter = NodesVec::iterator;
+  NodesIter getNodeIter(int ID) const;
 
-  NodesIter    getNodeIter(int ID) const;
+  using ElementsIter = ElementsVec::iterator;
   ElementsIter getElementIter(int ID) const;
 
   void countElements() const;
@@ -348,4 +354,7 @@ protected:
   FFaProfiler*          myProfiler;
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

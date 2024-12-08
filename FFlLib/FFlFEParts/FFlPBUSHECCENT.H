@@ -16,6 +16,10 @@
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPBUSHECCENT : public FFlAttributeBase
 {
@@ -35,8 +39,7 @@ public:
   FFlField<FaVec3> offset;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPBUSHECCENT>    FFlPBUSHECCENTTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPBUSHECCENT> FFlPBUSHECCENTAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

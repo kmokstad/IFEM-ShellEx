@@ -13,19 +13,27 @@
 #include "FFaLib/FFaAlgebra/FFaTensor3.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlCMASS::init()
 {
-  FFlCMASSTypeInfoSpec::instance()->setTypeName("CMASS");
-  FFlCMASSTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
+  using TypeInfoSpec   = FFaSingelton<FFlTypeInfoSpec,FFlCMASS>;
+  using AttributeSpec  = FFaSingelton<FFlFEAttributeSpec,FFlCMASS>;
+  using ElementTopSpec = FFaSingelton<FFlFEElementTopSpec,FFlCMASS>;
 
-  ElementFactory::instance()->registerCreator(FFlCMASSTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlCMASS::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("CMASS");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_ELM);
 
-  FFlCMASSAttributeSpec::instance()->addLegalAttribute("PMASS", false);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlCMASS::create,int,FFlElementBase*&));
 
-  FFlCMASSElementTopSpec::instance()->setNodeCount(1);
-  FFlCMASSElementTopSpec::instance()->setNodeDOFs(3);
+  AttributeSpec::instance()->addLegalAttribute("PMASS",false);
+
+  ElementTopSpec::instance()->setNodeCount(1);
+  ElementTopSpec::instance()->setNodeDOFs(3);
 }
 
 
@@ -158,3 +166,6 @@ bool FFlCMASS::RtMR(const std::vector<double>& M,
   return haveNonZeroInertia;
 }
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

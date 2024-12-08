@@ -5,13 +5,18 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+
 #include "FFlLib/FFlFENodeRefs.H"
 #include "FFlLib/FFlFEElementTopSpec.H"
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
-#include <algorithm>
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 FFlFENodeRefs::FFlFENodeRefs(const FFlFENodeRefs& obj)
@@ -306,3 +311,7 @@ int FFlFENodeRefs::getNodalCoor(double* X, double* Y, double* Z) const
 
   return inod == myNodes.size() ? 0 : -3;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

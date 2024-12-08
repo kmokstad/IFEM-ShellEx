@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPBEAMSECTION.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPBEAMSECTION::FFlPBEAMSECTION(int id) : FFlAttributeBase(id)
 {
@@ -66,11 +70,17 @@ void FFlPBEAMSECTION::setupFields()
 
 void FFlPBEAMSECTION::init()
 {
-  FFlPBEAMSECTIONTypeInfoSpec::instance()->setTypeName("PBEAMSECTION");
-  FFlPBEAMSECTIONTypeInfoSpec::instance()->setDescription("Beam cross sections");
-  FFlPBEAMSECTIONTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBEAMSECTION>;
+
+  TypeInfoSpec::instance()->setTypeName("PBEAMSECTION");
+  TypeInfoSpec::instance()->setDescription("Beam cross sections");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPBEAMSECTIONTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPBEAMSECTION::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

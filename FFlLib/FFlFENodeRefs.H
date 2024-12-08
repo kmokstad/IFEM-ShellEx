@@ -15,9 +15,13 @@ class FFlNode;
 class FFaCheckSum;
 class FaVec3;
 
-typedef FFlReference<FFlNode>    NodeRef;
-typedef std::vector<NodeRef>     NodeVec;
-typedef NodeVec::const_iterator  NodeCIter;
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+using NodeRef   = FFlReference<FFlNode>;
+using NodeVec   = std::vector<NodeRef>;
+using NodeCIter = NodeVec::const_iterator;
 
 
 class FFlFENodeRefs
@@ -84,4 +88,7 @@ private:
   mutable double mySize;
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

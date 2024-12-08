@@ -11,13 +11,17 @@
 #include "FFlLib/FFlNamedPartBase.H"
 #include "FFlLib/FFlReference.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
 
-class FFlElementBase;
 class FFaCheckSum;
 
-typedef FFlReference<FFlElementBase> GroupElemRef;
-typedef std::vector<GroupElemRef>    GroupElemVec;
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
+class FFlElementBase;
+
+using GroupElemRef = FFlReference<FFlElementBase>;
+using GroupElemVec = std::vector<GroupElemRef>;
 
 
 class FFlGroup : public FFlNamedPartBase
@@ -59,6 +63,7 @@ private:
   bool         iAmSorted;
 };
 
-typedef FFaSingelton<FFlTypeInfoSpec,FFlGroup> FFlGroupTypeInfoSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

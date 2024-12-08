@@ -18,6 +18,10 @@
 
 #include <array>
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPORIENT : public FFlAttributeBase
 {		
@@ -60,11 +64,7 @@ public:
   std::array<FFlField<FaVec3>,3> directionVector;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPORIENT>    FFlPORIENTTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPORIENT> FFlPORIENTAttributeSpec;
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPORIENT3>    FFlPORIENT3TypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPORIENT3> FFlPORIENT3AttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

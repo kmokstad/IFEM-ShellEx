@@ -15,9 +15,15 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPMASS : public FFlAttributeBase
 {
+  using DoubleVec = std::vector<double>;
+
 public:
   FFlPMASS(int ID);
   FFlPMASS(const FFlPMASS& obj);
@@ -32,11 +38,10 @@ public:
   FFL_FE_ATTRIBUTE_SPEC(FFlPMASS);
   FFL_TYPE_INFO(FFlPMASS);
 
-  FFlField< std::vector<double> > M;
+  FFlField<DoubleVec> M;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPMASS>    FFlPMASSTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPMASS> FFlPMASSAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

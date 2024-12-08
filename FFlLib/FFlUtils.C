@@ -11,6 +11,10 @@
 #include "FFlLib/FFlFEParts/FFlPWAVGM.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
 
+#ifdef FF_NAMESPACE
+using namespace FF_NAMESPACE;
+#endif
+
 
 bool FFl::convertMPCsToWAVGM (FFlLinkHandler* part, const FFl::MPCMap& mpcs)
 {

@@ -5,8 +5,12 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlPTHICK.H"
+#include "FFlLib/FFlFEParts/FFlPTHICK.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 FFlPTHICK::FFlPTHICK(int id) : FFlAttributeBase(id)
@@ -32,11 +36,17 @@ void FFlPTHICK::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPTHICK::init()
 {
-  FFlPTHICKTypeInfoSpec::instance()->setTypeName("PTHICK");
-  FFlPTHICKTypeInfoSpec::instance()->setDescription("Shell thicknesses");
-  FFlPTHICKTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPTHICK>;
+
+  TypeInfoSpec::instance()->setTypeName("PTHICK");
+  TypeInfoSpec::instance()->setDescription("Shell thicknesses");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPTHICKTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPTHICK::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

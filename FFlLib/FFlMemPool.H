@@ -8,7 +8,12 @@
 #ifndef FFL_MEM_POOL_H
 #define FFL_MEM_POOL_H
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE { class FFlLinkHandler; }
+using FFlLinkHandler = FF_NAMESPACE::FFlLinkHandler;
+#else
 class FFlLinkHandler;
+#endif
 
 
 namespace FFlMemPool

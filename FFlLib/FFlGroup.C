@@ -5,12 +5,13 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
+
 #include "FFlLib/FFlGroup.H"
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlLinkCSMask.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
-#include <algorithm>
 
 #if FFL_DEBUG > 2
 #include <iostream>
@@ -22,6 +23,9 @@
   \brief Class for grouping of elements
 */
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 /*!
   Constructor. Creates an empty group width id \e id and name \e groupName
@@ -36,8 +40,10 @@ FFlGroup::FFlGroup(int id, const std::string& groupName) : FFlNamedPartBase(id)
 
 void FFlGroup::init()
 {
-  FFlGroupTypeInfoSpec::instance()->setTypeName("Group");
-  FFlGroupTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::USER_DEF_GROUP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlGroup>;
+
+  TypeInfoSpec::instance()->setTypeName("Group");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::USER_DEF_GROUP);
 }
 
 
@@ -171,3 +177,7 @@ void FFlGroup::calculateChecksum(FFaCheckSum* cs, int csMask) const
     FFlNamedPartBase::checksum(cs, csMask);
   }
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

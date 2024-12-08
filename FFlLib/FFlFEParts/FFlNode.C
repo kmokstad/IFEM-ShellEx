@@ -15,6 +15,10 @@
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 #include "FFaLib/FFaDefinitions/FFaMsg.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 /*!
   \class FFlNode FFlNode.H
@@ -104,8 +108,10 @@ FFlNode::~FFlNode()
 
 void FFlNode::init()
 {
-  FFlNodeTypeInfoSpec::instance()->setTypeName("Node");
-  FFlNodeTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::NODE);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlNode>;
+
+  TypeInfoSpec::instance()->setTypeName("Node");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::NODE);
 }
 
 
@@ -262,3 +268,7 @@ void FFlNode::deleteResults()
   delete myResults;
   myResults = NULL;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

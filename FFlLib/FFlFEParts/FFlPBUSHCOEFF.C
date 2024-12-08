@@ -5,8 +5,12 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "FFlPBUSHCOEFF.H"
+#include "FFlLib/FFlFEParts/FFlPBUSHCOEFF.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
+
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 
 FFlPBUSHCOEFF::FFlPBUSHCOEFF(int id) : FFlAttributeBase(id)
@@ -36,12 +40,17 @@ void FFlPBUSHCOEFF::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPBUSHCOEFF::init()
 {
-  FFlPBUSHCOEFFTypeInfoSpec::instance()->setTypeName("PBUSHCOEFF");
-  FFlPBUSHCOEFFTypeInfoSpec::instance()->setDescription("Spring element coefficients");
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBUSHCOEFF>;
 
-  FFlPBUSHCOEFFTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  TypeInfoSpec::instance()->setTypeName("PBUSHCOEFF");
+  TypeInfoSpec::instance()->setDescription("Spring element coefficients");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPBUSHCOEFFTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPBUSHCOEFF::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

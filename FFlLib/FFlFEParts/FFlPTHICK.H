@@ -15,6 +15,10 @@
 
 #include "FFaLib/FFaPatterns/FFaSingelton.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlPTHICK : public FFlAttributeBase
 {		
@@ -34,8 +38,7 @@ public:
   FFlField<double> thickness;
 };
 
-
-typedef FFaSingelton<FFlTypeInfoSpec,FFlPTHICK>    FFlPTHICKTypeInfoSpec;
-typedef FFaSingelton<FFlFEAttributeSpec,FFlPTHICK> FFlPTHICKAttributeSpec;
-
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

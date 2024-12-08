@@ -7,21 +7,33 @@
 
 #include "FFlLib/FFlFEParts/FFlRBAR.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlRBAR::init()
 {
-  FFlRBARTypeInfoSpec::instance()->setTypeName("RBAR");
-  FFlRBARTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
+  using TypeInfoSpec   = FFaSingelton<FFlTypeInfoSpec,FFlRBAR>;
+  using AttributeSpec  = FFaSingelton<FFlFEAttributeSpec,FFlRBAR>;
+  using ElementTopSpec = FFaSingelton<FFlFEElementTopSpec,FFlRBAR>;
 
-  ElementFactory::instance()->registerCreator(FFlRBARTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlRBAR::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("RBAR");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
 
-  FFlRBARAttributeSpec::instance()->addLegalAttribute("PRBAR");
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlRBAR::create,int,FFlElementBase*&));
 
-  FFlRBARElementTopSpec::instance()->setNodeCount(2);
-  FFlRBARElementTopSpec::instance()->setNodeDOFs(6);
-  FFlRBARElementTopSpec::instance()->setSlaveStatus(true); // Both nodes have slave DOFs
+  AttributeSpec::instance()->addLegalAttribute("PRBAR");
 
-  FFlRBARElementTopSpec::instance()->addExplicitEdge(EdgeType(1,2));
-  FFlRBARElementTopSpec::instance()->myExplEdgePattern = 0xf0f0;
+  ElementTopSpec::instance()->setNodeCount(2);
+  ElementTopSpec::instance()->setNodeDOFs(6);
+  ElementTopSpec::instance()->setSlaveStatus(true); // Both nodes have slave DOFs
+
+  ElementTopSpec::instance()->addExplicitEdge(EdgeType(1,2));
+  ElementTopSpec::instance()->myExplEdgePattern = 0xf0f0;
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

@@ -8,6 +8,9 @@
 #include "FFlLib/FFlFEParts/FFlRGD.H"
 #include "FFlLib/FFlFEParts/FFlNode.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
 bool FFlRGDTopSpec::allowSlvAttach = true;
 
@@ -168,11 +171,18 @@ void FFlRGD::getSlaveNodes(std::vector<FFlNode*>& nodeRefs) const
 
 void FFlRGD::init()
 {
-  FFlRGDTypeInfoSpec::instance()->setTypeName("RGD");
-  FFlRGDTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
+  using TypeInfoSpec  = FFaSingelton<FFlTypeInfoSpec,FFlRGD>;
+  using AttributeSpec = FFaSingelton<FFlFEAttributeSpec,FFlRGD>;
 
-  ElementFactory::instance()->registerCreator(FFlRGDTypeInfoSpec::instance()->getTypeName(),
-					      FFaDynCB2S(FFlRGD::create,int,FFlElementBase*&));
+  TypeInfoSpec::instance()->setTypeName("RGD");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::CONSTRAINT_ELM);
 
-  FFlRGDAttributeSpec::instance()->addLegalAttribute("PRGD", false);
+  ElementFactory::instance()->registerCreator(TypeInfoSpec::instance()->getTypeName(),
+                                              FFaDynCB2S(FFlRGD::create,int,FFlElementBase*&));
+
+  AttributeSpec::instance()->addLegalAttribute("PRGD",false);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

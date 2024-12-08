@@ -7,6 +7,10 @@
 
 #include "FFlPRGD.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPRGD::FFlPRGD(int id) : FFlAttributeBase(id)
 {
@@ -35,11 +39,17 @@ bool FFlPRGD::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPRGD::init()
 {
-  FFlPRGDTypeInfoSpec::instance()->setTypeName("PRGD");
-  FFlPRGDTypeInfoSpec::instance()->setDescription("Rigid element properties");
-  FFlPRGDTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPRGD>;
+
+  TypeInfoSpec::instance()->setTypeName("PRGD");
+  TypeInfoSpec::instance()->setDescription("Rigid element properties");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::OTHER_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPRGDTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPRGD::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

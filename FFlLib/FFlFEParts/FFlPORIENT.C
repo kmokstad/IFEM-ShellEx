@@ -7,6 +7,10 @@
 
 #include "FFlLib/FFlFEParts/FFlPORIENT.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPORIENT::FFlPORIENT(int id) : FFlAttributeBase(id)
 {
@@ -33,12 +37,14 @@ bool FFlPORIENT::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPORIENT::init()
 {
-  FFlPORIENTTypeInfoSpec::instance()->setTypeName("PORIENT");
-  FFlPORIENTTypeInfoSpec::instance()->setDescription("Orientation vectors");
-  FFlPORIENTTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPORIENT>;
+
+  TypeInfoSpec::instance()->setTypeName("PORIENT");
+  TypeInfoSpec::instance()->setDescription("Orientation vectors");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPORIENTTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPORIENT::create,int,FFlAttributeBase*&));
 
   // Obsolete field names that should be converted into a PORIENT field
@@ -84,11 +90,17 @@ bool FFlPORIENT3::isIdentic(const FFlAttributeBase* otherAttrib) const
 
 void FFlPORIENT3::init()
 {
-  FFlPORIENT3TypeInfoSpec::instance()->setTypeName("PORIENT3");
-  FFlPORIENT3TypeInfoSpec::instance()->setDescription("Orientation vectors");
-  FFlPORIENT3TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPORIENT3>;
+
+  TypeInfoSpec::instance()->setTypeName("PORIENT3");
+  TypeInfoSpec::instance()->setDescription("Orientation vectors");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPORIENT3TypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPORIENT3::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

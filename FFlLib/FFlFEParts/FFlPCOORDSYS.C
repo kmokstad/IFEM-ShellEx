@@ -8,6 +8,10 @@
 #include "FFlLib/FFlFEParts/FFlPCOORDSYS.H"
 #include "FFaLib/FFaAlgebra/FFaUnitCalculator.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 FFlPCOORDSYS::FFlPCOORDSYS(int id) : FFlAttributeBase(id)
 {
@@ -43,11 +47,17 @@ void FFlPCOORDSYS::convertUnits(const FFaUnitCalculator* convCal)
 
 void FFlPCOORDSYS::init()
 {
-  FFlPCOORDSYSTypeInfoSpec::instance()->setTypeName("PCOORDSYS");
-  FFlPCOORDSYSTypeInfoSpec::instance()->setDescription("Local coordinate systems");
-  FFlPCOORDSYSTypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
+  using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPCOORDSYS>;
+
+  TypeInfoSpec::instance()->setTypeName("PCOORDSYS");
+  TypeInfoSpec::instance()->setDescription("Local coordinate systems");
+  TypeInfoSpec::instance()->setCathegory(FFlTypeInfoSpec::GEOMETRY_PROP);
 
   AttributeFactory::instance()->registerCreator
-    (FFlPCOORDSYSTypeInfoSpec::instance()->getTypeName(),
+    (TypeInfoSpec::instance()->getTypeName(),
      FFaDynCB2S(FFlPCOORDSYS::create,int,FFlAttributeBase*&));
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
