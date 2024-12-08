@@ -2476,15 +2476,15 @@ bool FFlNastranReader::process_PCOMP (std::vector<std::string>& entry)
   }
 
   double T_total = 0.0;
-  FFlPCOMP::PlyVec plyVec;
+  FFlPlyVec plyVec;
   plyVec.reserve((entry.size()-8)/4);
   for (size_t idx = 8; idx+2 < entry.size(); idx += 4)
   {
-    FFlPCOMP::Ply ply;
+    FFlPly ply;
     CONVERT_ENTRY ("PCOMP",
 		   fieldValue(entry[idx  ],ply.MID) &&
 		   fieldValue(entry[idx+1],ply.T) &&
-		   fieldValue(entry[idx+2],ply.thetaInDeg));
+		   fieldValue(entry[idx+2],ply.theta));
     T_total += ply.T;
     plyVec.push_back(ply);
   }
