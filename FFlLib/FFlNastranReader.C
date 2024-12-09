@@ -703,7 +703,7 @@ int FFlNastranReader::getNextField (std::istream& is, std::string& field,
     {
       // This is a comment line, ignore it
       char line[BUFSIZ];
-      is.getline(line,BUFSIZ,'\n');
+      is.getline(line,BUFSIZ);
       if (strlen(line) > 1)
       {
 	// Store the comments for extraction of attribute names, etc.
@@ -813,36 +813,70 @@ bool FFlNastranReader::processThisEntry (BulkEntry& entry)
 #endif
   bool ok = this->processThisEntry (entry.name,entry.fields);
   if (sizeOK) entry.fields.clear();
-  lastComment = std::make_pair(0,"");
+  lastComment = { 0, "" };
   STOPP_TIMER("processThisEntry")
   return ok;
 }
 
 
-bool FFlNastranReader::processSet (const std::string& fname, const int startBulk)
+bool FFlNastranReader::processSet (const std::string& fname, const int startBlk)
+{
+  std::ifstream fs(fname);
+  return fs ? this->processAllSets(fs,startBlk) : false;
+}
+
+
+bool FFlNastranReader::processAllSets (std::istream& fs, const int startBulk)
 {
   START_TIMER("processSet")
 
-  std::ifstream fs(fname.c_str());
-  if (!fs) return false;
-
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: starting SET parsing within lines 1-"
-	    << startBulk-1 << std::endl;
+            << startBulk-1 << std::endl;
 #endif
 
   char line[256];
   int nError = 0;
+  bool isNodeGroup = false;
   FFlGroup* aGroup = NULL;
   for (int lCounter = 0; !fs.eof() && lCounter < startBulk; lCounter++)
   {
     fs.getline(line,255);
+
     // Check for comment line possibly containing a group name
     if (line[0] == '$' && strlen(line) > 8)
-      lastComment = std::make_pair(lCounter+1,line);
+    {
+      if (!strncmp(line,"$HMSET  ",8) && strlen(line) > 23 && line[23] == '1')
+        isNodeGroup = true; // Ignore node groups from HyperMesh
+      else if (strncmp(line,"$HMSETTYPE",10)) // Ignore $HMSETTYPE records
+      {
+        lastComment.first = lineCounter;
+        lastComment.second += line;
+        lastComment.second += '\n';
+      }
+    }
+
     // Check for the "SET" keyword
     else if (strncmp(line,setIdent,strlen(setIdent)) == 0)
     {
+      if (aGroup)
+      {
+        // An element group has already been created, but not added yet
+        if (isNodeGroup) // Previous group was a node group, ignore it
+          delete aGroup;
+        else
+        {
+          // Check if the group was named after the group definition itself
+          if (lastComment.first > 0 &&
+              extractNameFromComment(lastComment.second))
+            aGroup->setName(lastComment.second);
+          myLink->addGroup(aGroup); // Add element group to the FE model
+        }
+        aGroup = NULL;
+        isNodeGroup = false;
+        lastComment = { 0, "" };
+      }
+
       // Delete trailing whitespaces, if any
       int startLin = lCounter+1;
       int lastChar = strlen(line);
@@ -867,34 +901,37 @@ bool FFlNastranReader::processSet (const std::string& fname, const int startBulk
 
       // Process the set definition and create an associated FFlGroup
       aGroup = this->processThisSet(setLine,startLin,lCounter+1);
-      if (aGroup)
-      {
-        aGroup->sortElements(true);
-        if (!myLink->addGroup(aGroup))
-          aGroup = NULL;
-        // Check if the group is named
-        else if (lastComment.first > 0 && lastComment.first < startLin)
-          if (extractNameFromComment(lastComment.second))
-          {
-            lastComment.first = 0;
-            aGroup->setName(lastComment.second);
-          }
-      }
-      else
+      if (!aGroup)
         nError++;
+
+      // Check if the group is named before the group definition itself
+      else if (lastComment.first > 0 && lastComment.first < startLin &&
+               extractNameFromComment(lastComment.second))
+      {
+        aGroup->setName(lastComment.second);
+        myLink->addGroup(aGroup);
+        aGroup = NULL;
+        lastComment = { 0, "" };
+      }
     }
     else if (isBulkData(line))
       break;
-    else
-      aGroup = NULL;
+  }
 
-    // Check if the last read comment contains a name of the last created group
-    if (aGroup && lastComment.first > 0)
+  if (aGroup)
+  {
+    // Process the last group not added yet
+    if (isNodeGroup) // Last group was a node group, ignore it
+      delete aGroup;
+    else
     {
-      lastComment.first = 0;
-      if (extractNameFromComment(lastComment.second))
+      // Check if the group was named after the group definition itself
+      if (lastComment.first > 0 &&
+          extractNameFromComment(lastComment.second))
         aGroup->setName(lastComment.second);
+      myLink->addGroup(aGroup);
     }
+    lastComment = { 0, "" };
   }
 
 #ifdef FFL_DEBUG
@@ -941,8 +978,7 @@ FFlGroup* FFlNastranReader::processThisSet (std::string& setLine,
       ElementsCIter eit;
       for (eit = myLink->elementsBegin(); eit != myLink->elementsEnd(); ++eit)
         aGroup->addElement((*eit)->getID());
-      STOPP_TIMER("processThisSet")
-      return aGroup;
+      break;
     }
     else if (*charPtr == 'T') // "THRU" keyword
     {
@@ -1036,11 +1072,12 @@ FFlGroup* FFlNastranReader::processThisSet (std::string& setLine,
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: "<< nNotes-oldNotes
-	   <<" non-existing elements were detected for Nastran SET "<< setId
-	   <<".\n              Only the 10 first are reported."
-	   <<"\n              Please verify that the model is consistent.\n";
+           <<" non-existing elements were detected for Nastran SET "<< setId
+           <<".\n              Only the 10 first are reported."
+           <<"\n              Please verify that the model is consistent.\n";
   }
 
+  aGroup->sortElements(true);
   STOPP_TIMER("processThisSet")
   return aGroup;
 }
@@ -1101,7 +1138,7 @@ bool FFlNastranReader::extractNameFromComment (std::string& commentLine,
       if (pos < commentLine.size()) commentLine.erase(pos);
 #if FFL_DEBUG > 1
       if (!commentLine.empty())
-	std::cout <<"\tFound name: "<< commentLine << std::endl;
+        std::cout <<"\tFound name: "<< commentLine << std::endl;
 #endif
       return !commentLine.empty();
     }

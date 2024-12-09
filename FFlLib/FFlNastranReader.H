@@ -8,7 +8,7 @@
 #ifndef FFL_NASTRAN_READER_H
 #define FFL_NASTRAN_READER_H
 
-#include "FFlReaderBase.H"
+#include "FFlLib/FFlIOAdaptors/FFlReaderBase.H"
 #include "FFaLib/FFaAlgebra/FFaMat34.H"
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
 #include <string>
@@ -49,7 +49,7 @@ public:
   struct BulkEntry
   {
     std::string name;
-    FieldFormat ffmt;
+    FieldFormat ffmt = UNDEFINED;
     std::vector<std::string> fields;
     std::string cont;
   };
@@ -58,24 +58,22 @@ private:
 
   struct CORD
   {
-    bool isComputed;
-    coordSysType type;
-    int RID;
-    int G[3];
+    bool isComputed = false;
+    coordSysType type = rectangular;
+    int RID = 0;
+    int G[3] = { 0, 0, 0 };
     FaVec3 Origo;
     FaVec3 Zaxis;
     FaVec3 XZpnt;
     FaMat34 Tmat;
-    CORD() : isComputed(false), type(rectangular) { RID = G[0]=G[1]=G[2] = 0; }
   };
 
   struct GRDSET
   {
-    int CP;
-    int CD;
-    int PS;
-    int SEID;
-    GRDSET() { CP = CD = PS = SEID = 0; }
+    int CP = 0;
+    int CD = 0;
+    int PS = 0;
+    int SEID = 0;
   };
 
   struct BEAMOR
@@ -84,12 +82,14 @@ private:
     int G0;
     FaVec3 X;
     bool isBAR;
-    bool empty[5];
+    bool empty[5] = { false, false, false, false, false };
     BEAMOR(bool b = false) : isBAR(b) { PID = G0 = 0; }
   };
 
-  typedef std::map<int,int>  IntMap;
-  typedef std::pair<int,int> IntPair;
+  using IntPair     = std::pair<int,int>;
+  using IntMap      = std::map<int,int>;
+  using ElementMap  = std::map<int,FFlElementBase*>;
+  using LoadFaceMap = std::map<FFlLoadBase*,IntPair>;
 
   std::map<std::string,int> ignoredBulk; // Number of unsupported entries
   std::map<std::string,int> sxErrorBulk; // Number of syntax errors
@@ -120,9 +120,8 @@ private:
   std::set<int> PCOMPs;   // Set of PIDs that are of PCOMP type
 
   std::vector<FFlElementBase*> myWelds; // Temporary vector of all weld elements
-  std::vector<std::map<int,FFlElementBase*> > weld; // Weld connectivities
+  std::vector<ElementMap>      weld;    // Weld connectivities
 
-  typedef std::map<FFlLoadBase*,IntPair> LoadFaceMap;
   LoadFaceMap                loadFace; // Pressure load --> element face nodes
   std::map<FFlLoadBase*,int> loadCID; // Load --> coord. system ID for direction
 
@@ -132,9 +131,9 @@ private:
 protected:
   static int nWarnings, nNotes; // Accumulates the number of warnings and notes
 
-private:
   mutable std::pair<int,std::string> lastComment;
 
+private:
   int lineCounter;
   bool sizeOK;
 
@@ -162,7 +161,8 @@ protected:
 
   // Detection and parsing of Nastran sets
   bool setsArePresent (const std::string& fileName);
-  bool processSet     (const std::string& fileName, const int startBulk);
+  bool processSet     (const std::string& fileName, const int startBlk);
+  bool processAllSets (std::istream& fs, const int startBulk);
   FFlGroup* processThisSet (std::string& setLine,
 			    const int startL, const int stopL);
 
