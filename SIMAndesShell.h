@@ -42,7 +42,7 @@ public:
   //! \brief Retrieves the shell thickness of all elements in the model.
   void getShellThicknesses(RealArray& elmThick) const;
   //! \brief Retrieves the specified element group \a idx as a scalar field.
-  bool getElementGroup(int idx, RealArray& elGroup) const;
+  bool getElementGroup(int idx, std::string& name, RealArray& elGroup) const;
 
 protected:
   using SIMElasticity<SIM2D>::parse;

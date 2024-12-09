@@ -16,12 +16,15 @@
 #include "IntegrandBase.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
-#ifdef HAS_FFLLIB
 #include "IFEM.h"
+#include <sstream>
+
+#ifdef HAS_FFLLIB
 #include "FFlLinkHandler.H"
 #include "FFlNastranReader.H"
 #include "FFlElementBase.H"
 #include "FFlLoadBase.H"
+#include "FFlGroup.H"
 #include "FFlFEParts/FFlNode.H"
 #include "FFlFEParts/FFlPMAT.H"
 #include "FFlFEParts/FFlPMASS.H"
@@ -35,15 +38,17 @@
 
 class MyNastranReader : public FFlNastranReader
 {
+  int nPreBulk; //!< Number of lines before BEGIN BULK
+
 public:
   //! \brief The constructor forwards to the parent class constructor.
   MyNastranReader(FFlLinkHandler& fePart, int lCount)
-    : FFlNastranReader(&fePart,lCount) {}
+    : FFlNastranReader(&fePart,lCount), nPreBulk(lCount) {}
   //! \brief Empty destructor.
   virtual ~MyNastranReader() {}
 
   //! \brief Reads the FE model and resolves all topological references.
-  bool readAndResolve(std::istream& is)
+  bool readAndResolve(std::istream& is, std::istream& iset)
   {
     if (!this->resolve(this->read(is)))
       myLink->deleteGeometry(); // Parsing failure, delete all FE data
@@ -53,7 +58,15 @@ public:
                  <<" warning(s) and "<< nNotes <<" note(s) were reported.\n"
                  <<"     Review the messages and check the FE data file.\n"
                  << std::endl;
-    return myLink->hasGeometry() && myLink->resolve();
+    if (!myLink->hasGeometry())
+      return false;
+
+    // Now parse the element set definitions, if any
+    lastComment = { 0, "" };
+    if (iset && !this->processAllSets(iset,nPreBulk))
+      return false;
+
+    return myLink->resolve();
   }
 };
 #endif
@@ -69,11 +82,18 @@ bool ASMu2DNastran::read (std::istream& is)
   // Fast-forward until "BEGIN BULK"
   int lCount = 0;
   char cline[256];
+  std::stringstream sets;
   while (is.getline(cline,255))
-    if (strncmp(cline,"BEGIN BULK",10))
-      ++lCount;
-    else
+    if (!strncmp(cline,"BEGIN BULK",10))
       break;
+    else
+    {
+      ++lCount;
+      // Copy element SET definitions to a second stream,
+      // since they have to be parsed after the FE model is loaded
+      if (!strncmp(cline,"SET ",4) || sets.tellp() > 0)
+        sets << cline << '\n';
+    }
 
   if (!is) return false; // No bulk data file
 
@@ -82,7 +102,7 @@ bool ASMu2DNastran::read (std::istream& is)
 
   FFlLinkHandler  fem;
   MyNastranReader reader(fem,lCount);
-  if (!reader.readAndResolve(is))
+  if (!reader.readAndResolve(is,sets))
   {
     std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
@@ -300,6 +320,16 @@ bool ASMu2DNastran::read (std::istream& is)
 #endif
         }
     }
+  }
+
+  // Extract the element sets, if any
+  for (GroupCIter g = fem.groupsBegin(); g != fem.groupsEnd(); ++g)
+  {
+    std::string name = g->second->getName() + "_" + std::to_string(g->first);
+    std::cout <<"\tAdding element set \""<< name
+              <<"\" (size="<< g->second->size() <<")"<< std::endl;
+    for (const GroupElemRef& elm : *g->second)
+      this->addToElemSet(name,elm->getID());
   }
 #endif
 

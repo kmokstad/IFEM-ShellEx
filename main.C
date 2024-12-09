@@ -422,7 +422,7 @@ int main (int argc, char** argv)
       terminate(15);
 
     std::string Grp("Group 1");
-    for (int g = 1; g < 10 && model->getElementGroup(g,data); g++, ++Grp.back())
+    for (int g = 1; g < 10 && model->getElementGroup(g,Grp,data); g++)
       if (!model->writeGlvE(data,iStep,nBlock,Grp.c_str(),100+g,true))
         terminate(15);
 
