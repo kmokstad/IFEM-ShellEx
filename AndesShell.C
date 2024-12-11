@@ -23,6 +23,7 @@
 #include "IFEM.h"
 #include "tinyxml2.h"
 #include <fstream>
+#include <functional>
 
 
 #ifdef HAS_ANDES
@@ -537,9 +538,7 @@ void AndesShell::addPressure (Vec3& p, const Vec3& X,
                               const Vec3& n, int iel) const
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    if (press.first < 0)
-      p += (*press.second)(X)*n;
-    else if (currentPatch->isElementInSet(iel,press.first))
+    if (press.first < 0 || currentPatch->isElementInSet(iel,press.first))
       p += (*press.second)(X)*n;
 }
 
@@ -560,6 +559,23 @@ bool AndesShell::writeGlvT (VTF* vtf, int iStep,
 
   // Write surface pressures as discrete point vectors to the VTF-file
   return vtf->writeVectors(presVal,geoBlk,++nBlock,"Pressure",iStep);
+}
+
+
+void AndesShell::primaryScalarFields (Matrix& field)
+{
+  if (field.rows() != 6) return;
+
+  // Lambda function returning the magnitude of a displacement vector.
+  std::function<double(const double*)> absDis = [](const double* u) -> double
+  {
+    return sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+  };
+
+  // Insert the absolute value as the 7th solution component
+  field.expandRows(1);
+  for (size_t c = 1; c <= field.cols(); c++)
+    field(7,c) = absDis(field.ptr(c-1));
 }
 
 

@@ -119,13 +119,16 @@ public:
 
   //! \brief Returns the number of primary/secondary solution field components.
   //! \param[in] fld which field set to consider (1=primary, 2=secondary)
-  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv : n2v; }
+  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv+1 : n2v; }
   //! \brief Returns the name of a secondary solution field component.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
   virtual std::string getField2Name(size_t i, const char* prefix) const;
 
-  //! \brief Specifies recovery of von Mises stresses only.
+  //! \brief Computes some derived primary solution quantities.
+  virtual void primaryScalarFields(Matrix& field);
+
+  //! \brief Specifies the recovery of von Mises stresses only.
   void vonMisesOnly() { n2v = 2; }
 
 protected:
