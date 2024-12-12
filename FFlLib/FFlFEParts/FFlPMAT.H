@@ -11,7 +11,6 @@
 #include <array>
 
 #include "FFlLib/FFlAttributeBase.H"
-#include "FFlLib/FFlFEAttributeSpec.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlField.H"
 
@@ -32,7 +31,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPMAT);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPMAT);
   FFL_TYPE_INFO(FFlPMAT);
 
   FFlField<double> youngsModule;
@@ -54,7 +52,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPMAT2D);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPMAT2D);
   FFL_TYPE_INFO(FFlPMAT2D);
 
   std::array<FFlField<double>,6> C; //!< Upper triangle of 3x3 matrix
@@ -75,7 +72,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPMAT3D);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPMAT3D);
   FFL_TYPE_INFO(FFlPMAT3D);
 
   std::array<FFlField<double>,21> C; //!< Upper triangle of 6x6 matrix
@@ -96,7 +92,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPMATSHELL);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPMATSHELL);
   FFL_TYPE_INFO(FFlPMATSHELL);
 
   FFlField<double> E1;

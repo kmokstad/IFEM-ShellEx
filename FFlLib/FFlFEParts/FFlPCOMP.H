@@ -9,7 +9,6 @@
 #define FFL_PCOMP_H
 
 #include "FFlLib/FFlAttributeBase.H"
-#include "FFlLib/FFlFEAttributeSpec.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlField.H"
 
@@ -45,7 +44,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPCOMP);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPCOMP);
   FFL_TYPE_INFO(FFlPCOMP);
 
   virtual void calculateChecksum(FFaCheckSum* cs, int csMask) const;

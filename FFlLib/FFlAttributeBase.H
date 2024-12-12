@@ -54,8 +54,6 @@ public:
   virtual void resize(size_t n) { if (n < myFields.size()) myFields.resize(n); }
 
 protected:
-  int getAttributeTypeID() const;
-
   void addField(FFlFieldBase& field) { myFields.push_back(&field); }
 
 private:

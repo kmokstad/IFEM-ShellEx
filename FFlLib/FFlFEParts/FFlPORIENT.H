@@ -8,15 +8,12 @@
 #ifndef FFL_PORIENT_H
 #define FFL_PORIENT_H
 
+#include <array>
+
 #include "FFlLib/FFlAttributeBase.H"
-#include "FFlLib/FFlFEAttributeSpec.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlField.H"
-
 #include "FFaLib/FFaAlgebra/FFaVec3.H"
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
-
-#include <array>
 
 #ifdef FF_NAMESPACE
 namespace FF_NAMESPACE {
@@ -35,7 +32,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPORIENT);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPORIENT);
   FFL_TYPE_INFO(FFlPORIENT);
 
   FFlField<FaVec3> directionVector;
@@ -58,7 +54,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPORIENT3);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPORIENT3);
   FFL_TYPE_INFO(FFlPORIENT3);
 
   std::array<FFlField<FaVec3>,3> directionVector;

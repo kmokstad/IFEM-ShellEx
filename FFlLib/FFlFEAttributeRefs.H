@@ -51,7 +51,7 @@ public:
 
   bool resolve(const AttribTypMap& possibleRefs, bool suppressErrmsg = false);
 
-  virtual FFlFEAttributeSpec* getFEAttributeSpec() const = 0;
+  virtual FFlFEAttributeSpec* getFEAttributeSpec() const { return NULL; }
 
   AttribsCIter attributesBegin() const { return myAttributes.begin(); }
   AttribsCIter attributesEnd()   const { return myAttributes.end(); }
@@ -63,6 +63,10 @@ public:
 
   bool hasAttribute(const FFlAttributeBase* attribute) const;
   bool hasAttribute(const std::vector<FFlAttributeBase*>& attributes) const;
+
+private:
+  const std::string& getAttributeName(unsigned char typeID) const;
+  unsigned char getAttributeTypeID(const std::string& name) const;
 
 protected:
   void checksum(FFaCheckSum* cs) const;

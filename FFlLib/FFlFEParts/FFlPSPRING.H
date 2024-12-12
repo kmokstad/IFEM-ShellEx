@@ -8,14 +8,11 @@
 #ifndef FFL_PSPRING_H
 #define FFL_PSPRING_H
 
+#include <array>
+
 #include "FFlLib/FFlAttributeBase.H"
-#include "FFlLib/FFlFEAttributeSpec.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlField.H"
-
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
-
-#include <array>
 
 #ifdef FF_NAMESPACE
 namespace FF_NAMESPACE {
@@ -34,7 +31,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPSPRING);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPSPRING);
   FFL_TYPE_INFO(FFlPSPRING);
 
   enum SpringType { TRANS_SPRING = 1, ROT_SPRING = 2 };

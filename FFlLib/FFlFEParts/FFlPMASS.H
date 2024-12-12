@@ -9,11 +9,8 @@
 #define FFL_PMASS_H
 
 #include "FFlLib/FFlAttributeBase.H"
-#include "FFlLib/FFlFEAttributeSpec.H"
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlField.H"
-
-#include "FFaLib/FFaPatterns/FFaSingelton.H"
 
 #ifdef FF_NAMESPACE
 namespace FF_NAMESPACE {
@@ -35,7 +32,6 @@ public:
   static void init();
 
   FFL_FE_ATTRIBUTE_FACTORY_INIT(FFlPMASS);
-  FFL_FE_ATTRIBUTE_SPEC(FFlPMASS);
   FFL_TYPE_INFO(FFlPMASS);
 
   FFlField<DoubleVec> M;

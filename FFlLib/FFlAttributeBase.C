@@ -60,12 +60,6 @@ bool FFlAttributeBase::isIdentic(const FFlAttributeBase* other) const
 }
 
 
-int FFlAttributeBase::getAttributeTypeID() const
-{
-  return this->getFEAttributeSpec()->getAttributeTypeID(this->getTypeName());
-}
-
-
 void FFlAttributeBase::print(const char* prefix) const
 {
   std::cout << prefix << this->getTypeName()
