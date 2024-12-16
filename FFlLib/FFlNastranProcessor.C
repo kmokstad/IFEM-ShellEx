@@ -2709,7 +2709,7 @@ bool FFlNastranReader::process_PBARL (std::vector<std::string>& entry)
     return false;
   }
 
-  const std::string& Type = entry[3];
+  std::string Type = entry[3];
   if (Type.empty())
   {
     ListUI <<"\n *** Error: Cross section type not specified"
@@ -2731,8 +2731,8 @@ bool FFlNastranReader::process_PBARL (std::vector<std::string>& entry)
   if (entry.size() < 9+numDim) entry.resize(9+numDim,"");
 
   std::vector<double> Dim(numDim,0.0);
-  for (size_t i = 0; i < numDim; i++)
-    CONVERT_ENTRY ("PBARL", fieldValue(entry[8+i],Dim[i]) && !entry[8+i].empty());
+  for (size_t i = 8; i < 8+numDim; i++)
+    CONVERT_ENTRY ("PBARL", fieldValue(entry[i],Dim[i-8]) && !entry[i].empty());
   CONVERT_ENTRY ("PBARL", fieldValue(entry[8+numDim],NSMass));
 
   // ======================= Process data =======================
@@ -2920,7 +2920,7 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
 
   int    PID = 0, MID = 0;
   size_t i, numDim = 0;
-  double NsmA = 0.0, NsmB = 0.0;
+  double NSMass = 0.0;
 
   static std::vector<std::string> Types4({
     "HAT", "CHAN", "CHAN1", "BOX", "CHAN2", "CROSS",
@@ -2944,7 +2944,7 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
     return false;
   }
 
-  const std::string& Type = entry[3];
+  std::string Type = entry[3];
   if (Type.empty())
   {
     ListUI <<"\n *** Error: Cross section type not specified"
@@ -2966,10 +2966,10 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
   // Read end A data
   if (entry.size() < 9+numDim) entry.resize(9+numDim,"");
 
-  std::vector<double> DimA(numDim,0.0);
-  for (i = 0; i < numDim; i++)
-    CONVERT_ENTRY ("PBEAML",fieldValue(entry[8+i],DimA[i]) && !entry[8+i].empty());
-  CONVERT_ENTRY ("PBEAML",fieldValue(entry[8+numDim],NsmA));
+  std::vector<double> Dim(numDim,0.0);
+  for (i = 8; i < 8+numDim; i++)
+    CONVERT_ENTRY ("PBEAML",fieldValue(entry[i],Dim[i-8]) && !entry[i].empty());
+  CONVERT_ENTRY ("PBEAML",fieldValue(entry[8+numDim],NSMass));
 
   // Find starting point of end B data
   size_t endBStart = 9+numDim;
@@ -2979,14 +2979,15 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
   // Read end B data - substitute by data of end A if field is empty
   if (entry.size() < endBStart+inc) entry.resize(endBStart+inc,"");
 
-  std::vector<double> DimB(DimA); NsmB = NsmA;
+  std::vector<double> DimB(Dim);
+  double NsmB = NSMass;
   for (i = 0; i < numDim; i++)
     CONVERT_ENTRY ("PBEAML", fieldValue(entry[endBStart+2+i],DimB[i]));
   CONVERT_ENTRY ("PBEAML",fieldValue(entry[endBStart+2+numDim],NsmB));
 
   // ======================= Process data =======================
 
-  if (DimA != DimB || NsmA != NsmB || endBStart > numDim+9)
+  if (Dim != DimB || NSMass != NsmB || endBStart > numDim+9)
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: Beam property "<< PID <<" has tapering.\n"
@@ -2999,7 +3000,7 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  FFlCrossSection params(Type,DimA);
+  FFlCrossSection params(Type,Dim);
   if (params.A > 0.0)
   {
     this->insertBeamPropMat("PBEAML",PID,MID);
@@ -3008,10 +3009,10 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
   else
     ListUI <<"            Error occurred when processing PBEAML "<< PID <<".\n";
 
-  if (NsmA != 0.0)
+  if (NSMass != 0.0)
   {
     beamPIDnsm.insert(PID);
-    myLink->addAttribute(createNSM(PID,NsmA));
+    myLink->addAttribute(createNSM(PID,NSMass));
   }
 
   STOPP_TIMER("process_PBEAML")
