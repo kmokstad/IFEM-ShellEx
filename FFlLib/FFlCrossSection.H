@@ -21,8 +21,8 @@ struct FFlCrossSection
 {
   std::string name; //!< Cross section type name
   double A   = 0.0; //!< Cross section area
-  double Iyy = 0.0; //!< 2nd moment of inertia about local Y-axis
   double Izz = 0.0; //!< 2nd moment of inertia about local Z-axis
+  double Iyy = 0.0; //!< 2nd moment of inertia about local Y-axis
   double Izy = 0.0; //!< Coupling moment of inertia for non-symmetric sections
   double J   = 0.0; //!< Torsional stiffness parameter
   double NSM = 0.0; //!< Non-structural mass per length unit
