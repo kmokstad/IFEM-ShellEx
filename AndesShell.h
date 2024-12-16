@@ -136,6 +136,9 @@ public:
   //! \brief Specifies the recovery of von Mises stresses only.
   void vonMisesOnly() { n2v = 2; }
 
+  //! \brief Returns \e true if no elements failed during assembly.
+  bool allElementsOK() const { return failedElements.empty(); }
+
 protected:
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
@@ -176,8 +179,9 @@ private:
 
   mutable std::vector<Vec3Pair> presVal; //!< Pressure field point values
 
-  std::set<int> degenerated;  //!< List of detected degenerated elements
-  std::set<int> straightline; //!< List of detected straight line elements
+  std::set<int> degenerated;    //!< List of detected degenerated elements
+  std::set<int> straightline;   //!< List of detected straight line elements
+  std::set<int> failedElements; //!< List of element with assembly failure
 
   Matrices myKmats; //!< Element stiffness matrix buffer
   Matrices myMmats; //!< Element mass matrix buffer

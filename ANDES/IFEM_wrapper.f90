@@ -58,9 +58,13 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, Press, EK, EM, ES, IERR)
   if (ierr < 0) then
      write(lpu,600) iEL
      ierr = -ierr
+     do i = 1, 3
+        write(lpu,601) CHAR(ICHAR('W')+i), X0(i,:)
+     end do
 600  format('  ** The 3-noded shell element',I8, &
           & ' has zero area and is ignored.' &
           / '     Check your FE model for consistency.')
+601  format('     ',A1,' =',1P3E13.5)
      return
   end if
 
@@ -95,7 +99,11 @@ subroutine IFEM_ANDES3 (iEL, X0, Thick, Emod, Rny, Rho, Press, EK, EM, ES, IERR)
 
      call Andes3shell_stiffmat (Xl,Yl,Cmat,alpha,alphaH,lType,Kmat,lpu,ierr)
      if (ierr < 0) then
+        ierr = 9
         write(lpu,*) '*** Failed to compute stiffness matrix for element',iEL
+        do i = 1, 3
+           write(lpu,601) CHAR(ICHAR('W')+i), X0(i,:)
+        end do
         return
      end if
 
@@ -205,9 +213,13 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   if (ierr < 0) then
      write(lpu,600) iEL
      ierr = -ierr
+     do i = 1, 3
+        write(lpu,601) CHAR(ICHAR('W')+i), X0(i,:)
+     end do
 600  format('  ** The 4-noded shell element',I8, &
           & ' has zero area and is ignored.' &
           / '     Check your FE model for consistency.')
+601  format('     ',A1,' =',1P4E13.5)
      return
   end if
 
@@ -232,7 +244,10 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
      Zl(i) = dot_product(Tel(3,:),Xtmp)
   end do
   call Andes4shell_stiffmat (Xl,Yl,Zl,Cmat,alpha,beta,ltype,Kmat,LPU,IERR)
-  if (ierr < 0) goto 999
+  if (ierr < 0) then
+     ierr = 9
+     goto 999
+  end if
 
   !! Transform to global axes
   do i = 1, neldof, 3
@@ -272,6 +287,9 @@ subroutine IFEM_ANDES4 (iEL, X0, Thick, Emod, Rny, Rho, EK, EM, IERR)
   return
 
 999 write(lpu,*) '*** Failed to compute stiffness matrix for element',iEL
+  do i = 1, 3
+     write(lpu,601) CHAR(ICHAR('W')+i), X0(i,:)
+  end do
 
 contains
 
