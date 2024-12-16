@@ -206,13 +206,20 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 }
 
 
+/*!
+  This method is invoked after the assembly loop over the elements is finished.
+  It will therefore check if there were any failed elements during the assembly,
+  and return \e false in that case such that the simulation will be aborted.
+*/
+
 bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
                                            const TimeDomain& time)
 {
-  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
-    return true;
+  bool ok = static_cast<AndesShell*>(myProblem)->allElementsOK();
 
-  bool ok = true;
+  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
+    return ok;
+
   SystemVector* R = myEqSys->getVector(myEqSys->getNoRHS()-1);
   if (R) // Assemble external nodal point loads
     for (const PointLoad& load : myLoads)

@@ -61,7 +61,10 @@ contains
 
     ! Compute the deviatoric part of the strain-displacement matrix
     call bh4ben (x,y,z,xsi,eta,Bh,lpu,ierr)
-    if (ierr < 0) return
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: StrainDispMatrix4ben'
+       return
+    end if
 
     ! Total strain-displacement matrix as the sum of the lumping matrix divided
     ! by the area, and the scaled higher-order strain-displacement matrix
@@ -105,7 +108,10 @@ contains
 
     ! Compute the deviatoric part of the strain-displacement matrix
     call bh4mem (x,y,z,xsi,eta,Bh,lpu,ierr)
-    if (ierr < 0) return
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: StrainDispMatrix4mem'
+       return
+    end if
 
     ! Total strain-displacement matrix as the sum of the lumping matrix divided
     ! by the area, and the scaled higher-order strain-displacement matrix
@@ -269,10 +275,8 @@ contains
           tinv(i,2) = sij(inod,jnod,2)*sij(inod,jnod,2)
           tinv(i,3) = sij(inod,jnod,1)*sij(inod,jnod,2)
        end do
-
-       tran(inod,:,:) = invert33(tinv,lpu,ierr)
-       if (ierr < 0) return
-
+       tran(inod,:,:) = invert33(tinv,lpu,i)
+       ierr = ierr + i
     end do
 
     ! Transform nodal strain-displacement matrices to Cartesian strains
@@ -286,6 +290,8 @@ contains
           bbenn(inod,:,j) = bxy
        end do
     end do
+
+    if (ierr < 0) write(lpu,*) ' ** Traceback: bben_nod_quad'
 
   end subroutine bben_nod_quad
 
@@ -320,7 +326,10 @@ contains
 
     ! bbenn has dof ordering 4 z-displ, 4 x-rot, 4 y-rot
     call bben_nod_quad (x,y,Bbenn,lpu,ierr)
-    if (ierr < 0) return
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: bh4ben'
+       return
+    end if
 
     ! Calculate mean
     xl(:,1) = x(:,1)
@@ -715,7 +724,12 @@ contains
     tinv24(3,3) = unit13(1)*unit13(2)
 
     tran13 = invert33(tinv13,lpu,ierr)
-    tran24 = invert33(tinv24,lpu,ierr)
+    tran24 = invert33(tinv24,lpu,inod)
+    ierr = ierr + inod
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: bmqh_nod_quad'
+       return
+    end if
 
     ! Tranform to Cartesian strains
     do inod = 1, 3, 2
@@ -829,7 +843,10 @@ contains
 
     ! Higher order translations
     tnat = invert22(transpose(jacobi0(:,1:2)),lpu,ierr)
-    if (ierr < 0) return
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: hmqv_quad'
+       return
+    end if
 
     do inod = 1, 4
        do i = 1, 2
@@ -893,6 +910,12 @@ contains
     real(dp) :: xl(4,3)
 
     call bmqh_nod_quad (x,y,Bmemn,lpu,ierr)
+    call hmqv_quad (x,y,z,Hmem,lpu,i)
+    ierr = ierr + i
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: bh4mem'
+       return
+    end if
 
     ! Calculate mean
     xl(:,1) = x(:,1)
@@ -906,8 +929,6 @@ contains
           bmemq(i,j) = dot_product(nv,Bmemn(:,i,j)) - bmem_mean(i,j)
        end do
     end do
-
-    call hmqv_quad (x,y,z,Hmem,lpu,ierr)
 
     bmem = matmul(bmemq,hmem)
 
@@ -949,11 +970,13 @@ contains
 
     ! Create Bm
     call StrainDispMatrix4mem (alphaNR,alphaH,xij,yij,zij,xsi,eta,Bm,lpu,ierr)
-    if (ierr < 0) return
-
     ! Create Bb
-    call StrainDispMatrix4ben (lumptype,alphaH,xij,yij,zij,xsi,eta,Bb,lpu,ierr)
-    if (ierr < 0) return
+    call StrainDispMatrix4ben (lumptype,alphaH,xij,yij,zij,xsi,eta,Bb,lpu,i)
+    ierr = ierr + i
+    if (ierr < 0) then
+       write(lpu,*) ' ** Traceback: Bmatrix'
+       return
+    end if
 
     ! Create the final B-matrix(6,24)
     Bmat = 0.0_dp
@@ -1098,7 +1121,7 @@ contains
         end do
     end do
 
-    if (ierr < 0) write(lpu,"(' *** Andes4shell_stiffmat failed')")
+    if (ierr < 0) write(lpu,"(' *** Andes4shell_stiffmat failed',I6)") ierr
 
   end subroutine Andes4shell_stiffmat
 

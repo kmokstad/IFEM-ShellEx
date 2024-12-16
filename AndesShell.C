@@ -83,6 +83,13 @@ AndesShell::~AndesShell ()
     os <<"GROUP{2"; for (int e : straightline) os <<" "<< e;
     os <<" {NAME \"straight line elements\"}}\n";
   }
+
+  if (!failedElements.empty())
+  {
+    std::ofstream os("failed_elements.ftl");
+    os <<"GROUP{3"; for (int e : failedElements) os <<" "<< e;
+    os <<" {NAME \"failed elements\"}}\n";
+  }
 }
 
 
@@ -439,12 +446,27 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
   }
 
+  const char* groupName = nullptr;
   if (iERR >= 1 && iERR <= 3)
+  {
+    groupName = "Degenerated elements";
     degenerated.insert(fe.iel);
+  }
   else if (iERR == 4)
+  {
+    groupName = "Straight lines";
     straightline.insert(fe.iel);
+  }
+  else if (iERR == 9)
+  {
+    groupName = "Failed elements";
+    failedElements.insert(fe.iel);
+  }
   else if (iERR == -99)
     std::cerr <<" *** AndesShell: Built without this element."<< std::endl;
+
+  if (currentPatch && groupName)
+    const_cast<ASMu2DNastran*>(currentPatch)->addToElemSet(groupName,fe.iel);
 
   if (fe.iel > 0 && iERR >= 0)
   {
