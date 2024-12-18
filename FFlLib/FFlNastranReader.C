@@ -57,7 +57,7 @@ static char isBulkData(const char* line)
     return 'y'; // Yes, we have bulk data
   else if (strncmp(line,bulkIdent2,strlen(bulkIdent2)) == 0)
     return 'p'; // We should parse this line too (GRID entry)
-  else if (strncmp(line+9,bulkIdent3,strlen(bulkIdent3)) == 0)
+  else if (strlen(line) > 9 && !strncmp(line+9,bulkIdent3,strlen(bulkIdent3)))
     return 'y'; // Yes, we have bulk data
   else if (strncmp(line,bulkIdent4,strlen(bulkIdent4)) == 0)
     return 'p'; // We should parse this line too (INCLUDE entry)
