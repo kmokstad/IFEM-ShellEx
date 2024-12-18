@@ -273,9 +273,12 @@ int main (int argc, char** argv)
   if (!model->read(infile))
     terminate(1);
 
-  model->opt.print(IFEM::cout,true) << std::endl;
-
   utl::profiler->stop("Model input");
+#ifdef HAS_FFLLIB
+  FFl::releaseAllElements();
+#endif
+
+  model->opt.print(IFEM::cout,true) << std::endl;
 
   // Establish the FE data structures
   if (!model->preprocess({},fixDup))
