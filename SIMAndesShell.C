@@ -24,6 +24,9 @@
 #include "tinyxml2.h"
 
 
+static bool withBeams = false; //!< If \e true, the model contains beam elements
+
+
 SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
 {
   nsd = 3;
@@ -41,7 +44,7 @@ SIMAndesShell::~SIMAndesShell ()
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nsv,modal);
+    myProblem = new AndesShell(nsv,modal,withBeams);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }
@@ -124,7 +127,8 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
                                    const CharVec&, const char* whiteSpace) const
 {
   ASMbase* pch = NULL;
-  if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
+  bool nastran = nf.size() == 2 && nf[1] == 'n';
+  if (nastran) // Nastran bulk data file
     pch = new ASMu2DNastran(nsd,nf.front());
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
@@ -137,6 +141,15 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
 
   if (whiteSpace)
     IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
+
+  ASMbase* bpch = nullptr;
+  if (nastran) // Check if we also have beam elements in the model
+    if ((bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams()))
+    {
+      withBeams = true;
+      bpch->idx = myModel.size();
+      const_cast<SIMAndesShell*>(this)->myModel.push_back(bpch);
+    }
 
   pch->idx = myModel.size();
   return pch;
@@ -206,13 +219,20 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 }
 
 
+/*!
+  This method is invoked after the assembly loop over the elements is finished.
+  It will therefore check if there were any failed elements during the assembly,
+  and return \e false in that case such that the simulation will be aborted.
+*/
+
 bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
                                            const TimeDomain& time)
 {
-  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
-    return true;
+  bool ok = static_cast<AndesShell*>(myProblem)->allElementsOK();
 
-  bool ok = true;
+  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
+    return ok;
+
   SystemVector* R = myEqSys->getVector(myEqSys->getNoRHS()-1);
   if (R) // Assemble external nodal point loads
     for (const PointLoad& load : myLoads)

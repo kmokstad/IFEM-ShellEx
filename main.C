@@ -312,8 +312,12 @@ int main (int argc, char** argv)
     model->setQuadratureRule(2,true);
     model->initSystem(model->opt.solver);
     if (!model->assembleSystem(Elastic::time))
-      terminate(4);
-
+    {
+      if (model->opt.format < 0)
+        terminate(4);
+      else
+        break;
+    }
     if (vizRHS)
     {
       model->extractLoadVec(load,0,"external load");
