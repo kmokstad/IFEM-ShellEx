@@ -9,9 +9,17 @@
 #include "FFlLib/FFlLinkCSMask.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlPartBase::checksum(FFaCheckSum* cs, int csMask) const
 {
   if ((csMask & FFl::CS_IDMASK) != FFl::CS_NOIDINFO)
     cs->add(myID);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif

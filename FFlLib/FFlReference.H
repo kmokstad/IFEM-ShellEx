@@ -5,70 +5,69 @@
 // This file is part of FEDEM - https://openfedem.org
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef _FFLREFERENCE_H_
-#define _FFLREFERENCE_H_
-
+#ifndef FFL_REFERENCE_H
+#define FFL_REFERENCE_H
 
 #include <map>
-#include <vector>
-#include <algorithm>
-#include <utility>
 
 #include "FFlLib/FFlPartBase.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
 
-/*!
- * \NOTE Forward added
- * \TODO Check if sematic is as wanted with friend defs
- */
+
 template <class T> class FFlReference;
-template <class T> bool operator<(const FFlReference<T>& lhs, const FFlReference<T>& rhs);
-
+template <class T> bool operator< (const FFlReference<T>& lhs,
+                                   const FFlReference<T>& rhs);
 
 template <class T>
 class FFlReference
 {
 public:
-  FFlReference() : iAmResolved(true)
+  FFlReference(T* ptr = NULL) : iAmResolved(true)
   {
-    myResolvedRef = 0;
+    myResolvedRef = ptr;
+    if (ptr) ptr->ref();
   }
 
-  FFlReference(T* objPtr) : iAmResolved(true)
-  {
-    myResolvedRef = objPtr;
-  }
-
-  FFlReference(int objID) : iAmResolved(false)
-  {
-    ID = objID;
-  }
+  FFlReference(int ID) : iAmResolved(false) { myID = ID; }
 
   FFlReference(const FFlReference& ref) : iAmResolved(ref.iAmResolved)
   {
     if (iAmResolved)
+    {
       myResolvedRef = ref.myResolvedRef;
+      if (myResolvedRef) myResolvedRef->ref();
+    }
     else
-      ID = ref.ID;
+      myID = ref.myID;
   }
 
-  virtual ~FFlReference() {}
-
+  ~FFlReference()
+  {
+    if (iAmResolved && myResolvedRef)
+      myResolvedRef->unref();
+  }
 
   FFlReference& operator=(const FFlReference& ref)
   {
     if (this != &ref)
     {
-      if (iAmResolved)
-        if (ref.iAmResolved)
-	  myResolvedRef = ref.myResolvedRef;
-        else
-        {
-	  ID = ref.ID;
-	  iAmResolved = false;
-        }
+      if (!iAmResolved)
+        myID = ref.getID();
+      else if (ref.iAmResolved)
+      {
+        if (myResolvedRef) myResolvedRef->unref();
+        myResolvedRef = ref.myResolvedRef;
+        if (myResolvedRef) myResolvedRef->ref();
+      }
       else
-	ID = ref.getID();
+      {
+        if (myResolvedRef) myResolvedRef->unref();
+        myID = ref.myID;
+        iAmResolved = false;
+      }
     }
 
     return *this;
@@ -77,132 +76,113 @@ public:
 
   FFlReference& operator=(const T* objPtr) // fast resolving manually
   {
-    myResolvedRef = (T*)objPtr;
+    myResolvedRef = const_cast<T*>(objPtr);
+    if (myResolvedRef) myResolvedRef->ref();
     iAmResolved = true;
 
     return *this;
   }
 
-
   FFlReference& operator=(const int& objID) // fast assignment manualy
   {
-    ID = objID;
+    myID = objID;
     iAmResolved = false;
 
     return *this;
   }
 
 
-  bool isResolved() const { return iAmResolved && myResolvedRef != 0; }
+  bool isResolved() const { return iAmResolved && myResolvedRef != NULL; }
 
 
-  typedef std::map<int,T*>                                resolveRefMapType;
-  typedef typename resolveRefMapType::const_iterator resolveRefMapTypeCIt;
-
-  bool resolve(const resolveRefMapType& possibleReferences)
+  bool resolve(const std::map<int,T*>& possibleRefs)
   {
     if (iAmResolved) return true;
 
-    resolveRefMapTypeCIt it = possibleReferences.find(ID);
-    if (it != possibleReferences.end())
+    using RefIt = typename std::map<int,T*>::const_iterator;
+
+    RefIt it = possibleRefs.find(myID);
+    if (it != possibleRefs.end())
     {
       myResolvedRef = it->second;
+      myResolvedRef->ref();
       iAmResolved = true;
     }
 
     return iAmResolved;
   }
 
-
-  typedef std::vector<T*>                                 resolveRefVecType;
-  typedef typename resolveRefVecType::const_iterator resolveRefVecTypeCIt;
-
-  bool resolve(const resolveRefVecType& possibleReferences)
+  bool resolve(const std::vector<T*>& possibleRefs)
   {
     if (iAmResolved) return true;
 
-    std::pair<resolveRefVecTypeCIt,resolveRefVecTypeCIt> ep;
-    ep = equal_range(possibleReferences.begin(),
-		     possibleReferences.end(),
-		     ID, FFlFEPartBaseLess());
+    using RefIt = typename std::vector<T*>::const_iterator;
 
-    if (ep.first != ep.second)
+    RefIt it = FFlPartFinder<T>::findObject(possibleRefs,myID);
+    if (it != possibleRefs.end())
     {
-      myResolvedRef = *ep.first;
+      myResolvedRef = *it;
+      myResolvedRef->ref();
       iAmResolved = true;
     }
 
     return iAmResolved;
   }
 
-
-  /*!
-    Unresolves the reference - used before e.g. copying of objects
-  */
 
   void unresolve()
   {
     if (!iAmResolved) return;
 
-    iAmResolved = false;
-    if (myResolvedRef == 0) return;
+    if (myResolvedRef) myResolvedRef->unref();
+    int tmpID = myResolvedRef ? myResolvedRef->getID() : 0;
+    myID = tmpID;
 
-    int tmpID = myResolvedRef->getID();
-    ID = tmpID;
+    iAmResolved = false;
   }
 
 
   int getID() const
   {
-    return iAmResolved && myResolvedRef != 0 ? myResolvedRef->getID() : ID;
+    return iAmResolved && myResolvedRef ? myResolvedRef->getID() : myID;
   }
 
 
   T* getReference() const
   {
-    if (iAmResolved) return myResolvedRef;
-
-    char* p = 0; *p = 'd'; // force a core dump (internal logic error)
-    return 0;
+    return iAmResolved ? myResolvedRef : NULL;
   }
 
   T* operator->() const
   {
-    if (iAmResolved && myResolvedRef != 0) return myResolvedRef;
+    if (!iAmResolved || !myResolvedRef)
+      abort(); // force a core dump (internal logic error)
 
-    char* p = 0; *p = 'd'; // force a core dump (internal logic error)
-    return 0;
+    return myResolvedRef;
   }
 
 private:
   bool iAmResolved;
 
   union {
-    T* myResolvedRef;
-    int ID;
+    T*  myResolvedRef;
+    int myID;
   };
 
-#if defined(_MSC_VER) && _MSC_VER < 1310
-  friend bool operator< (const FFlReference<T>& lhs, const FFlReference<T>& rhs);
-#else
-  friend bool operator< <T> (const FFlReference<T>& lhs, const FFlReference<T>& rhs);
-#endif
+  friend bool operator< <T> (const FFlReference<T>& lhs,
+                             const FFlReference<T>& rhs);
 };
 
 
 template <class T>
-bool operator<(const FFlReference<T>& lhs, const FFlReference<T>& rhs)
+bool operator< (const FFlReference<T>& lhs, const FFlReference<T>& rhs)
 {
-  if (lhs.isResolved())
-    if (rhs.isResolved())
-      return lhs.myResolvedRef->getID() < rhs.myResolvedRef->getID();
-    else
-      return lhs.myResolvedRef->getID() < rhs.ID;
-  else
-    if (rhs.isResolved())
-      return lhs.ID < rhs.myResolvedRef->getID();
-    else
-      return lhs.ID < rhs.ID;
+  int lhsID = lhs.isResolved() ? lhs.myResolvedRef->getID() : lhs.myID;
+  int rhsID = rhs.isResolved() ? rhs.myResolvedRef->getID() : rhs.myID;
+  return lhsID < rhsID;
 }
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

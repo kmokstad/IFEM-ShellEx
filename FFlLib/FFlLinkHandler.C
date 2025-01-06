@@ -144,13 +144,16 @@ FFlLinkHandler::FFlLinkHandler(const FFlGroup& fromGroup)
   AttributeTypeMap                     tmpMap;
 
   myElements.reserve(fromGroup.size());
-  for (const GroupElemRef& elm : fromGroup)
+  for (const GroupElemRef& e : fromGroup)
   {
-    myElements.push_back(elm->clone());
-    for (NodeCIter nit = elm->nodesBegin(); nit != elm->nodesEnd(); ++nit)
+    myElements.push_back(e->clone());
+    for (NodeCIter nit = e->nodesBegin(); nit != e->nodesEnd(); ++nit)
       tmpNodes.insert(nit->getReference());
-    for (AttribsCIter a = elm->attributesBegin(); a != elm->attributesEnd(); ++a)
-      tmpMap[a->second->getTypeName()][a->second->getID()] = a->second.getReference();
+    for (AttribsCIter a = e->attributesBegin(); a != e->attributesEnd(); ++a)
+    {
+      FFlAttributeBase* attr = a->second.getReference();
+      tmpMap[attr->getTypeName()][attr->getID()] = attr;
+    }
   }
 
   myNodes.reserve(tmpNodes.size());
@@ -325,27 +328,35 @@ void FFlLinkHandler::calculateChecksum(FFaCheckSum* cs,
   std::cout <<"Checking attributes (csType="<< csType <<"):"<< std::endl;
 #endif
 
+  // Lambda function checking for strain coat properties
+  auto&& isStrainCoatProp = [](const FFlAttributeBase* att)
+  {
+    return att->getTypeInfoSpec()->getCathegory() == FFlTypeInfoSpec::STRC_PROP;
+  };
+
   for (const AttributeTypeMap::value_type& am : myAttributes)
     for (const AttributeMap::value_type& attr : am.second)
-      if (checkStrainCoat || attr.second->getTypeInfoSpec()->getCathegory() != FFlTypeInfoSpec::STRC_PROP)
+      if (checkStrainCoat || !isStrainCoatProp(attr.second))
       {
         attr.second->calculateChecksum(cs,csType);
 #if FFL_DEBUG > 1
         std::cout <<"Link checksum after attribute "<< attr.first
-                  <<" "<< attr.second->getID() <<" : "<< cs->getCurrent() << std::endl;
+                  <<" "<< attr.second->getID() <<" : "
+                  << cs->getCurrent() << std::endl;
 #endif
       }
 
 #ifdef FFL_DEBUG
-  std::cout <<"Link checksum after attributes: "<< cs->getCurrent() << std::endl;
+  std::cout <<"Link checksum after attributes: "
+            << cs->getCurrent() << std::endl;
 #endif
 
   for (const GroupMap::value_type& g : myGroupMap)
   {
     g.second->calculateChecksum(cs,csType);
 #if FFL_DEBUG > 2
-    std::cout <<"Link checksum after group "<< g.second->getID()
-	      <<" : "<< cs->getCurrent() << std::endl;
+    std::cout <<"Link checksum after group "<< g.second->getID() <<" : "
+              << cs->getCurrent() << std::endl;
 #endif
   }
 
@@ -467,16 +478,16 @@ void FFlLinkHandler::updateGroupVisibilityStatus()
       attr.second->resetVisibilityStatus();
 
   // run over all elements:
-  for (FFlElementBase* elm : myElements)
+  for (FFlElementBase* e : myElements)
   {
-    int visStat = elm->isVisible() ?
+    int visStat = e->isVisible() ?
       FFlNamedPartBase::FFL_HAS_VIS_ELM :
       FFlNamedPartBase::FFL_HAS_HIDDEN_ELM;
 
-    for (AttribsCIter ait = elm->attributesBegin(); ait != elm->attributesEnd(); ait++)
+    for (AttribsCIter a = e->attributesBegin(); a != e->attributesEnd(); ++a)
     {
-      ait->second->addVisibilityStatus(FFlNamedPartBase::FFL_USED);
-      ait->second->addVisibilityStatus(visStat);
+      a->second->addVisibilityStatus(FFlNamedPartBase::FFL_USED);
+      a->second->addVisibilityStatus(visStat);
     }
   }
 
@@ -700,10 +711,7 @@ FFlLinkHandler::NodesIter FFlLinkHandler::getNodeIter(int ID) const
 {
   if (!areNodesSorted) this->sortNodes();
 
-  std::pair<NodesIter,NodesIter> ep = equal_range(myNodes.begin(),
-						  myNodes.end(), ID,
-						  FFlFEPartBaseLess());
-  return ep.first == ep.second ? myNodes.end() : ep.first;
+  return FFlPartFinder<FFlNode>::findObject(myNodes,ID);
 }
 
 FFlNode* FFlLinkHandler::getNode(int ID) const
@@ -731,7 +739,7 @@ FFlNode* FFlLinkHandler::getFENode(int inod) const
           myFEnodes.push_back(node);
 
       if (myFEnodes.empty())
-	return NULL;
+        return NULL;
     }
 
     if ((size_t)inod <= myFEnodes.size())
@@ -793,10 +801,7 @@ FFlLinkHandler::ElementsIter FFlLinkHandler::getElementIter(int ID) const
 {
   if (!areElementsSorted) this->sortElements();
 
-  std::pair<ElementsIter,ElementsIter> ep = equal_range(myElements.begin(),
-							myElements.end(), ID,
-							FFlFEPartBaseLess());
-  return ep.first == ep.second ? myElements.end() : ep.first;
+  return FFlPartFinder<FFlElementBase>::findObject(myElements,ID);
 }
 
 FFlElementBase* FFlLinkHandler::getElement(int ID, bool internalID) const
@@ -924,7 +929,8 @@ FFlGroup* FFlLinkHandler::getGroup(int ID) const
   Returns NULL if no such attribute.
 */
 
-FFlAttributeBase* FFlLinkHandler::getAttribute(const std::string& type, int ID) const
+FFlAttributeBase* FFlLinkHandler::getAttribute(const std::string& type,
+                                               int ID) const
 {
   AttributeTypeCIter atit = myAttributes.find(type);
   if (atit == myAttributes.end()) return NULL;
@@ -1153,11 +1159,8 @@ int FFlLinkHandler::getIntElementID(int ID) const
     if (this->buildFiniteElementVec() < 1)
       return 0;
 
-  std::pair<ElementsIter,ElementsIter> ep = equal_range(myFElements.begin(),
-							myFElements.end(), ID,
-							FFlFEPartBaseLess());
-
-  return ep.first == ep.second ? 0 : (ep.first - myFElements.begin()) + 1;
+  ElementsIter it = FFlPartFinder<FFlElementBase>::findObject(myFElements,ID);
+  return it == myFElements.end() ? 0 : (it - myFElements.begin()) + 1;
 }
 
 
@@ -1717,13 +1720,13 @@ const FFlrVxToElmMap& FFlLinkHandler::getVxToElementMapping()
   if (myVxMapping.empty())
   {
     myVxMapping.resize(myVertices.size());
+    int n, id;
     NodeCIter nit;
-    int lNode, id;
     for (FFlElementBase* elm : myElements)
       if (filterFiniteElements(elm,false,true)) // Skip result-less elements
-        for (nit = elm->nodesBegin(), lNode = 1; nit != elm->nodesEnd(); ++nit, lNode++)
+        for (nit = elm->nodesBegin(), n = 1; nit != elm->nodesEnd(); ++nit, n++)
           if ((id = (*nit)->getVertexID()) >= 0)
-            myVxMapping[id].push_back({elm,lNode});
+            myVxMapping[id].push_back({elm,n});
   }
 
   return myVxMapping;
@@ -1748,6 +1751,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
   myProfiler->startTimer("resolve");
 #endif
   int nError = 0;
+  int nNotes = 0;
   const int maxErr = 100;
 
   // make sure everything is sorted
@@ -1795,10 +1799,11 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
         !elm->resolveElmRef(myElements, nError >= maxErr) ||
         !elm->resolve(myAttributes, nError >= maxErr) ||
 #ifdef FT_USE_VISUALS
-        !elm->resolveVisuals(myVisuals, nError < maxErr))
+        !elm->resolveVisuals(myVisuals, nError < maxErr)
 #else
-        false)
+        false
 #endif
+        )
       if (nError++ < maxErr)
         ListUI <<"\n *** Error: Resolving "<< elm->getTypeName() <<" element "
                << elm->getID() <<" failed\n";
@@ -1848,9 +1853,9 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
       std::vector<int> looseNodes;
       for (++n; n != elm->nodesEnd(); ++n)
         if (!(*n)->hasDOFs())
-	{
+        {
           if ((*n)->isExternal())
-            (*n)->pushDOFs(6); // Ensure external node is not considered DOF-less
+            (*n)->pushDOFs(6); // Ensure external node is not flagged DOF-less
           else
             looseNodes.push_back((*n)->getID());
         }
@@ -1863,7 +1868,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
         continue;
       }
 
-      (*refn)->pushDOFs(6); // Ensure reference node is not considered DOF-less
+      (*refn)->pushDOFs(6); // Ensure the reference node is not flagged DOF-less
 
       if (looseNodes.empty()) continue;
 
@@ -1892,12 +1897,48 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
     ListUI <<"\n  ** Erasing "<< toBeErased.size()
            <<" elements without nodal connections.";
     for (FFlElementBase* elm : toBeErased)
+    {
       myElements.erase(std::find(myElements.begin(),myElements.end(),elm));
+      delete elm;
+    }
   }
+
+  // Check for unused nodes:
+  size_t nnodes = 0;
+  for (size_t i = 0; i < myNodes.size(); i++)
+    if (!myNodes[i]->getRefCount())
+    {
+      nNotes++;
+      ListUI <<"\n   * Note: Unused node "<< myNodes[i]->getID() <<" (deleted)";
+      delete myNodes[i];
+    }
+    else if (++nnodes < i+1)
+      myNodes[nnodes-1] = myNodes[i];
+
+  if (nnodes < myNodes.size())
+    myNodes.resize(nnodes);
+
+  // Check for unused attributes
+  for (AttributeTypeMap::value_type& am : myAttributes)
+    for (AttributeMap::iterator it = am.second.begin(); it != am.second.end();)
+      if (!it->second->getRefCount())
+      {
+        nNotes++;
+        ListUI <<"\n   * Note: Unused attribute "<< am.first <<" "
+               << it->second->getID() <<" (deleted)";
+        delete it->second;
+        it = am.second.erase(it);
+      }
+      else
+        ++it;
 
   if (nError > maxErr)
     ListUI <<"\n *** A total of "<< nError <<" resolve errors were detected.\n"
            <<"     (Only the first "<< maxErr <<" are reported.)\n";
+  if (nNotes > 0)
+    ListUI <<"\n  ** A total of "<< nNotes <<" resolve notes were detected.\n"
+           <<"     Simulation continues, but you ought to verify that"
+           <<" the model is consistent.\n";
 
   isResolved = nError == 0;
   hasLooseNodes = isResolved && this->getNodeCount(FFL_FEM) < (int)myNodes.size();

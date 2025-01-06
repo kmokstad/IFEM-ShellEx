@@ -12,6 +12,10 @@
 
 #include "FFlLib/FFlPartBase.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 class FFlNamedPartBase : public FFlPartBase
 {
@@ -28,13 +32,11 @@ protected:
   FFlNamedPartBase(int ID) : FFlPartBase(ID), visibilityStatus(0) {}
 
   FFlNamedPartBase(const FFlNamedPartBase& obj)
-  : FFlPartBase(obj), userName(obj.userName), visibilityStatus(0) {}
+    : FFlPartBase(obj), userName(obj.userName), visibilityStatus(0) {}
 
   FFlNamedPartBase& operator=(const FFlNamedPartBase&) = delete;
 
 public:
-  virtual ~FFlNamedPartBase() {}
-
   const std::string& getName() const { return userName; }
   void setName(const std::string& groupName);
 
@@ -50,4 +52,7 @@ private:
   int visibilityStatus;
 };
 
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
 #endif

@@ -9,6 +9,7 @@
 #define FFL_ELEMENT_BASE_H
 
 #include "FFlLib/FFlPartBase.H"
+#include "FFlLib/FFlAttributeBase.H"
 #include "FFlLib/FFlFEAttributeRefs.H"
 #include "FFlLib/FFlFENodeRefs.H"
 #ifdef FT_USE_VISUALS

@@ -8,12 +8,11 @@
 #ifndef FFL_FE_NODE_REFS_H
 #define FFL_FE_NODE_REFS_H
 
-#include "FFlReference.H"
+#include "FFlLib/FFlReference.H"
+#include "FFlLib/FFlFEParts/FFlNode.H"
 
 class FFlFEElementTopSpec;
-class FFlNode;
 class FFaCheckSum;
-class FaVec3;
 
 #ifdef FF_NAMESPACE
 namespace FF_NAMESPACE {

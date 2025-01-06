@@ -16,8 +16,6 @@
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFlLib/FFlLinkCSMask.H"
 
-class FFlPartBase;
-class FFlNamedPartBase;
 class FFlFEResultBase;
 class FFlrFELinkResult;
 class FFlFaceGenerator;
@@ -40,6 +38,8 @@ namespace FF_NAMESPACE {
 
 class FFlNode;
 class FFlVertex;
+class FFlPartBase;
+class FFlNamedPartBase;
 class FFlElementBase;
 class FFlAttributeBase;
 class FFlLoadBase;
@@ -289,10 +289,10 @@ public:
 #endif
 
 protected:
-  using NodesIter = NodesVec::iterator;
+  using NodesIter = NodesVec::const_iterator;
   NodesIter getNodeIter(int ID) const;
 
-  using ElementsIter = ElementsVec::iterator;
+  using ElementsIter = ElementsVec::const_iterator;
   ElementsIter getElementIter(int ID) const;
 
   void countElements() const;

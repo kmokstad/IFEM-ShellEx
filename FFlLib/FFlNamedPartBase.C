@@ -9,6 +9,10 @@
 #include "FFlLib/FFlLinkCSMask.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 
+#ifdef FF_NAMESPACE
+namespace FF_NAMESPACE {
+#endif
+
 
 void FFlNamedPartBase::setName(const std::string& groupName)
 {
@@ -32,3 +36,7 @@ void FFlNamedPartBase::checksum(FFaCheckSum* cs, int csMask) const
   if (!userName.empty() && (csMask & FFl::CS_GROUPMASK) != FFl::CS_NOGROUPINFO)
     cs->add(userName);
 }
+
+#ifdef FF_NAMESPACE
+} // namespace
+#endif
