@@ -193,6 +193,14 @@ public:
 
   // For each vertex, a vector of elements with the local index of the vertex
   const FFlrVxToElmMap& getVxToElementMapping();
+
+  using WindowTester = bool(*)(const FaVec3&);
+
+  void findWindowedNodes(std::map<int,FaVec3>& nodes,
+                         const std::vector<int>& indices,
+                         const FaMat34& lCS, bool lFirst,
+                         WindowTester isInsideWindow) const;
+
 #endif
 
   void getAllInternalCoordSys(std::vector<FaMat34>& mxes) const;
@@ -203,6 +211,8 @@ public:
   double getMeanElementSize() const;
 
   void getMassProperties(double& M, FaVec3& Xcg, FFaTensor3& I) const;
+
+  int findNode(FaVec3& nodePos, const FaMat34* Tlg = NULL) const;
 
   FFlNode* findFreeNodeAtPoint(const FaVec3& point, double tol,
                                int dofFilter = -1) const;

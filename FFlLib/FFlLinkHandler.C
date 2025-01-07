@@ -1556,6 +1556,28 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
 
 
 /*!
+  Returns the Id of the node that is closest to \a nodePos.
+  The actual coordinates for the node is then returned by updating \a nodePos.
+*/
+
+int FFlLinkHandler::findNode(FaVec3& nodePos, const FaMat34* Tlg) const
+{
+  if (Tlg) // Transform to local coordinate system
+    nodePos = Tlg->inverse()*nodePos;
+
+  FFlNode* node = this->findClosestNode(nodePos);
+  if (!node) return 0;
+
+  if (Tlg) // Transform to global coordinate system
+    nodePos = (*Tlg) * node->getPos();
+  else
+    nodePos = node->getPos();
+
+  return node->getID();
+}
+
+
+/*!
   Returns the node that is closest to the given \a point.
 */
 
@@ -1731,6 +1753,30 @@ const FFlrVxToElmMap& FFlLinkHandler::getVxToElementMapping()
 
   return myVxMapping;
 }
+
+
+void FFlLinkHandler::findWindowedNodes(std::map<int,FaVec3>& nodes,
+                                       const std::vector<int>& indices,
+                                       const FaMat34& lCS, bool lFirst,
+                                       WindowTester isInsideWindow) const
+{
+  static std::set<int> visited;
+  if (lFirst) visited.clear();
+
+  int nVertices = myVertices.size();
+  for (int idx : indices)
+    if (idx < nVertices && visited.insert(idx).second)
+    {
+      const FFlVertex* vrtx = static_cast<const FFlVertex*>(myVertices[idx]);
+      if (vrtx && vrtx->getNode())
+      {
+        FaVec3 globalPos = lCS * (*vrtx);
+        if (isInsideWindow(globalPos))
+          nodes[vrtx->getNode()->getID()] = globalPos;
+      }
+    }
+}
+
 #endif
 
 
