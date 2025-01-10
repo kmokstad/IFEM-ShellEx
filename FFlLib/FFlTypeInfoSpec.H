@@ -14,21 +14,20 @@
 
 
 #define FFL_TYPE_INFO(class) \
-FFlTypeInfoSpec* getTypeInfoSpec() const \
+virtual FFlTypeInfoSpec* getTypeInfoSpec() const \
 { return FFaSingelton<FFlTypeInfoSpec,class>::instance(); }
 
 
 class FFlTypeInfoSpec
 {
 public:
-  FFlTypeInfoSpec() { myCathegory = OTHER; }
-  virtual ~FFlTypeInfoSpec() {}
+  FFlTypeInfoSpec() : myCathegory(OTHER) {}
 
   const std::string& getTypeName() const { return myTypeName; }
-  void setTypeName(const std::string& name) { myTypeName = name; }
+  void setTypeName(const std::string& n) { myTypeName = n; }
 
   const std::string& getDescription() const { return myDescription; }
-  void setDescription(const std::string& descr) { myDescription = descr; }
+  void setDescription(const std::string& d) { myDescription = d; }
 
   enum Cathegory{SOLID_ELM, SHELL_ELM, BEAM_ELM, CONSTRAINT_ELM,
                  STRC_ELM, OTHER_ELM,
@@ -37,8 +36,8 @@ public:
                  COORD_SYS, USER_DEF_GROUP, NODE,
 		 LOAD, OTHER};
 
-  Cathegory getCathegory()               { return myCathegory; }
-  void      setCathegory(Cathegory cath) { myCathegory = cath; }
+  Cathegory getCathegory() const { return myCathegory; }
+  void setCathegory(Cathegory c) { myCathegory = c; }
 
 private:
   std::string myTypeName;
