@@ -414,7 +414,7 @@ bool ASMu2DNastran::addPressureAt (Vec3& p, int eId, const RealArray& N) const
 
   size_t n = it->second.size();
   if (n == 1 || N.size() > n)
-    p += it->second.front();
+    p += it->second.front(); // constant pressure
   else if (N.size() == 1 && N.front() < 0.0)
   {
     // N[0] contains the nodal index
@@ -422,9 +422,9 @@ bool ASMu2DNastran::addPressureAt (Vec3& p, int eId, const RealArray& N) const
     if (idx > 0 && idx <= n)
       p += it->second[idx-1];
   }
-
-  for (size_t i = 0; i < N.size(); i++)
-    p += N[i]*it->second[i];
+  else // interpolate the nodal values
+    for (size_t i = 0; i < N.size(); i++)
+      p += N[i]*it->second[i];
 
   return true;
 }

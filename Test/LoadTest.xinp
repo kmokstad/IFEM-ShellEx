@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">Q4andT3withLoad.nas</patchfile>
+    <topologysets>
+      <set name="SPC7" type="nodes">
+        <item patch="1"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="SPC7" comp="123"/>
+  </boundaryconditions>
+
+</simulation>

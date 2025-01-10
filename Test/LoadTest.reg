@@ -1,0 +1,45 @@
+LoadTest.xinp
+
+Input file: LoadTest.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Evaluation time for property functions: 1
+Parsing input file LoadTest.xinp
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file Q4andT3withLoad.nas
+Total number of nodes:          6
+Number of shell elements:       3
+Number of constraint elements:  0
+Number of other elements:       0
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: SPC7 (1,1,4D)
+  Parsing <patchfile>
+  Parsing <topologysets>
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 123: (fixed)
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 4
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 123
+ >>> SAM model summary <<<
+Number of elements    3
+Number of nodes       6
+Number of dofs        36
+Number of unknowns    24
+Processing integrand associated with code 0
+Assembling interior matrix terms for P1
+Done.
+Solving the equation system ...
+	Condition number: 263.028
+ >>> Solution summary <<<
+L2-norm            : 0.000734757
+Max Z-displacement : 0.00153451
+Max x-displacement : 0.000566322
+Max y-displacement : 0.00214289
