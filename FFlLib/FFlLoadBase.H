@@ -9,6 +9,7 @@
 #define FFL_LOAD_BASE_H
 
 #include "FFlLib/FFlPartBase.H"
+#include "FFlLib/FFlAttributeBase.H"
 #include "FFlLib/FFlFEAttributeRefs.H"
 #include "FFaLib/FFaPatterns/FFaGenericFactory.H"
 
