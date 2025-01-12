@@ -156,6 +156,14 @@ bool ASMu2DNastran::read (std::istream& is)
     }
   }
 
+  if (!nodeSets.empty())
+  {
+    IFEM::cout <<"Pre-defined node sets:          "<< nodeSets.size();
+    for (const ASM::NodeSet& ns : nodeSets)
+      IFEM::cout <<"\n\t\""<< ns.first <<"\"\t"<< ns.second.size() <<" nodes";
+    IFEM::cout << std::endl;
+  }
+
   // Extract the element data
   for (ElementsCIter e = fem.elementsBegin(); e != fem.elementsEnd(); ++e)
   {
@@ -326,11 +334,23 @@ bool ASMu2DNastran::read (std::istream& is)
   for (GroupCIter g = fem.groupsBegin(); g != fem.groupsEnd(); ++g)
   {
     std::string name = g->second->getName() + "_" + std::to_string(g->first);
+#ifdef INT_DEBUG
     std::cout <<"\tAdding element set \""<< name
               <<"\" (size="<< g->second->size() <<")"<< std::endl;
+#endif
     for (const GroupElemRef& elm : *g->second)
-      this->addToElemSet(name,elm->getID());
+      this->addToElemSet(name,elm->getID(),true);
   }
+
+#ifndef INT_DEBUG
+  if (!elemSets.empty())
+  {
+    IFEM::cout <<"Pre-defined element sets:       "<< elemSets.size();
+    for (const ASM::NodeSet& es : elemSets)
+      IFEM::cout <<"\n\t\""<< es.first <<"\t"<< es.second.size() <<" elements";
+    IFEM::cout << std::endl;
+  }
+#endif
 #endif
 
   return true;
@@ -418,9 +438,9 @@ bool ASMu2DNastran::addPressureAt (Vec3& p, int eId, const RealArray& N) const
   else if (N.size() == 1 && N.front() < 0.0)
   {
     // N[0] contains the nodal index
-    size_t idx = -N.front();
-    if (idx > 0 && idx <= n)
-      p += it->second[idx-1];
+    size_t inod = -N.front();
+    if (inod > 0 && inod <= n)
+      p += it->second[inod-1];
   }
   else // interpolate the nodal values
     for (size_t i = 0; i < N.size(); i++)
