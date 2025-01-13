@@ -340,7 +340,7 @@ FaVec3 operator/ (const FaVec3& a, double d)
 {
   if (fabs(d) < EPS_ZERO)
   {
-#if FFA_DEBUG
+#ifdef FFA_DEBUG
     std::cerr <<"FaVec3 operator/(FaVec3&,double): Division by zero, d="<< d
               << std::endl;
 #endif
