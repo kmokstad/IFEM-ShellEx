@@ -229,6 +229,9 @@ bool ASMu2DNastran::read (std::istream& is)
         for (FFlFieldBase* field : *bsec)
           if (i < bprop.cs.size())
             bprop.cs[i++] = static_cast<FFlField<double>*>(field)->getValue();
+        for (i = 4; i < 6; i++)  // Invert the shear reduction factors, since
+          if (bprop.cs[i] > 0.0) // in FFlLib the factors As/A are assumed
+            bprop.cs[i] = 1.0 / bprop.cs[i]; // but we need the A/As factors
       }
       else if (++nErr <= 20)
         std::cerr <<" *** No beam cross section attached to beam element "<< eid
@@ -266,7 +269,7 @@ bool ASMu2DNastran::read (std::istream& is)
 
 #if INT_DEBUG > 10
       std::cout <<"Shell element "<< myMLGE.size() <<" "<< eid <<":";
-      for (int node : mnpc) std::cout <<" "<< MLGN[node];
+      for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
       myMLGE.push_back(eid);
       myMNPC.push_back(mnpc);
@@ -305,7 +308,7 @@ bool ASMu2DNastran::read (std::istream& is)
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
       std::cout << std::endl;
 #endif
-      for (int& n : mnpc) ++n; // Need 1-based node indices
+      for (int& inod : mnpc) ++inod; // Need 1-based node indices
       this->addRigidCouplings((*e)->getNodeID(1),myCoord[mnpc.front()-1],
                               IntVec(mnpc.begin()+1,mnpc.end()));
     }

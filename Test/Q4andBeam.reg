@@ -14,6 +14,8 @@ Number of shell elements:       2
 Number of beam elements:        2
 Number of constraint elements:  0
 Number of other elements:       0
+Pre-defined node sets:          1
+	"ASET"	2 nodes
 	Reading patch 1
   Parsing <topologysets>
 	Topology sets: ASET (2,1,4D)
@@ -45,10 +47,10 @@ Assembling interior matrix terms for P1
 Assembling interior matrix terms for P2
 Done.
 Solving the equation system ...
-	Condition number: 1964.93
+	Condition number: 1934.41
  >>> Solution summary <<<
-L2-norm            : 0.0168105
-Max X-displacement : 0.0015416
-Max Z-displacement : 0.0749359
-Max x-displacement : 0.0021567
-Max y-displacement : 0.0388489
+L2-norm            : 0.0171966
+Max X-displacement : 0.00154078
+Max Z-displacement : 0.0785222
+Max x-displacement : 0.0021618
+Max y-displacement : 0.0388602
