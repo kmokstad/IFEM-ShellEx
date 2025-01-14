@@ -211,6 +211,8 @@ void AndesShell::initIntegration (size_t nGp, size_t)
 LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
 {
   ElmMats* result = nullptr;
+  if (this->inActive(iEl))
+    return result; // element is not in current material group
 
   if (!isModal && m_mode == SIM::DYNAMIC)
     result = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
