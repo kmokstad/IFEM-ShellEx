@@ -191,7 +191,7 @@ bool AndesShell::setPressure (RealFunc* pf, int code,
   size_t sIdx = 0;
   if (sName.empty())
     presFld[-code] = pf;
-  else if ((sIdx = static_cast<const ASMu2DLag*>(pch)->getElementSetIdx(sName)))
+  else if ((sIdx = pch->getElementSetIdx(sName)))
     presFld[sIdx] = pf;
   else
     return false;
@@ -208,9 +208,11 @@ void AndesShell::initIntegration (size_t nGp, size_t)
 }
 
 
-LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t, bool) const
+LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
 {
   ElmMats* result = nullptr;
+  if (this->inActive(iEl))
+    return result; // element is not in current material group
 
   if (!isModal && m_mode == SIM::DYNAMIC)
     result = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
