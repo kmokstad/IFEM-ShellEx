@@ -134,6 +134,9 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMuBeam() {}
 
+  //! \brief Sets \ref nGauss to 1 due to explicit matrices.
+  virtual void setGauss(int) { nGauss = 1; }
+
   //! \brief Retrieves the properties for element with index \a id.
   bool getProps(int eId, double& E, double& G, double& rho,
                 BeamProperty& bprop) const;
