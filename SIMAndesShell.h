@@ -28,9 +28,9 @@ class SIMAndesShell : public SIMElasticity<SIM2D>
 {
 public:
   //! \brief Default constructor.
-  //! \param[in] n Number of consequtive solution vectors in core
+  //! \param[in] n Number of consequtive solutions in core (0 = linear analysis)
   //! \param[in] m If \e true, a modal linear dynamics simulation is performed
-  explicit SIMAndesShell(unsigned char n = 1, bool m = false);
+  explicit SIMAndesShell(unsigned char n = 0, bool m = false);
   //! \brief The destructor deletes the nodal point load functions.
   virtual ~SIMAndesShell();
 

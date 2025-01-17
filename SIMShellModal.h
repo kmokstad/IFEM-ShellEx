@@ -31,7 +31,7 @@ public:
   //! \brief The constructor forwards to the parent class constructors.
   //! \param[in] modes Array of eigenmodes for the elasticity problem
   explicit SIMShellModal(std::vector<Mode>& modes)
-    : SIMAndesShell(1,true), SIMmodal(modes) {}
+    : SIMAndesShell(0,true), SIMmodal(modes) {}
   //! \brief Empty destructor.
   virtual ~SIMShellModal() {}
 

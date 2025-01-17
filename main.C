@@ -247,9 +247,9 @@ int main (int argc, char** argv)
   if (modal)
     model = new SIMShellModal(modes);
   else if (splitM)
-    model = new SIMAndesSplit();
+    model = new SIMAndesSplit(dynSol ? 1 : 0);
   else
-    model = new SIMAndesShell();
+    model = new SIMAndesShell(dynSol ? 1 : 0);
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.

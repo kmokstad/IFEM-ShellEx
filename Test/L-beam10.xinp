@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">L-beam10.nas</patchfile>
+    <topologysets>
+      <set name="SPC63" type="nodes">
+        <item patch="2"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="SPC63" comp="123456"/>
+  </boundaryconditions>
+
+  <discretization type="lagrange"/>
+
+  <elasticity>
+    <nodeload node="11" dof="2">1.0e7</nodeload>
+  </elasticity>
+
+</simulation>

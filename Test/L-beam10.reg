@@ -1,24 +1,23 @@
-Q4andBeam.xinp -time 0.5
+L-beam10.xinp
 
-Input file: Q4andBeam.xinp
+Input file: L-beam10.xinp
 Equation solver: 2
 Number of Gauss points: 4
-Evaluation time for property functions: 0.5
-Parsing input file Q4andBeam.xinp
+Parsing input file L-beam10.xinp
 Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
-	Reading data file Q4andBeam.nas
-Total number of nodes:          7
-Number of shell elements:       2
-Number of beam elements:        2
+	Reading data file L-beam10.nas
+Total number of nodes:          11
+Number of shell elements:       0
+Number of beam elements:        10
 Number of constraint elements:  0
 Number of other elements:       0
 Pre-defined node sets:          1
-	"ASET"	2 nodes
+	"SPC63"	1 nodes
 	Reading patch 1
   Parsing <topologysets>
-	Topology sets: ASET (2,1,4D)
+	Topology sets: SPC63 (2,1,4D)
   Parsing <patchfile>
   Parsing <topologysets>
 Parsing <boundaryconditions>
@@ -26,33 +25,30 @@ Parsing <boundaryconditions>
 	Dirichlet code 123456: (fixed)
 Parsing <elasticity>
   Parsing <nodeload>
-	Node 7 dof 3 Load: (expression) 1.0e6\*sin(PI\*t)\*t
+	Node 11 dof 2 Load: 1e+07
 Parsing input file succeeded.
 Equation solver: 2
 Number of Gauss points: 4
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell with beam elements
-Renumbered 10 nodes.
 Resolving Dirichlet boundary conditions
 	Constraining P2 in direction(s) 123456
  >>> SAM model summary <<<
-Number of elements    4
-Number of nodes       7
-Number of dofs        42
-Detected 1 elements out of order, reordering...
-Number of unknowns    30
+Number of elements    10
+Number of nodes       11
+Number of dofs        66
+Number of D-dofs      66
+Number of unknowns    60
 Processing integrand associated with code 0
 Assembling interior matrix terms for P1
-Assembling interior matrix terms for P2
 Done.
 Solving the equation system ...
-	Condition number: 1672.94
+	Condition number: 60979.3
  >>> Solution summary <<<
-L2-norm            : 0.0549888
-Max X-displacement : 0.00513252
-Max Y-displacement : 0.00116429
-Max Z-displacement : 0.224569
-Max x-displacement : 0.0136778
-Max y-displacement : 0.273788
-Max z-displacement : 0.0129605
+L2-norm            : 0.591474
+Max X-displacement : 0.201601
+Max Y-displacement : 1.85437
+Max Z-displacement : 2.11039
+Max y-displacement : 0.00316558
+Max z-displacement : 0.00267323
