@@ -662,12 +662,12 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
   int PID = curOr.PID;
   ok &= curElm->setAttribute("PBEAMSECTION",PID);
 
-  FaVec3 x, y;
+  FaVec3 x, y, z;
   if (curOr.G0 > 0)
     // Orientation (local y-axis) is given by vector from local node 1 and G0
     ok &= this->getElementAxis(curElm,1,-curOr.G0,y);
 
-  else
+  else if (!curOr.X.isZero())
   {
     // Orientation (local y-axis) is given component-wise
     IntMap::iterator cit = nodeCDID.find(curElm->getNodeID(1));
@@ -691,21 +691,31 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
     }
   }
 
-  // Now find the local Z-axis of the beam element
-  if (!this->getElementAxis(curElm,1,2,x))
-    ok = false;
-  else
+  // Lamda function creating a PORIENT object.
+  auto&& addPORIENT = [this,curElm,EID](FaVec3 Zdir)
   {
     FFlPORIENT* theOr = CREATE_ATTRIBUTE(FFlPORIENT,"PORIENT",EID);
-    theOr->directionVector = (x^y).truncate().round(10);
+    theOr->directionVector = Zdir.truncate().round(10);
     int newPID = myLink->addUniqueAttribute(theOr);
 #if FFL_DEBUG > 1
     if (newPID == EID)
       std::cout <<"Attribute PORIENT, ID = "<< newPID
                 <<", Fields: "<< theOr->directionVector << std::endl;
 #endif
-    ok &= curElm->setAttribute("PORIENT",newPID);
+    return curElm->setAttribute("PORIENT",newPID);
+  };
+
+  // Now find the local Z-axis of the beam element
+  if (!this->getElementAxis(curElm,1,2,x))
+    ok = false;
+  else if (y.isZero()) // No orientation vector specified
+  {
+    FaMat33 Tmp; // Assume a globalized Z-direction instead
+    y = Tmp.makeGlobalizedCS(x)[VY];
+    z = Tmp[VZ];
   }
+  else
+    ok &= addPORIENT(x^y);
 
   // Special resolving of beams with neutral axis offset
   FFlPBEAMSECTION* theSec = GET_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
@@ -715,6 +725,9 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
   double Sz = theSec->Sz.getValue();
   if (fabs(Sy)+fabs(Sz) <= 1.0e-16)
     return PID; // Negligible neutral axis offset for this beam
+
+  if (!z.isZero())
+    ok &= addPORIENT(z);
 
   if (Ecc == 0)
   {
@@ -785,13 +798,13 @@ bool FFlNastranReader::resolveWeldElement (FFlElementBase* curElm,
           {
             // The patch to project node nS onto is defined by element -SHID
             // The referred element must be a shell element
-            FFlElementBase* refElm = myLink->getElement(-SHID);
-            if (!refElm)
+            FFlElementBase* theElm = myLink->getElement(-SHID);
+            if (!theElm)
             {
               ok = false;
               ListUI <<"\n *** Error: Non-existing element "<< -SHID;
             }
-            else if (refElm->getCathegory() != FFlTypeInfoSpec::SHELL_ELM)
+            else if (theElm->getCathegory() != FFlTypeInfoSpec::SHELL_ELM)
             {
               ok = false;
               ListUI <<"\n *** Error: Element "<< -SHID <<" is not a shell";
@@ -801,18 +814,19 @@ bool FFlNastranReader::resolveWeldElement (FFlElementBase* curElm,
               // Create a property-less WAVGM element where the new element
               // node is the reference node, and all element nodes of the
               // referred shell element are the independent nodes
-              int nelnod = refElm->getNodeCount();
+              int nelnod = theElm->getNodeCount();
               for (int k = 1; k <= nelnod; k++)
-                G.push_back(refElm->getNodeID(k));
+                G.push_back(theElm->getNodeID(k));
 #if FFL_DEBUG > 2
               std::cout <<"WAVGM element "<< newEID <<", Nodes:";
               for (int node : G) std::cout <<" "<< node;
               std::cout << std::endl;
 #endif
-              FFlElementBase* theElm = ElementFactory::instance()->create("WAVGM",newEID++);
+              theElm = ElementFactory::instance()->create("WAVGM",newEID++);
               if (!theElm)
               {
-                ListUI <<"\n *** Error: Failure creating WAVGM element "<< --newEID <<".\n";
+                ListUI <<"\n *** Error: Failure creating WAVGM element "
+                       << --newEID <<".\n";
                 return false;
               }
 
@@ -935,7 +949,7 @@ bool FFlNastranReader::getElementAxis (FFlElementBase* curElm,
   const int GB = n2 > 0 ? curElm->getNodeID(n2) : -n2;
 
   // Here we assumed all nodes already have been transformed to global
-  // coordinates, i.e. resolveCoordinates must have been called.
+  // coordinates, i.e., resolveCoordinates() must have been invoked.
   const FFlNode* nA = myLink->getNode(GA);
   const FFlNode* nB = myLink->getNode(GB);
   if (nA && nB)
