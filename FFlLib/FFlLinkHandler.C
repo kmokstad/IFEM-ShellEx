@@ -195,10 +195,10 @@ void FFlLinkHandler::deleteGeometry()
     static_cast<FFlVertex*>(vtx)->unRef();
 #endif
 
-  for (FFlElementBase* e : myElements) delete e;
-  for (FFlNode*        n : myNodes   ) delete n;
   for (const GroupMap::value_type& g : myGroupMap) delete g.second;
   for (FFlLoadBase*    l : myLoads   ) delete l;
+  for (FFlElementBase* e : myElements) delete e;
+  for (FFlNode*        n : myNodes   ) delete n;
 #ifdef FT_USE_VISUALS
   for (FFlVisualBase*  d : myVisuals ) delete d;
 #endif
