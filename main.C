@@ -463,7 +463,7 @@ int main (int argc, char** argv)
         for (Mode& mode : modes)
         {
           mode.eigVec.resize(model->getNoDOFs());
-          mode.eigVec.front() = values[iDof++];
+          mode.eigVec[0] = values[iDof++];
           mode.eigVal = mode.eigNo = iDof;
         }
         // Now read the rest of the file - one line for each DOF
