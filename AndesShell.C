@@ -549,7 +549,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, GorNu,
-                 eV.front().data(), s.data(), s.data()+6, iERR);
+                 eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
 #endif
   }
   else
@@ -577,7 +577,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
   else if (s.size() >= 12)
   {
     // Calculate von Mises stresses only
-    RealArray vms;
+    Vector vms;
     vms.reserve(n2v);
     for (size_t i = 6; i < 12; i += 3)
       vms.push_back(SymmTensor({s[i],s[i+1],s[i+2]}).vonMises());
