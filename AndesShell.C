@@ -80,6 +80,7 @@ AndesShell::AndesShell (unsigned short int n, bool modal, bool withBeams)
 
 AndesShell::~AndesShell ()
 {
+  delete thickLoss;
   delete beamProblem;
 
   if (!degenerated.empty())
