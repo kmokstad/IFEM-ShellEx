@@ -253,25 +253,29 @@ int main (int argc, char** argv)
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
-  auto&& terminate = [model,writer,prof,dynSol](int status)
+  auto&& terminate = [model,writer,prof,dynSol](int status, bool relFFl = false)
   {
     if (status > 10 && !dynSol)
       utl::profiler->stop("Postprocessing");
+#ifdef HAS_FFLLIB
+    if (relFFl)
+      FFl::releaseAllElements();
+#endif
     delete model;
     delete writer;
     delete prof;
-    exit(status);
+    return status;
   };
 
   if (mlcase) // Solve the multi-load-case linear static problem
-    terminate(mlcSim(infile,model,fixDup,dumpNodeMap));
+    return terminate(mlcSim(infile,model,fixDup,dumpNodeMap),true);
 
   if (dynSol && !modal) // Invoke the linear Newmark time integration simulator
-    terminate(dynamicSim(infile,model,fixDup));
+    return terminate(dynamicSim(infile,model,fixDup),true);
 
   // Read in model definitions
   if (!model->read(infile))
-    terminate(1);
+    return terminate(1,true);
 
   utl::profiler->stop("Model input");
 #ifdef HAS_FFLLIB
@@ -282,9 +286,9 @@ int main (int argc, char** argv)
 
   // Establish the FE data structures
   if (!model->preprocess({},fixDup))
-    terminate(2);
+    return terminate(2);
 
-  Vectors displ(2);
+  std::array<Vector,2> displ;
   if (!disfiles.empty())
   {
     // Read reference solution from external file(s) into displ.back()
@@ -314,7 +318,7 @@ int main (int argc, char** argv)
     if (!model->assembleSystem(Elastic::time))
     {
       if (model->opt.format < 0)
-        terminate(4);
+        return terminate(4);
       else
         break;
     }
@@ -329,8 +333,8 @@ int main (int argc, char** argv)
     // Solve the linear system of equations
     if (iop == 200)
       model->dumpEqSys(); // No solution, just dump the system matrices to file
-    else if (!model->solveSystem(displ,1))
-      terminate(5);
+    else if (!model->solveSystem(displ.front(),1))
+      return terminate(5);
     break;
 
   case 100:
@@ -346,10 +350,10 @@ int main (int argc, char** argv)
     model->setQuadratureRule(2);
     model->initSystem(model->opt.solver,1,0);
     if (!model->assembleSystem())
-      terminate(8);
+      return terminate(8);
 
     if (!model->systemModes(modes))
-      terminate(9);
+      return terminate(9);
     break;
 
   default:
@@ -358,17 +362,17 @@ int main (int argc, char** argv)
     model->setQuadratureRule(2);
     model->initSystem(model->opt.solver,2,0);
     if (!model->assembleSystem())
-      terminate(8);
+      return terminate(8);
 
     // Solve the generalized eigenvalue problem
     if (iop == 200)
       model->dumpEqSys(); // No solution, just dump the system matrices to file
     else if (!model->systemModes(modes))
-      terminate(9);
+      return terminate(9);
   }
 
   if (modal) // Solve the dynamics problem using modal transformation
-    terminate(modalSim(infile,modes.size(),false,dynSol=='s',model));
+    return terminate(modalSim(infile,modes.size(),false,dynSol=='s',model));
 
   utl::profiler->start("Postprocessing");
 
@@ -409,42 +413,42 @@ int main (int argc, char** argv)
 
     // Write VTF-file with model geometry
     if (!model->writeGlvG(geoBlk,infile))
-      terminate(12);
+      return terminate(12);
 
     // Write surface pressures, if any
     if (!model->writeGlvT(iStep,geoBlk,nBlock))
-      terminate(13);
+      return terminate(13);
 
     // Write Dirichlet boundary conditions
     if (!model->writeGlvBC(nBlock))
-      terminate(13);
+      return terminate(13);
 
     // Write global node numbers as scalar fields
     if (!model->writeGlvNo(nBlock))
-      terminate(14);
+      return terminate(14);
 
     Vector data;
     model->getShellThicknesses(data);
     if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
-      terminate(15);
+      return terminate(15);
 
     std::string Grp("Group 1");
     for (int g = 1; g < 10 && model->getElementGroup(g,Grp,data); g++)
       if (!model->writeGlvE(data,iStep,nBlock,Grp.c_str(),100+g,true))
-        terminate(15);
+        return terminate(15);
 
     // Write load vector to VTF-file
     if (vizRHS && !model->writeGlvV(load,"Load vector",iStep,nBlock,1))
-      terminate(20);
+      return terminate(20);
 
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
     if (!model->writeGlvS(displ.front(),iStep,nBlock,time,nullptr,12))
-      terminate(16);
+      return terminate(16);
 
     // Write reference solution, if any
     if (model->writeGlvS1(displ.back(),iStep,nBlock,time,"Reference",20,-1) < 0)
-      terminate(17);
+      return terminate(17);
 
     if (modes.empty() && resfiles.size() == 1 && nodalR == 'm')
     {
@@ -478,7 +482,7 @@ int main (int argc, char** argv)
     // Write eigenmodes
     for (const Mode& mode : modes)
       if (!model->writeGlvM(mode,true,nBlock))
-        terminate(18);
+        return terminate(18);
 
     if (nodalR && !(grpfiles.empty() && resfiles.empty()))
       data.resize(model->getNoNodes());
@@ -502,7 +506,7 @@ int main (int argc, char** argv)
         ok = model->writeGlvS(data,fName.c_str(),iStep,nBlock,++idBlock);
       else
         ok = model->writeGlvE(data,iStep,nBlock,fName.c_str(),++idBlock,true);
-      if (!ok) terminate(19);
+      if (!ok) return terminate(19);
     }
 
     model->writeGlvStep(iStep, time, resfiles.empty() ? -1 : 0);
@@ -538,7 +542,7 @@ int main (int argc, char** argv)
           else
             ok = model->writeGlvE(extResults[j][iStep-1],iStep+1,nBlock,
                                   resfiles[j].c_str(),++jdBlock,true);
-        if (!ok) terminate(19);
+        if (!ok) return terminate(19);
 
         model->writeGlvStep(iStep+1,times[iStep-1]);
       }
@@ -550,5 +554,5 @@ int main (int argc, char** argv)
     writer->dumpTimeLevel();
 
   utl::profiler->stop("Postprocessing");
-  terminate(0);
+  return terminate(0);
 }
