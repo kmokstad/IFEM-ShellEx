@@ -27,7 +27,7 @@
 static bool withBeams = false; //!< If \e true, the model contains beam elements
 
 
-SIMAndesShell::SIMAndesShell (unsigned char n, bool m) : nsv(n), modal(m)
+SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
 {
   nsd = 3;
   nf.front() = 6;
@@ -44,7 +44,7 @@ SIMAndesShell::~SIMAndesShell ()
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nsv,modal,withBeams);
+    myProblem = new AndesShell(nss,modal,withBeams);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }

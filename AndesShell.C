@@ -46,12 +46,13 @@ extern "C" {
 #endif
 
 
-AndesShell::AndesShell (unsigned short int n, bool modal, bool withBeams)
+AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
 {
-  nsd = 3; // Number of spatial dimenstions
-  npv = 6; // Number of primary unknowns per node
-  nSV = n; // Number of solution vectors in core
+  nsd =  3; // Number of spatial dimenstions
+  npv =  6; // Number of primary unknowns per node
   n2v = 18; // Number of secondary variables for output
+  nCS = ns; // Number of consecutive solution states in core
+  nSV = ns; // Total number of solution vectors in core
 
   // Default material properties
   Emod  = 2.1e11;
@@ -70,7 +71,7 @@ AndesShell::AndesShell (unsigned short int n, bool modal, bool withBeams)
 
   if (withBeams)
   {
-    beamProblem = new ElasticBeam(n);
+    beamProblem = new ElasticBeam(nCS);
     beamProblem->setProperty(&myBeamProps);
   }
   else
@@ -158,6 +159,14 @@ void AndesShell::printLog () const
   if (beamProblem)
     IFEM::cout <<" with beam elements";
   IFEM::cout << std::endl;
+}
+
+
+void AndesShell::setIntegrationPrm (unsigned short int i, double prm)
+{
+  this->ElasticBase::setIntegrationPrm(i,prm);
+  if (beamProblem)
+    beamProblem->setIntegrationPrm(i,prm);
 }
 
 
@@ -287,7 +296,9 @@ int AndesShell::getIntegrandType () const
   if (beamPatch)
     return beamProblem->getIntegrandType();
 
-  return thickLoss || trInside+trOutside > 0.0 ? ELEMENT_CENTER : STANDARD;
+  int itgType = m_mode == SIM::DYNAMIC ? POINT_DEFORMATION : STANDARD;
+  if (thickLoss || trInside+trOutside > 0.0) itgType |= ELEMENT_CENTER;
+  return itgType;
 }
 
 
@@ -609,6 +620,13 @@ void AndesShell::addPressure (Vec3& p, const Vec3& X,
   for (const std::pair<const int,RealFunc*>& press : presFld)
     if (press.first < 0 || currentPatch->isElementInSet(iel,press.first))
       p += (*press.second)(X)*n;
+}
+
+
+void AndesShell::setParam (const char* name, const Vec3& value)
+{
+  for (const std::pair<const int,RealFunc*>& press : presFld)
+    press.second->setParameter(name,value);
 }
 
 

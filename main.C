@@ -115,6 +115,8 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
+  \arg -keep-previous-state : Use previous state whne evaluating
+       state-dependent property functions
 */
 
 int main (int argc, char** argv)
@@ -129,6 +131,7 @@ int main (int argc, char** argv)
   char nodalR = false;
   bool splitM = false;
   char dynSol = false;
+  unsigned short int nstates = 0;
   bool dumpNodeMap = false;
   char* infile = nullptr;
   ElasticityArgs args;
@@ -160,9 +163,17 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-mlc",4))
       mlcase = true;
     else if (!strncmp(argv[i],"-qstat",6))
+    {
       dynSol = 's';
+      if (nstates == 0) nstates = 1;
+    }
     else if (!strncmp(argv[i],"-dyn",4))
+    {
       dynSol = 'd';
+      if (nstates == 0) nstates = 1;
+    }
+    else if (!strcmp(argv[i],"-keep-previous-state"))
+      nstates = 2; // both current and previous state will reside in core
     else if (!strncmp(argv[i],"-vtfres",6))
     {
       while (i+1 < argc && argv[i+1][0] != '-')
@@ -202,8 +213,8 @@ int main (int argc, char** argv)
               <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
               <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
               <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]"
-              <<" [-ignoreSol]\n"
-              <<"       [-hdf5 [<filename>] [-dumpNodeMap]]\n"
+              <<" [-ignoreSol]\n      "
+              <<" [-keep-previous-state] [-hdf5 [<filename>] [-dumpNodeMap]]\n"
               <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
               <<" [-vizRHS]]\n"
               <<"       [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
@@ -247,9 +258,9 @@ int main (int argc, char** argv)
   if (modal)
     model = new SIMShellModal(modes);
   else if (splitM)
-    model = new SIMAndesSplit(dynSol ? 1 : 0);
+    model = new SIMAndesSplit(nstates);
   else
-    model = new SIMAndesShell(dynSol ? 1 : 0);
+    model = new SIMAndesShell(nstates);
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.

@@ -26,7 +26,7 @@ class SIMAndesSplit : public SIMAndesShell
 {
 public:
   //! \brief Default constructor.
-  explicit SIMAndesSplit(unsigned char n = 0) : SIMAndesShell(n) {}
+  explicit SIMAndesSplit(unsigned short int n = 0) : SIMAndesShell(n) {}
   //! \brief The destructor deallocates the per region equation systems.
   virtual ~SIMAndesSplit();
 

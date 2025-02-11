@@ -33,10 +33,10 @@ class AndesShell : public ElasticBase
 {
 public:
   //! \brief Default constructor.
-  //! \param[in] n Number of consequtive solution vectors to reside in core
+  //! \param[in] ns Number of consecutive solution states to reside in core
   //! \param[in] modal If \e true, a modal dynamics simulation is performed
   //! \param[in] withBeams If \e true, the model also contains beam elements
-  explicit AndesShell(unsigned short int n = 1, bool modal = false,
+  explicit AndesShell(unsigned short int ns = 1, bool modal = false,
                       bool withBeams = false);
   //! \brief The destructor writes out the ignored bad elements.
   virtual ~AndesShell();
@@ -50,6 +50,11 @@ public:
 
   //! \brief Checks if the point \a Xc is inside the thickness loss area or not.
   bool isInLossArea(const Vec3& Xc) const;
+
+  //! \brief Initializes a time integration parameter for the integrand.
+  //! \param[in] i Index of the integration parameter to define
+  //! \param[in] prm The parameter value to assign
+  virtual void setIntegrationPrm(unsigned short int i, double prm);
 
   //! \brief Defines the solution mode before the element assembly is started.
   //! \param[in] mode The solution mode to use
@@ -139,6 +144,9 @@ public:
 
   //! \brief Returns \e true if no elements failed during assembly.
   bool allElementsOK() const { return failedElements.empty(); }
+
+  //! \brief Assigns parameter values to the pressure functions.
+  virtual void setParam(const char* name, const Vec3& value);
 
 protected:
   //! \brief Evaluates the secondary solution at a result point.
