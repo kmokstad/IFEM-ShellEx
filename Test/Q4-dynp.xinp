@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">CQUAD04_.nas</patchfile>
+    <topologysets>
+      <set name="ASET" type="nodes">
+        <item patch="1"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <discretization type="lagrange"/>
+
+  <elasticity>
+    <boundaryconditions>
+      <dirichlet set="ASET" comp="1236"/>
+    </boundaryconditions>
+    <gravity y="-9.81"/>
+    <pressure code="1" type="expression">
+      1e6*if(above(t,0.5),1500*uy,sin(PI*t))
+    </pressure>
+  </elasticity>
+
+  <discretization type="lagrange"/>
+
+  <newmarksolver alpha2="0.001">
+    <nupdate>0</nupdate>
+    <timestepping>
+      <step start="0.0" end="1.5">0.05</step>
+    </timestepping>
+  </newmarksolver>
+
+</simulation>
