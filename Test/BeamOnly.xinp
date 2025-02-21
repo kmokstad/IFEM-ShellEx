@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">BeamOnly.nas</patchfile>
+    <topologysets>
+      <set name="ASET" type="nodes">
+        <item patch="2"/>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <discretization type="lagrange"/>
+
+  <boundaryconditions>
+    <dirichlet set="ASET" comp="123456"/>
+  </boundaryconditions>
+
+  <elasticity>
+    <gravity z="1000"/>
+    <nodeload node="7" dof="3">500000.0</nodeload>
+  </elasticity>
+
+</simulation>
