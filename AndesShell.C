@@ -623,10 +623,10 @@ void AndesShell::addPressure (Vec3& p, const Vec3& X,
 }
 
 
-void AndesShell::setParam (const char* name, const Vec3& value)
+void AndesShell::setParam (const std::string& name, const Vec3& value)
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    press.second->setParameter(name,value);
+    press.second->setParam(name,value);
 }
 
 

@@ -146,7 +146,7 @@ public:
   bool allElementsOK() const { return failedElements.empty(); }
 
   //! \brief Assigns parameter values to the pressure functions.
-  virtual void setParam(const char* name, const Vec3& value);
+  virtual void setParam(const std::string& name, const Vec3& value);
 
 protected:
   //! \brief Evaluates the secondary solution at a result point.
