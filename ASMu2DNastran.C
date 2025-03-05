@@ -712,7 +712,14 @@ bool ASMuBeam::getProps (int eId, double& E, double& G,
 }
 
 
-bool ASMuBeam::initLocalElementAxes (const Vec3&)
+/*!
+  This method overrides the parent class method to account for possible
+  element-level \a Zaxis properties, and a rotation angle between the
+  principal axes of intertia for the beam cross section relative to
+  the local element axes.
+*/
+
+bool ASMuBeam::initLocalElementAxes (const Vec3& Zaxis)
 {
   size_t iel = 0;
   for (Tensor& Tlg : myCS)
@@ -730,24 +737,17 @@ bool ASMuBeam::initLocalElementAxes (const Vec3&)
     int n2 = MNPC[iel-1].back();
     const Vec3& X1 = myCoord[n1];
     const Vec3& X2 = myCoord[n2];
-    if (it->second.Zaxis.isZero())
-      Tlg = Tensor(X2-X1,true);
-    else
+    if (!it->second.Zaxis.isZero())
       Tlg = Tensor(X2-X1,it->second.Zaxis,false,true);
+    else if (!Zaxis.isZero())
+      Tlg = Tensor(X2-X1,Zaxis,false,true);
+    else
+      Tlg = Tensor(X2-X1,true);
 
+    // Rotate from local element axes to principal axes
     const double phi = it->second.cs.back();
     if (fabs(phi) > 1.0e-6)
-    {
-      // Rotate from local element axes to principal axes
-      double cfi = cos(phi*M_PI/180.0);
-      double sfi = sin(phi*M_PI/180.0);
-      for (size_t c = 1; c <= 3; c++)
-      {
-        double t = cfi*Tlg(c,2) + sfi*Tlg(c,3);
-        Tlg(c,3) = cfi*Tlg(c,3) - sfi*Tlg(c,2);
-        Tlg(c,2) = t;
-      }
-    }
+      Tlg.rotate(phi*M_PI/180.0,1);
 
 #ifdef INT_DEBUG
     std::cout <<"\nLocal axes for beam element "<< eId

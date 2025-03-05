@@ -143,7 +143,7 @@ public:
 
 protected:
   //! \brief Initializes the local element axes for a patch of beam elements.
-  virtual bool initLocalElementAxes(const Vec3&);
+  virtual bool initLocalElementAxes(const Vec3& Zaxis);
 
 private:
   //! Reference to the beam element property container
