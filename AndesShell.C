@@ -296,7 +296,11 @@ int AndesShell::getIntegrandType () const
   if (beamPatch)
     return beamProblem->getIntegrandType();
 
-  int itgType = m_mode == SIM::DYNAMIC ? POINT_DEFORMATION : STANDARD;
+  // Basis function derivatives (Jacobian, etc.) are needed only if surface
+  // pressures (and/or gravity forces) exist, since the element matrices
+  // are evaluated externally (from the finalizeElement() method).
+  int itgType = eS > 0 && this->havePressure() ? STANDARD : NO_DERIVATIVES;
+  if (m_mode == SIM::DYNAMIC) itgType |= POINT_DEFORMATION;
   if (thickLoss || trInside+trOutside > 0.0) itgType |= ELEMENT_CENTER;
   return itgType;
 }
@@ -602,15 +606,16 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 
 bool AndesShell::havePressure (int iel) const
 {
+  if (Rho > 0.0 && !gravity.isZero())
+    return true;
+
   for (const std::pair<const int,RealFunc*>& press : presFld)
     if (press.first < 0 || iel < 0)
       return true;
-    else if (!currentPatch)
-      break;
-    else if (currentPatch->isElementInSet(iel,press.first))
+    else if (currentPatch && currentPatch->isElementInSet(iel,press.first))
       return true;
 
-  return false;
+  return currentPatch ? currentPatch->haveLoads() : false;
 }
 
 

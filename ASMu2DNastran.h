@@ -72,6 +72,9 @@ public:
     return this->isInElementSet(iset,this->getElmIndex(elmId));
   }
 
+  //! \brief Returns \e true if this patch has element-wise surface pressures.
+  bool haveLoads() const { return !myLoads.empty(); }
+
   //! \brief Returns the sub-patch with beam elements, if any.
   ASMbase* haveBeams() const { return beamPatch; }
 
