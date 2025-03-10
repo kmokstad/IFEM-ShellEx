@@ -1,9 +1,6 @@
 Q4-generated.xinp -mlc -split
 
 Input file: Q4-generated.xinp
-Equation solver: 2
-Number of Gauss points: 4
-Basis function values are precalculated but not cached
 Using the multi-load-case simulation driver.
 Parsing input file Q4-generated.xinp
 Parsing <discretization>

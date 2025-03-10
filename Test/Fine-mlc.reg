@@ -1,9 +1,6 @@
 Fine.xinp -mlc
 
 Input file: Fine.xinp
-Equation solver: 2
-Number of Gauss points: 4
-Basis function values are precalculated but not cached
 Using the multi-load-case simulation driver.
 Parsing input file Fine.xinp
 Parsing <discretization>

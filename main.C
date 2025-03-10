@@ -138,6 +138,7 @@ int main (int argc, char** argv)
   std::vector<std::string> resfiles, grpfiles, disfiles;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
+  ASM::cachePolicy = ASM::NO_CACHE;
 
   for (int i = 1; i < argc; i++)
     if (argv[i] == infile || args.parseArg(argv[i]))
@@ -233,7 +234,6 @@ int main (int argc, char** argv)
   bool modal = dynSol && args.eig >= 3 && args.eig != 5; // Modal solution
 
   IFEM::cout <<"\nInput file: "<< infile;
-  IFEM::getOptions().print(IFEM::cout);
   if (!mlcase && !dynSol)
     IFEM::cout <<"\nEvaluation time for property functions: "<< Elastic::time;
   else if (Elastic::time > 1.0)

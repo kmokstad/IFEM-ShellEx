@@ -1,9 +1,6 @@
 Q4.xinp -dynamic
 
 Input file: Q4.xinp
-Equation solver: 2
-Number of Gauss points: 4
-Basis function values are precalculated but not cached
 Using the linear dynamics simulation driver.
 Parsing input file Q4.xinp
 Parsing <discretization>
