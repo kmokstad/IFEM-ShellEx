@@ -13,7 +13,7 @@
 
 #include "ASMu2DNastran.h"
 #include "FiniteElement.h"
-#include "IntegrandBase.h"
+#include "ElasticBeam.h"
 #include "BeamProperty.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
@@ -29,6 +29,7 @@
 #include "FFlFEParts/FFlNode.H"
 #include "FFlFEParts/FFlPMAT.H"
 #include "FFlFEParts/FFlPMASS.H"
+#include "FFlFEParts/FFlPBUSHCOEFF.H"
 #include "FFlFEParts/FFlPTHICK.H"
 #include "FFlFEParts/FFlPWAVGM.H"
 #include "FFlFEParts/FFlPBEAMSECTION.H"
@@ -120,7 +121,6 @@ bool ASMu2DNastran::read (std::istream& is)
   if (!is) return false; // No bulk data file
 
 #ifdef HAS_FFLLIB
-#define GET_ATTRIBUTE(el,att) dynamic_cast<FFl##att*>((*el)->getAttribute(#att))
 
   FFlLinkHandler  fem;
   MyNastranReader reader(fem,lCount);
@@ -168,19 +168,19 @@ bool ASMu2DNastran::read (std::istream& is)
     int nid = node->getID();
     const FaVec3& X = node->getPos();
 #if INT_DEBUG > 10
-    std::cout << myMLGN.size() <<" "<< nid <<": "<< X << std::endl;
+    std::cout << MLGN.size() <<" "<< nid <<": "<< X << std::endl;
 #endif
     myMLGN.push_back(nid);
     myCoord.push_back(Vec3(X.x(),X.y(),X.z()));
 
     if (node->isExternal()) // Create a node set for the supernodes
-      this->addToNodeSet("ASET",myMLGN.size());
+      this->addToNodeSet("ASET",MLGN.size());
     else if (node->isFixed())
     {
       // Create a node set for prescribed nodes,
       // one for each DOF constellation
       std::string cstat = std::to_string(-node->getStatus(-64));
-      this->addToNodeSet("SPC"+cstat,myMLGN.size());
+      this->addToNodeSet("SPC"+cstat,MLGN.size());
     }
   }
 
@@ -208,68 +208,7 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout <<"Beam element "<< beamElms.size() <<" "<< eid <<":";
       for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
-      beamElms.push_back(eid);
-      for (int& inod : mnpc)
-      {
-        int node = MLGN[inod];
-        IntVec::iterator it = std::find(beamNodes.begin(),beamNodes.end(),node);
-        if (it == beamNodes.end())
-        {
-          beamNodes.push_back(node);
-          inod = beamNodes.size() - 1;
-        }
-        else
-          inod = it - beamNodes.begin();
-      }
-      beamMNPC.push_back(mnpc);
-
-      BeamProps& bprop = myBprops[eid];
-      FFlPMAT* mat = GET_ATTRIBUTE(e,PMAT);
-      if (mat)
-      {
-        bprop.Emod = mat->youngsModule.getValue();
-        bprop.Gmod = mat->shearModule.getValue();
-        bprop.Rho  = mat->materialDensity.getValue();
-      }
-      else
-        IFEM::cout <<"  ** No material attached to element "<< eid
-                   <<", using default properties"<< std::endl;
-
-      FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(e,PBEAMSECTION);
-      if (bsec)
-      {
-        size_t i = 0;
-        for (FFlFieldBase* field : *bsec)
-          if (i < bprop.cs.size())
-            bprop.cs[i++] = static_cast<FFlField<double>*>(field)->getValue();
-        for (i = 4; i < 6; i++)  // Invert the shear reduction factors, since
-          if (bprop.cs[i] > 0.0) // in FFlLib the factors As/A are assumed
-            bprop.cs[i] = 1.0 / bprop.cs[i]; // but we need the A/As factors
-      }
-      else if (++nErr <= 20)
-        std::cerr <<" *** No beam cross section attached to beam element "<< eid
-                  << std::endl;
-
-      FFlPORIENT* bori = GET_ATTRIBUTE(e,PORIENT);
-      if (bori)
-        bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
-
-      FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(e,PBEAMECCENT);
-      if (bEcc)
-        bprop.eccN = {
-          -Vec3(bEcc->node1Offset.getValue().getPt()),
-          -Vec3(bEcc->node2Offset.getValue().getPt())
-        };
-
-#if INT_DEBUG > 1
-      std::cout <<" E="<< bprop.Emod <<" G="<< bprop.Gmod
-                <<" rho="<< bprop.Rho <<"\nCS:";
-      for (double cv : bprop.cs) std::cout <<" "<< cv;
-      if (!bprop.Zaxis.isZero()) std::cout <<"\nZ-axis: "<< bprop.Zaxis;
-      if (!bprop.eccN[0].isZero()) std::cout <<"\necc1: "<< bprop.eccN[0];
-      if (!bprop.eccN[1].isZero()) std::cout <<"\necc2: "<< bprop.eccN[1];
-      std::cout << std::endl;
-#endif
+      this->addBeamElement(*e,eid,mnpc,beamMNPC,beamElms,beamNodes,nErr);
     }
     else if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
@@ -281,37 +220,10 @@ bool ASMu2DNastran::read (std::istream& is)
       }
 
 #if INT_DEBUG > 10
-      std::cout <<"Shell element "<< myMLGE.size() <<" "<< eid <<":";
+      std::cout <<"Shell element "<< MLGE.size() <<" "<< eid <<":";
       for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
-      myMLGE.push_back(eid);
-      myMNPC.push_back(mnpc);
-
-      // Extract material properties
-      ShellProps& sprop = myProps[eid];
-      FFlPMAT* mat = GET_ATTRIBUTE(e,PMAT);
-      if (mat)
-      {
-        sprop.Emod = mat->youngsModule.getValue();
-        sprop.Rny  = mat->poissonsRatio.getValue();
-        sprop.Rho  = mat->materialDensity.getValue();
-      }
-      else
-        IFEM::cout <<"  ** No material attached to element "<< eid
-                   <<", using default properties"<< std::endl;
-
-      // Extract shell thickness
-      FFlPTHICK* thk = GET_ATTRIBUTE(e,PTHICK);
-      if (thk)
-        sprop.Thick = thk->thickness.getValue();
-      else
-        IFEM::cout <<"  ** No shell thickness attached to element "<< eid
-                   <<", using default value "<< sprop.Thick << std::endl;
-
-#if INT_DEBUG > 10
-      std::cout <<" t="<< sprop.Thick <<" E="<< sprop.Emod <<" nu="<< sprop.Rny
-                <<" rho="<< sprop.Rho << std::endl;
-#endif
+      this->addShellElement(*e,eid,mnpc);
     }
     else if ((*e)->getTypeName() == "RGD" && mnpc.size() > 1)
     {
@@ -334,71 +246,23 @@ bool ASMu2DNastran::read (std::istream& is)
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
       std::cout << std::endl;
 #endif
-      int indC[6] = { -1, -1, -1, 0, 0, 0 };
-      std::set<int> refC;
-      std::vector<double> weights;
-      FFlPWAVGM* wavgm = GET_ATTRIBUTE(e,PWAVGM);
-      if (wavgm)
-      {
-        int div = 100000;
-        int dofIds = wavgm->refC.getValue();
-        if (dofIds > 0)
-          for (int i = 0; i < 6; i++)
-          {
-            int dof = dofIds/div;
-            if (dof > 0 && dof < 7) refC.insert(dof);
-            dofIds -= dof*div;
-            div    /= 10;
-          }
-        for (int i = 0; i < 6; i++)
-          indC[i] = wavgm->indC[i].getValue();
-        weights = wavgm->weightMatrix.getValue();
-      }
-      else
-        for (int lDof = 1; lDof <= 6; lDof++)
-          refC.insert(lDof);
-
-      size_t icol = 0;
-      Matrix Xnod(nsd,mnpc.size());
-      for (int inod : mnpc)
-        Xnod.fillColumn(++icol,this->getCoord(1+inod).ptr());
-      for (int lDof : refC)
-        this->addFlexibleCoupling(eid,lDof,indC,weights,mnpc,Xnod);
+      this->addFlexibleCouplings(*e,eid,mnpc);
     }
     else if ((*e)->getTypeName() == "CMASS" && !mnpc.empty())
-    {
-      FFlPMASS* mass = GET_ATTRIBUTE(e,PMASS);
-      if (mass)
-      {
-        const std::vector<double>& Mvec = mass->M.getValue();
-        std::vector<double>::const_iterator m = Mvec.begin();
 
-#if INT_DEBUG > 5
-        std::cout <<"Mass element "<< myMLGE.size() <<" "<< eid
-                  <<": node = "<< MLGN[mnpc.front()] << std::endl;
-#endif
-        myMLGE.push_back(eid);
-        myMNPC.push_back({mnpc.front()});
-        Matrix& M = myMass[eid];
-        M.resize(6,6);
-        for (int i = 1; i <= 6; i++)
-          for (int j = 1; j <= i && m != Mvec.end(); j++)
-          {
-            M(i,j) = *(m++);
-            if (j < i) M(j,i) = M(i,j);
-          }
-      }
-      else
-        IFEM::cout <<"  ** No mass property attached to mass element "<< eid
-                   <<" (ignored)"<< std::endl;
-    }
+      this->addMassElement(*e,eid,mnpc.front());
+
+    else if ((*e)->getTypeName() == "BUSH" && mnpc.size() == 2)
+
+      this->addSpringElement(*e,eid,mnpc,nErr);
+
     else
       IFEM::cout <<"  ** Ignored element "<< (*e)->getTypeName()
                  <<" "<< eid << std::endl;
   }
   if (nErr > 20)
     std::cerr <<" *** A total of "<< nErr
-              <<" beam elements lack cross section properties."<< std::endl;
+              <<" elements lack cross section properties."<< std::endl;
 
   // Extract the pressure loads, if any
   std::set<int> loadCases;
@@ -467,6 +331,232 @@ bool ASMu2DNastran::read (std::istream& is)
 }
 
 
+#ifdef HAS_FFLLIB
+#define GET_ATTRIBUTE(el,att) dynamic_cast<FFl##att*>(el->getAttribute(#att))
+
+void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
+                                    const IntVec& mnpc, IntMat& beamMNPC,
+                                    IntVec& beamElms, IntVec& beamNodes,
+                                    int& nErr)
+{
+  beamElms.push_back(eId);
+  beamMNPC.push_back(mnpc);
+  for (int& inod : beamMNPC.back())
+  {
+    int node = MLGN[inod];
+    IntVec::iterator it = std::find(beamNodes.begin(),beamNodes.end(),node);
+    if (it == beamNodes.end())
+    {
+      beamNodes.push_back(node);
+      inod = beamNodes.size() - 1;
+    }
+    else
+      inod = it - beamNodes.begin();
+  }
+
+  BeamProps& bprop = myBprops[eId];
+  FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
+  if (mat)
+  {
+    bprop.Emod = mat->youngsModule.getValue();
+    bprop.Gmod = mat->shearModule.getValue();
+    bprop.Rho  = mat->materialDensity.getValue();
+  }
+  else
+    IFEM::cout <<"  ** No material attached to element "<< eId
+               <<", using default properties"<< std::endl;
+
+  FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(elm,PBEAMSECTION);
+  if (bsec)
+  {
+    size_t i = 0;
+    for (FFlFieldBase* field : *bsec)
+      if (i < bprop.cs.size())
+        bprop.cs[i++] = static_cast<FFlField<double>*>(field)->getValue();
+    for (i = 4; i < 6; i++)  // Invert the shear reduction factors, since
+      if (bprop.cs[i] > 0.0) // in FFlLib the factors As/A are assumed
+        bprop.cs[i] = 1.0 / bprop.cs[i]; // but we need the A/As factors
+  }
+  else if (++nErr <= 20)
+    std::cerr <<" *** No beam cross section attached to beam element "<< eId
+	      << std::endl;
+
+  FFlPORIENT* bori = GET_ATTRIBUTE(elm,PORIENT);
+  if (bori)
+    bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
+
+  FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(elm,PBEAMECCENT);
+  if (bEcc)
+    bprop.eccN = {
+      -Vec3(bEcc->node1Offset.getValue().getPt()),
+      -Vec3(bEcc->node2Offset.getValue().getPt())
+    };
+
+#if INT_DEBUG > 1
+  std::cout <<" E="<< bprop.Emod <<" G="<< bprop.Gmod
+            <<" rho="<< bprop.Rho <<"\nCS:";
+  for (double cv : bprop.cs) std::cout <<" "<< cv;
+  if (!bprop.Zaxis.isZero()) std::cout <<"\nZ-axis: "<< bprop.Zaxis;
+  if (!bprop.eccN[0].isZero()) std::cout <<"\necc1: "<< bprop.eccN[0];
+  if (!bprop.eccN[1].isZero()) std::cout <<"\necc2: "<< bprop.eccN[1];
+  std::cout << std::endl;
+#endif
+}
+
+
+void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
+                                     const IntVec& mnpc)
+{
+  myMLGE.push_back(eId);
+  myMNPC.push_back(mnpc);
+
+  // Extract material properties
+  ShellProps& sprop = myProps[eId];
+  FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
+  if (mat)
+  {
+    sprop.Emod = mat->youngsModule.getValue();
+    sprop.Rny  = mat->poissonsRatio.getValue();
+    sprop.Rho  = mat->materialDensity.getValue();
+  }
+  else
+    IFEM::cout <<"  ** No material attached to element "<< eId
+               <<", using default properties"<< std::endl;
+
+  // Extract shell thickness
+  FFlPTHICK* thk = GET_ATTRIBUTE(elm,PTHICK);
+  if (thk)
+    sprop.Thick = thk->thickness.getValue();
+  else
+    IFEM::cout <<"  ** No shell thickness attached to element "<< eId
+               <<", using default value "<< sprop.Thick << std::endl;
+
+#if INT_DEBUG > 10
+  std::cout <<" t="<< sprop.Thick <<" E="<< sprop.Emod <<" nu="<< sprop.Rny
+            <<" rho="<< sprop.Rho << std::endl;
+#endif
+}
+
+
+void ASMu2DNastran::addMassElement (FFlElementBase* elm, int eId, int inod)
+{
+  FFlPMASS* mass = GET_ATTRIBUTE(elm,PMASS);
+  if (!mass)
+  {
+    IFEM::cout <<"  ** No mass property attached to mass element "<< eId
+               <<" (ignored)"<< std::endl;
+    return;
+  }
+#if INT_DEBUG > 5
+  std::cout <<"Mass element "<< MLGE.size() <<" "<< eId
+            <<": node = "<< MLGN[inod] << std::endl;
+#endif
+
+  const RealArray& Mvec = mass->M.getValue();
+  RealArray::const_iterator m = Mvec.begin();
+
+  myMLGE.push_back(eId);
+  myMNPC.push_back({inod});
+  Matrix& M = myMass[eId];
+  M.resize(6,6);
+  for (int i = 1; i <= 6; i++)
+    for (int j = 1; j <= i && m != Mvec.end(); j++)
+    {
+      M(i,j) = *(m++);
+      if (j < i) M(j,i) = M(i,j);
+    }
+}
+
+
+void ASMu2DNastran::addSpringElement (FFlElementBase* elm, int eId,
+                                      const IntVec& mnpc, int& nErr)
+{
+  FFlPBUSHCOEFF* bush = GET_ATTRIBUTE(elm,PBUSHCOEFF);
+  if (!bush)
+  {
+    IFEM::cout <<"  ** No property attached to bush element "<< eId
+	       <<" (ignored)"<< std::endl;
+    return;
+  }
+#if INT_DEBUG > 5
+  std::cout <<"\nBush element "<< MLGE.size() <<" "<< eId
+            <<": nodes = "<< MLGN[mnpc.front()] <<" "<< MLGN[mnpc.back()];
+#endif
+
+  myMLGE.push_back(eId);
+  myMNPC.push_back(mnpc);
+  Matrix& K = myStiff[eId];
+  K.resize(12,12,true);
+  for (int i = 1; i <= 6; i++)
+  {
+    K(i,i) = K(6+i,6+i) = bush->K[i-1].getValue();
+    K(i,6+i) = K(6+i,i) = -K(i,i);
+  }
+
+  // Transform to global coordinate axes
+  double X[3], Y[3], Z[3], T[9];
+  if (elm->getNodalCoor(X,Y,Z) >= 0 && elm->getLocalSystem(T))
+  {
+    Vec3 ecc1(X[1]-X[0], Y[1]-Y[0], Z[1]-Z[0]);
+    Vec3 ecc2(X[2]-X[0], Y[2]-Y[0], Z[2]-Z[0]);
+    Matrix Tlg(3,3); Tlg.fill(T);
+    // TODO: We need to use Tlg.transpose() here instead,
+    // to get the same transformation matrix as in FEDEM.
+    // But not sure FEDEM is right there.
+    if (utl::transform(K,Tlg))
+      ElasticBeam::transform(K,ecc1,ecc2);
+#if INT_DEBUG > 5
+    std::cout <<"\nTransformation matrix:"<< Tlg
+              <<"Ecc1: "<< ecc1 <<"\nEcc2: "<< ecc2;
+#endif
+  }
+  else if (++nErr <= 20)
+    std::cerr <<" *** No local axes for bush element "<< eId << std::endl;
+
+#if INT_DEBUG > 5
+  std::cout <<"\nStiffness matrix:"<< K;
+#endif
+}
+
+
+
+void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
+                                          const IntVec& mnpc)
+{
+  int indC[6] = { -1, -1, -1, 0, 0, 0 };
+  std::set<int> refC;
+  RealArray weights;
+  FFlPWAVGM* wavgm = GET_ATTRIBUTE(elm,PWAVGM);
+  if (wavgm)
+  {
+    int div = 100000;
+    int dofIds = wavgm->refC.getValue();
+    if (dofIds > 0)
+      for (int i = 0; i < 6; i++)
+      {
+        int dof = dofIds/div;
+        if (dof > 0 && dof < 7) refC.insert(dof);
+        dofIds -= dof*div;
+        div    /= 10;
+      }
+    for (int i = 0; i < 6; i++)
+      indC[i] = wavgm->indC[i].getValue();
+    weights = wavgm->weightMatrix.getValue();
+  }
+  else
+    for (int lDof = 1; lDof <= 6; lDof++)
+      refC.insert(lDof);
+
+  size_t icol = 0;
+  Matrix Xnod(nsd,mnpc.size());
+  for (int inod : mnpc)
+    Xnod.fillColumn(++icol,this->getCoord(1+inod).ptr());
+  for (int lDof : refC)
+    this->addFlexibleCoupling(eId,lDof,indC,weights,mnpc,Xnod);
+}
+#endif
+
+
 bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
                               double& rho, double& t) const
 {
@@ -488,7 +578,9 @@ bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
 
 bool ASMu2DNastran::getThickness (int eId, double& t) const
 {
-  if (myMass.find(eId) != myMass.end())
+  if (myStiff.find(eId) != myStiff.end())
+    t = 0.0; // Silently ignore spring elements
+  else if (myMass.find(eId) != myMass.end())
     t = 0.0; // Silently ignore mass elements
   else
   {
@@ -501,6 +593,21 @@ bool ASMu2DNastran::getThickness (int eId, double& t) const
       return false;
     }
   }
+
+  return true;
+}
+
+
+bool ASMu2DNastran::getStiffnessMatrix (int eId, Matrix& K) const
+{
+  std::map<int,Matrix>::const_iterator it = myStiff.find(eId);
+  if (it == myStiff.end())
+  {
+    std::cerr <<" *** No stiffness matrix for element "<< eId << std::endl;
+    return false;
+  }
+
+  K = it->second;
 
   return true;
 }
@@ -571,7 +678,7 @@ extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
 
 
 void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
-                                         const std::vector<double>& weights,
+                                         const RealArray& weights,
                                          const IntVec& mnpc, const Matrix& Xnod)
 {
 #ifdef HAS_ANDES

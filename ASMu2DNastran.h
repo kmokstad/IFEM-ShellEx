@@ -18,6 +18,7 @@
 #include "ASMu1DLag.h"
 
 class BeamProperty;
+class FFlElementBase;
 
 
 /*!
@@ -44,10 +45,12 @@ public:
   bool getThickness(int eId, double& t) const;
   //! \brief Retrieves the properties for element with external ID \a eId.
   bool getProps(int eId, double& E, double& nu, double& rho, double& t) const;
-  //! \brief Retrieves the mass matrix for element with with external ID \a eId.
-  bool getMassMatrix(int eId, Matrix& eM) const;
-  //! \brief Retrieves the load vector for element with with external ID \a eId.
-  bool getLoadVector(int eId, const Vec3& g, Vector& eS) const;
+  //! \brief Retrieves the stiffness matrix for element with external ID \a eId.
+  bool getStiffnessMatrix(int eId, Matrix& K) const;
+  //! \brief Retrieves the mass matrix for element with external ID \a eId.
+  bool getMassMatrix(int eId, Matrix& M) const;
+  //! \brief Retrieves the load vector for element with external ID \a eId.
+  bool getLoadVector(int eId, const Vec3& g, Vector& S) const;
 
   //! \brief Evaluates the surface pressure at current integration point.
   bool addPressureAt(Vec3& p, int eId, const RealArray& N) const;
@@ -79,9 +82,22 @@ public:
   ASMbase* haveBeams() const { return beamPatch; }
 
 protected:
+  //! \brief Adds a beam element to this patch.
+  void addBeamElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
+                      IntMat& beamMNPC, IntVec& beamElms, IntVec& beamNodes,
+                      int& nErr);
+  //! \brief Adds a shell element to this patch.
+  void addShellElement(FFlElementBase* elm, int eId, const IntVec& mnpc);
+  //! \brief Adds a mass element to this patch.
+  void addMassElement(FFlElementBase* elm, int eId, int inod);
+  //! \brief Adds a spring element to this patch.
+  void addSpringElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
+                        int& nErr);
+  //! \brief Adds MPCs representing a flexible coupling to this patch.
+  void addFlexibleCouplings(FFlElementBase* elm, int eId, const IntVec& mnpc);
   //! \brief Adds MPCs representing a flexible coupling to this patch.
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
-                           const std::vector<double>& weights,
+                           const RealArray& weights,
                            const IntVec& mnpc, const Matrix& Xnod);
 
 public:
@@ -111,6 +127,7 @@ public:
 private:
   std::map<int,ShellProps> myProps;  //!< Shell element property container
   std::map<int,BeamProps>  myBprops; //!< Beam element property container
+  std::map<int,Matrix>     myStiff;  //!< Mass-less spring elements
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
   std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
 
