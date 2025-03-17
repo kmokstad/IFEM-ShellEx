@@ -43,12 +43,12 @@ FFlRGD::~FFlRGD()
 
 FFlFEElementTopSpec* FFlRGD::getFEElementTopSpec() const
 {
-  if ((int)myNodes.size() != myRGDElemTopSpec->getNodeCount())
+  if (static_cast<int>(myNodes.size()) != myRGDElemTopSpec->getNodeCount())
   {
     myRGDElemTopSpec->setNodeCount(myNodes.size());
     myRGDElemTopSpec->myExplicitEdges.clear();
     for (size_t i = 2; i <= myNodes.size(); i++)
-      myRGDElemTopSpec->addExplicitEdge(EdgeType(1,(int)i));
+      myRGDElemTopSpec->addExplicitEdge(EdgeType(1,i));
   }
 
   return myRGDElemTopSpec;
@@ -59,12 +59,12 @@ bool FFlRGD::setNode(const int topPos, FFlNode* aNode)
 {
   if (topPos < 1)
     return false;
-  else if ((size_t)topPos > myNodes.size())
+  else if (topPos > static_cast<int>(myNodes.size()))
     myNodes.resize(topPos);
 
-  FFlFEElementTopSpec* topSpec = this->getFEElementTopSpec();
   myNodes[topPos-1] = aNode;
-  aNode->pushDOFs(topSpec->getNodeDOFs(topPos));
+
+  aNode->pushDOFs(this->getFEElementTopSpec()->getNodeDOFs(topPos));
   if (!FFlRGDTopSpec::allowSlvAttach && topPos > 1)
     aNode->setStatus(FFlNode::SLAVENODE);
 
@@ -76,7 +76,7 @@ bool FFlRGD::setNode(const int topPos, int nodeID)
 {
   if (topPos < 1)
     return false;
-  else if ((size_t)topPos > myNodes.size())
+  else if (topPos > static_cast<int>(myNodes.size()))
     myNodes.resize(topPos);
 
   myNodes[topPos-1] = nodeID;
@@ -85,34 +85,32 @@ bool FFlRGD::setNode(const int topPos, int nodeID)
 }
 
 
-bool FFlRGD::setNodes(const std::vector<int>& nodeRefs, int offset)
+bool FFlRGD::setNodes(const std::vector<int>& nodeIDs,
+                      size_t offset, bool shrink)
 {
-  if (offset < 0) return false;
+  if (shrink || offset + nodeIDs.size() > myNodes.size())
+    myNodes.resize(offset + nodeIDs.size());
 
-  if (offset + nodeRefs.size() > myNodes.size())
-    myNodes.resize(offset + nodeRefs.size());
-
-  for (size_t i = 0; i < nodeRefs.size(); i++)
-    myNodes[offset+i] = nodeRefs[i];
+  for (size_t i = 0; i < nodeIDs.size(); i++)
+    myNodes[offset+i] = nodeIDs[i];
 
   return true;
 }
 
 
-bool FFlRGD::setNodes(const std::vector<FFlNode*>& nodeRefs, int offset)
+bool FFlRGD::setNodes(const std::vector<FFlNode*>& nodes,
+                      size_t offset, bool shrink)
 {
-  if (offset < 0) return false;
-
-  if (offset + nodeRefs.size() > myNodes.size())
-    myNodes.resize(offset + nodeRefs.size());
+  if (shrink || offset + nodes.size() > myNodes.size())
+    myNodes.resize(offset + nodes.size());
 
   FFlFEElementTopSpec* topSpec = this->getFEElementTopSpec();
-  for (size_t i = 0; i < nodeRefs.size(); i++)
+  for (size_t i = 0; i < nodes.size(); i++)
   {
-    myNodes[offset+i] = nodeRefs[i];
-    nodeRefs[i]->pushDOFs(topSpec->getNodeDOFs(offset+i+1));
+    myNodes[offset+i] = nodes[i];
+    nodes[i]->pushDOFs(topSpec->getNodeDOFs(offset+i+1));
     if (!FFlRGDTopSpec::allowSlvAttach && offset+i > 0)
-      nodeRefs[i]->setStatus(FFlNode::SLAVENODE);
+      nodes[i]->setStatus(FFlNode::SLAVENODE);
   }
 
   return true;

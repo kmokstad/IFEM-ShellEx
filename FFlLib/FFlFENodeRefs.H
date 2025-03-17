@@ -51,8 +51,10 @@ public:
 
   virtual bool setNode(const int topologicalPos, FFlNode* nodeRef);
   virtual bool setNode(const int topologicalPos, int nodeRef);
-  virtual bool setNodes(const std::vector<int>& nodeRefs, int offset = 0);
-  virtual bool setNodes(const std::vector<FFlNode*>& nodeRefs, int offset = 0);
+  virtual bool setNodes(const std::vector<int>& nodeRefs,
+                        size_t offset = 0, bool = false);
+  virtual bool setNodes(const std::vector<FFlNode*>& nodeRefs,
+                        size_t offset = 0, bool = false);
 
   //! \brief Resolves the node ID to FFlNode pointer after reading a file.
   bool resolveNodeRefs(const std::vector<FFlNode*>& possibleReferences,

@@ -37,12 +37,12 @@ FFlWAVGM::~FFlWAVGM()
 
 FFlFEElementTopSpec* FFlWAVGM::getFEElementTopSpec() const
 {
-  if ((int)myNodes.size() != myWAVGMElemTopSpec->getNodeCount())
+  if (static_cast<int>(myNodes.size()) != myWAVGMElemTopSpec->getNodeCount())
   {
     myWAVGMElemTopSpec->setNodeCount(myNodes.size());
     myWAVGMElemTopSpec->myExplicitEdges.clear();
     for (size_t i = 2; i <= myNodes.size(); i++)
-      myWAVGMElemTopSpec->addExplicitEdge(EdgeType(1,(int)i));
+      myWAVGMElemTopSpec->addExplicitEdge(EdgeType(1,i));
   }
 
   return myWAVGMElemTopSpec;
@@ -53,12 +53,12 @@ bool FFlWAVGM::setNode(const int topPos, FFlNode* aNode)
 {
   if (topPos < 1)
     return false;
-  else if ((size_t)topPos > myNodes.size())
+  else if (topPos > static_cast<int>(myNodes.size()))
     myNodes.resize(topPos);
 
-  FFlFEElementTopSpec* topSpec = this->getFEElementTopSpec();
   myNodes[topPos-1] = aNode;
-  aNode->pushDOFs(topSpec->getNodeDOFs(topPos));
+
+  aNode->pushDOFs(this->getFEElementTopSpec()->getNodeDOFs(topPos));
   if (topPos == 1) aNode->setStatus(FFlNode::REFNODE);
 
   return true;
@@ -69,7 +69,7 @@ bool FFlWAVGM::setNode(const int topPos, int nodeID)
 {
   if (topPos < 1)
     return false;
-  else if ((size_t)topPos > myNodes.size())
+  else if (topPos > static_cast<int>(myNodes.size()))
     myNodes.resize(topPos);
 
   myNodes[topPos-1] = nodeID;
@@ -78,7 +78,8 @@ bool FFlWAVGM::setNode(const int topPos, int nodeID)
 }
 
 
-bool FFlWAVGM::setNodes(const std::vector<int>& nodeRefs, int offset)
+bool FFlWAVGM::setNodes(const std::vector<int>& nodeRefs,
+                        size_t offset, bool)
 {
   if (offset + nodeRefs.size() > myNodes.size())
     myNodes.resize(offset + nodeRefs.size());
@@ -90,7 +91,8 @@ bool FFlWAVGM::setNodes(const std::vector<int>& nodeRefs, int offset)
 }
 
 
-bool FFlWAVGM::setNodes(const std::vector<FFlNode*>& nodeRefs, int offset)
+bool FFlWAVGM::setNodes(const std::vector<FFlNode*>& nodeRefs,
+                        size_t offset, bool)
 {
   if (offset + nodeRefs.size() > myNodes.size())
     myNodes.resize(offset + nodeRefs.size());

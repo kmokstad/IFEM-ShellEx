@@ -155,12 +155,13 @@ bool FFlFENodeRefs::setNode(const int topPos, int nodeID)
 }
 
 
-bool FFlFENodeRefs::setNodes(const std::vector<int>& nodeRefs, int offset)
+bool FFlFENodeRefs::setNodes(const std::vector<int>& nodeRefs,
+                             size_t offset, bool)
 {
   this->initNodeVector();
 
-  int lastPos = offset + nodeRefs.size();
-  if (lastPos > (int)myNodes.size())
+  size_t lastPos = offset + nodeRefs.size();
+  if (lastPos > myNodes.size())
   {
     ListUI <<"\n *** Error: Node "<< lastPos-1 <<" is out of range.\n";
     return false;
@@ -173,12 +174,13 @@ bool FFlFENodeRefs::setNodes(const std::vector<int>& nodeRefs, int offset)
 }
 
 
-bool FFlFENodeRefs::setNodes(const std::vector<FFlNode*>& nodeRefs, int offset)
+bool FFlFENodeRefs::setNodes(const std::vector<FFlNode*>& nodeRefs,
+                             size_t offset, bool)
 {
   this->initNodeVector();
 
-  int lastPos = offset + nodeRefs.size();
-  if (lastPos > (int)myNodes.size())
+  size_t lastPos = offset + nodeRefs.size();
+  if (lastPos > myNodes.size())
   {
     ListUI <<"\n *** Error: Node "<< lastPos-1 <<" is out of range.\n";
     return false;
