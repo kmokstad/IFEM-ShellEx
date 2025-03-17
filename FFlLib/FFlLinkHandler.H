@@ -142,6 +142,8 @@ public:
   int getIntNodeID(int extID) const;
   int getIntElementID(int extID) const;
 
+  void removeElements(const ElementsVec& elms);
+
   int getNewElmID() const;
   int getNewNodeID() const;
   int getNewGroupID() const;
