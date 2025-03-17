@@ -48,8 +48,10 @@ public:
 
   virtual bool setNode(const int topologicalPos, FFlNode* nodeRef);
   virtual bool setNode(const int topologicalPos, int nodeRef);
-  virtual bool setNodes(const std::vector<int>& nodeRefs, int offset);
-  virtual bool setNodes(const std::vector<FFlNode*>& nodeRefs, int offset);
+  virtual bool setNodes(const std::vector<int>& nodeIDs,
+                        size_t offs, bool shrink = false);
+  virtual bool setNodes(const std::vector<FFlNode*>& nodes,
+                        size_t offs, bool shrink = false);
 
   void setMasterNode(FFlNode* nodeRef);
   void setMasterNode(int nodeRef);

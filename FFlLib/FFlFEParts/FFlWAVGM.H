@@ -45,8 +45,10 @@ public:
 
   virtual bool setNode(const int topologicalPos, FFlNode* nodeRef);
   virtual bool setNode(const int topologicalPos, int nodeRef);
-  virtual bool setNodes(const std::vector<int>& nodeRefs, int offset);
-  virtual bool setNodes(const std::vector<FFlNode*>& nodeRefs, int offset);
+  virtual bool setNodes(const std::vector<int>& nodeRefs,
+                        size_t offset, bool = false);
+  virtual bool setNodes(const std::vector<FFlNode*>& nodeRefs,
+                        size_t offset, bool = false);
 
   void setSlaveNode(FFlNode* nodeRef);
   void setSlaveNode(int nodeRef);
