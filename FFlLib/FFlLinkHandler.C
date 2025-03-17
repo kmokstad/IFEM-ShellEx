@@ -26,6 +26,7 @@
 #include "FFlLib/FFlFEParts/FFlPCOORDSYS.H"
 #include "FFlLib/FFlFEParts/FFlPWAVGM.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
+#include "FFlLib/FFlFEParts/FFlRGD.H"
 #include "FFlLib/FFlFEResultBase.H"
 #ifdef FT_USE_CONNECTORS
 #include "FFlLib/FFlConnectorItems.H"
@@ -1789,6 +1790,18 @@ void FFlLinkHandler::deleteResults()
 }
 
 
+void FFlLinkHandler::removeElements(const ElementsVec& toBeErased)
+{
+  for (FFlElementBase* elm : toBeErased)
+  {
+    myElements.erase(std::find(myElements.begin(),myElements.end(),elm));
+    for (GroupMap::value_type& g : myGroupMap)
+      g.second->removeElement(elm->getID());
+    delete elm;
+  }
+}
+
+
 bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
 {
   if (isResolved) return true;
@@ -1878,7 +1891,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
           ListUI <<"\n *** Error: Resolving "<< am.first <<" attribute "
                  << attr.second->getID() <<" failed\n";
 
-  // Remove loose nodes from the WAVGM elements
+  // Remove loose nodes from WAVGM and RGD elements
   int nNod = 0;
   ElementsVec toBeErased;
   for (FFlElementBase* elm : myElements)
@@ -1894,7 +1907,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
         continue;
       }
 
-      // Find all nodes that are not connected to any other elements
+      // Find all independent nodes that are not connected to any other elements
       NodeCIter n = refn;
       std::vector<int> looseNodes;
       for (++n; n != elm->nodesEnd(); ++n)
@@ -1910,6 +1923,9 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
       {
         // Only the reference node is coupled to other elements.
         // This element will have no effect and is therefore removed.
+        nNotes++;
+        ListUI <<"\n   * Note: WAVGM element "<< elm->getID()
+               <<" (size="<< nNod <<") has no connections";
         toBeErased.push_back(elm);
         continue;
       }
@@ -1918,6 +1934,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
 
       if (looseNodes.empty()) continue;
 
+      nNotes++;
       ListUI <<"\n  ** Removing "<< looseNodes.size()
              <<" loose nodes from WAVGM element "<< elm->getID();
       if (!static_cast<FFlWAVGM*>(elm)->removeMasterNodes(looseNodes))
@@ -1936,30 +1953,69 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
         }
       }
     }
+    else if (elm->getTypeName() == "RGD")
+    {
+      // Find all dependent nodes that are connected to other elements
+      int looseDn = 0;
+      NodeCIter n = elm->nodesBegin();
+      std::vector<FFlNode*> depNodes;
+      depNodes.reserve(nNod-1);
+      for (++n; n != elm->nodesEnd(); ++n)
+        if ((*n)->hasDOFs())
+          depNodes.push_back(n->getReference());
+        else
+          looseDn++;
+
+      if (depNodes.empty())
+      {
+        // Only the reference node is coupled to other elements.
+        // This element will have no effect and is therefore removed.
+        nNotes++;
+        ListUI <<"\n   * Note: RGD element "<< elm->getID()
+               <<" (size="<< nNod <<") has no connections";
+        toBeErased.push_back(elm);
+      }
+      else if (looseDn > 0)
+      {
+        nNotes++;
+        ListUI <<"\n  ** Removing "<< looseDn <<" loose nodes ("<< nNod-looseDn
+               <<" remaining) from RGD element "<< elm->getID();
+        elm->setNodes(depNodes,1,true);
+      }
+    }
 
   if (!toBeErased.empty())
   {
     // Erase all elements without nodal connections
-    ListUI <<"\n  ** Erasing "<< toBeErased.size()
-           <<" elements without nodal connections.";
-    for (FFlElementBase* elm : toBeErased)
-    {
-      myElements.erase(std::find(myElements.begin(),myElements.end(),elm));
-      delete elm;
-    }
+    ListUI <<"\n  ** Erasing the ";
+    if (toBeErased.size() == 1)
+      ListUI << toBeErased.front()->getTypeName() <<" element";
+    else
+      ListUI << toBeErased.size() <<" constraint elements (RGD/WAVGM)";
+    ListUI <<" without nodal connections.";
+    this->removeElements(toBeErased);
   }
 
   // Check for unused nodes:
   size_t nnodes = 0;
+  size_t unused = 0;
   for (size_t i = 0; i < myNodes.size(); i++)
     if (!myNodes[i]->getRefCount())
     {
-      nNotes++;
-      ListUI <<"\n   * Note: Unused node "<< myNodes[i]->getID() <<" (deleted)";
+      if (unused++ < 50)
+      {
+        nNotes++;
+        ListUI <<"\n   * Note: Unused node "<< myNodes[i]->getID()
+               <<" (deleted)";
+      }
       delete myNodes[i];
     }
     else if (++nnodes < i+1)
       myNodes[nnodes-1] = myNodes[i];
+
+  if (unused > 50)
+    ListUI <<" ...\n  ** A total of "<< unused
+           <<" unused nodes were deleted.\n";
 
   if (nnodes < myNodes.size())
     myNodes.resize(nnodes);
@@ -1987,7 +2043,8 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
            <<" the model is consistent.\n";
 
   isResolved = nError == 0;
-  hasLooseNodes = isResolved && this->getNodeCount(FFL_FEM) < (int)myNodes.size();
+  int nTotNodes = myNodes.size();
+  hasLooseNodes = isResolved && this->getNodeCount(FFL_FEM) < nTotNodes;
 
 #ifdef FFL_TIMER
   myProfiler->stopTimer("resolve");
