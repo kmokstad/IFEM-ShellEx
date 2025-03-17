@@ -337,7 +337,7 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 
   if (!this->initElement(MNPC,elmInt))
     return false;
-  else if (fe.Xn.cols() == 1 || (eKm+eM <= 0 && fe.Xn.cols() != 3))
+  else if (fe.Xn.cols() < 3 || (eKm+eM <= 0 && fe.Xn.cols() > 3))
     return true;
 
   bool ok = true;
@@ -452,6 +452,16 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       currentPatch->getMassMatrix(fe.iel, Mmat);
     if (eS > 0)
       currentPatch->getLoadVector(fe.iel, gravity, Svec);
+  }
+  else if (currentPatch && nenod == 2) // 2-noded mass-less spring element
+  {
+    iERR = 0;
+    if (eKm > 0)
+      currentPatch->getStiffnessMatrix(fe.iel, Kmat);
+    if (eM > 0)
+      Mmat.clear(); // no mass
+    if (eS > 0)
+      Svec.clear(); // no external load
   }
   else if (nenod == 3) // 3-noded shell element
   {
