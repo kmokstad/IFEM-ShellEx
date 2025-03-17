@@ -348,7 +348,7 @@ bool FFlNastranReader::process_BAROR (std::vector<std::string>& entry)
 
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
     if (entry[4].find('.') == std::string::npos)
-      barDefault->G0 = (int)barDefault->X[0];
+      barDefault->G0 = barDefault->X[0];
 
   barDefault->empty[0] = entry[1].empty();
   barDefault->empty[1] = entry[4].empty();
@@ -401,7 +401,7 @@ bool FFlNastranReader::process_BEAMOR (std::vector<std::string>& entry)
 
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
     if (entry[4].find('.') == std::string::npos)
-      beamDefault->G0 = (int)beamDefault->X[0];
+      beamDefault->G0 = beamDefault->X[0];
 
   beamDefault->empty[0] = entry[1].empty();
   beamDefault->empty[1] = entry[4].empty();
@@ -474,14 +474,17 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
 		 fieldValue(entry[14],WB[1]) &&
 		 fieldValue(entry[15],WB[2]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   // Store the property and beam orientation data temporarily in the bOri map
   // must be resolved later after all coordinate systems has been read in
   BEAMOR* bo = new BEAMOR(true);
   bo->PID = PID;
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
-    if (entry[4].find('.') == std::string::npos) bo->G0 = (int)X[0];
+    if (entry[4].find('.') == std::string::npos)
+      bo->G0 = X[0];
+
   bo->X = X;
   bo->empty[0] = entry[1].empty();
   bo->empty[1] = entry[4].empty();
@@ -553,7 +556,8 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
 		 fieldValue(entry[14],WB[1]) &&
 		 fieldValue(entry[15],WB[2]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (!entry[7].empty() && entry[7] != "GGG")
   {
@@ -568,7 +572,9 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
   BEAMOR* bo = new BEAMOR;
   bo->PID = PID;
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
-    if (entry[4].find('.') == std::string::npos) bo->G0 = (int)X[0];
+    if (entry[4].find('.') == std::string::npos)
+      bo->G0 = X[0];
+
   bo->X = X;
   bo->empty[0] = entry[1].empty();
   bo->empty[1] = entry[4].empty();
@@ -639,7 +645,8 @@ bool FFlNastranReader::process_CBUSH (std::vector<std::string>& entry)
 		 fieldValue(entry[11],Sv[1]) &&
 		 fieldValue(entry[12],Sv[2]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[0] == 0 || G[1] == 0 || G[0] == G[1])
   {
@@ -664,7 +671,8 @@ bool FFlNastranReader::process_CBUSH (std::vector<std::string>& entry)
     // This bush element has an orientation vector
     FFlPORIENT* myOr = CREATE_ATTRIBUTE(FFlPORIENT,"PORIENT",EID);
     if (entry[5].empty() && entry[6].empty())
-      if (entry[4].find('.') == std::string::npos) CID = (int)X[0];
+      if (entry[4].find('.') == std::string::npos)
+        CID = X[0];
     if (CID > 0)
       sprComp[EID] = -CID; // Store node for later computation of orientation
     else
@@ -726,7 +734,8 @@ bool FFlNastranReader::process_CELAS1 (std::vector<std::string>& entry)
 		 fieldValue(entry[4],G[1]) &&
 		 fieldValue(entry[5],C2));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[0] == 0 || G[1] == 0)
   {
@@ -804,7 +813,8 @@ bool FFlNastranReader::process_CELAS2 (std::vector<std::string>& entry)
 		 fieldValue(entry[4],G[1]) &&
 		 fieldValue(entry[5],C2));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[0] == 0 || G[1] == 0)
   {
@@ -899,7 +909,8 @@ bool FFlNastranReader::process_CHEXA (std::vector<std::string>& entry)
 		 G[0] && G[1] && G[2] && G[3] &&
 		 G[4] && G[5] && G[6] && G[7]);
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[ 8] && G[ 9] && G[10] && G[11] && G[12] && G[13] &&
       G[14] && G[15] && G[16] && G[17] && G[18] && G[19])
@@ -977,8 +988,10 @@ bool FFlNastranReader::process_CONM1 (std::vector<std::string>& entry)
 		 fieldValue(entry[22],M[19]) &&
 		 fieldValue(entry[23],M[20]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
-  if (CID > 0) massCID[EID] = CID;
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
+  if (CID > 0)
+    massCID[EID] = CID;
 
   FFlPMASS* myAtt = CREATE_ATTRIBUTE(FFlPMASS,"PMASS",EID);
   std::vector<double>& Mvec = myAtt->M.data();
@@ -1033,8 +1046,10 @@ bool FFlNastranReader::process_CONM2 (std::vector<std::string>& entry)
 		 fieldValue(entry[12],I[4]) &&
 		 fieldValue(entry[13],I[5]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
-  if (CID > 0 || CID == -1) massCID[EID] = CID;
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
+  if (CID > 0 || CID == -1)
+    massCID[EID] = CID;
 
   FFlPMASS* myAtt = CREATE_ATTRIBUTE(FFlPMASS,"PMASS",EID);
   std::vector<double>& Mvec = myAtt->M.data();
@@ -1103,7 +1118,8 @@ bool FFlNastranReader::process_CONROD (std::vector<std::string>& entry)
 		 fieldValue(entry[5],params.J) &&
 		 fieldValue(entry[7],params.NSM));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
 #ifdef FFL_DEBUG
   std::cout <<"Rod property, ID = "<< EID <<" --> material ID = "<< MID
@@ -1421,7 +1437,8 @@ bool FFlNastranReader::process_CPENTA (std::vector<std::string>& entry)
 		 fieldValue(entry[16],G[14]) &&
 		 G[0] && G[1] && G[2] && G[3] && G[4] && G[5]);
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[ 6] && G[ 7] && G[ 8] && G[ 9] && G[10] &&
       G[11] && G[12] && G[13] && G[14])
@@ -1489,7 +1506,8 @@ bool FFlNastranReader::process_CQUAD4 (std::vector<std::string>& entry)
 		 fieldValue(entry[12],T[2]) &&
 		 fieldValue(entry[13],T[3]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
   if (entry[1].empty())
     PID = EID;
   else
@@ -1581,7 +1599,8 @@ bool FFlNastranReader::process_CQUAD8 (std::vector<std::string>& entry)
 		 fieldValue(entry[15],ZOFFS) &&
 		 entry[16].empty());
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
   if (entry[1].empty())
     PID = EID;
   else
@@ -1629,7 +1648,8 @@ bool FFlNastranReader::process_CROD (std::vector<std::string>& entry)
 		 fieldValue(entry[2],G[0]) &&
 		 fieldValue(entry[3],G[1]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   sizeOK = myLink->addElement(createElement("BEAM2",EID,G,PID));
 
@@ -1667,7 +1687,8 @@ bool FFlNastranReader::process_CTETRA (std::vector<std::string>& entry)
 		 fieldValue(entry[11],G[9]) &&
 		 G[0] && G[1] && G[2] && G[3]);
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (G[4] && G[5] && G[6] && G[7] && G[8] && G[9])
   {
@@ -1732,7 +1753,8 @@ bool FFlNastranReader::process_CTRIA3 (std::vector<std::string>& entry)
 		 fieldValue(entry[11],T[1]) &&
 		 fieldValue(entry[12],T[2]));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
   if (entry[1].empty())
     PID = EID;
   else
@@ -1814,7 +1836,8 @@ bool FFlNastranReader::process_CTRIA6 (std::vector<std::string>& entry)
 		 fieldValue(entry[12],T[2]) &&
 		            entry[13].empty());
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
   if (entry[1].empty())
     PID = EID;
   else
@@ -1861,7 +1884,8 @@ bool FFlNastranReader::process_CWELD (std::vector<std::string>& entry)
 		 fieldValue(entry[1],PWID) &&
 		 fieldValue(entry[2],GS));
 
-  if (entry[0].empty()) EWID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EWID = myLink->getNewElmID();
 
   if (entry[3] == "GRIDID")
   {
@@ -2191,7 +2215,7 @@ bool FFlNastranReader::process_GRID (std::vector<std::string>& entry)
 
 bool FFlNastranReader::process_INCLUDE (std::vector<std::string>& entry)
 {
-  std::string& fname = entry[0];
+  std::string& fname = entry.front();
   if (entry.empty()) return false;
   if (fname.empty()) return false;
 
@@ -3215,9 +3239,9 @@ bool FFlNastranReader::process_PLOAD4 (std::vector<std::string>& entry)
       int EID2 = 0;
       CONVERT_ENTRY ("PLOAD4",
 		     fieldValue(entry[7],EID2) &&
-		     EID2 > EID[0]);
-      EID.reserve(EID2-EID[0]+1);
-      for (int e = EID[0]+1; e <= EID2; e++) EID.push_back(e);
+		     EID2 > EID.front());
+      EID.reserve(EID2-EID.front()+1);
+      for (int e = EID.front()+1; e <= EID2; e++) EID.push_back(e);
     }
     else
       CONVERT_ENTRY ("PLOAD4",
@@ -3261,13 +3285,14 @@ bool FFlNastranReader::process_PLOAD4 (std::vector<std::string>& entry)
   if (!N.isZero())
   {
     // This load has an orientation vector
-    FFlPORIENT* myOr = CREATE_ATTRIBUTE(FFlPORIENT,"PORIENT",EID[0]);
+    FFlPORIENT* myOr = CREATE_ATTRIBUTE(FFlPORIENT,"PORIENT",EID.front());
     myOr->directionVector = N.normalize().round(10);
 
     if (CID > 0)
     {
       nWarnings++;
-      ListUI <<"\n  ** Warning: Pressure load "<< SID <<" on element "<< EID[0]
+      ListUI <<"\n  ** Warning: Pressure load "<< SID
+             <<" on element "<< EID.front()
              <<"\n              has a direction vector specified in local"
 	     <<" coordinate system "<< CID
 	     <<"\n              This is not implemented yet"
@@ -3541,7 +3566,8 @@ bool FFlNastranReader::process_RBAR (std::vector<std::string>& entry)
 		 fieldValue(entry[5],CMA) &&
 		 fieldValue(entry[6],CMB));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   // Check if the RBAR can be represented by a two-noded RBE2 instead
   if (sortDOFs(CNA) == 123456 && CNB == 0 && CMA == 0)
@@ -3600,16 +3626,21 @@ bool FFlNastranReader::process_RBE2 (std::vector<std::string>& entry)
 
   int EID, PID, GM, CM = 0;
 
-  std::vector<int> G(1,0);
+  if (entry.size() < 3)
+    entry.resize(3,"");
+  else if (entry.size() > 3 && entry.back().find('.') != std::string::npos)
+    entry.resize(entry.size()-1); // Ignore thermal expansion coefficient
 
-  if (entry.size() < 3) entry.resize(3,"");
+  std::vector<int> G(1,0);
+  G.reserve(entry.size()-2);
 
   CONVERT_ENTRY ("RBE2",
 		 fieldValue(entry[0],EID) &&
 		 fieldValue(entry[1],G[0]) &&
 		 fieldValue(entry[2],CM));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   for (size_t i = 3; i < entry.size(); i++)
     if (!entry[i].empty())
@@ -3721,7 +3752,8 @@ bool FFlNastranReader::process_RBE3 (std::vector<std::string>& entry)
 		 fieldValue(entry[2],G[0]) &&
 		 fieldValue(entry[3],REFC));
 
-  if (entry[0].empty()) EID = myLink->getNewElmID();
+  if (entry.front().empty())
+    EID = myLink->getNewElmID();
 
   if (REFC <= 0)
   {
