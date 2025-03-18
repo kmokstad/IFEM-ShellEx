@@ -35,6 +35,7 @@ public:
   FFL_TYPE_INFO(FFlBUSH);
 
   virtual int getNodalCoor(double* X, double* Y, double* Z) const;
+  virtual bool getLocalSystem(double* Tlg) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
