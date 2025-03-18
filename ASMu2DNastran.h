@@ -30,8 +30,8 @@ class ASMu2DNastran : public ASMu2DLag
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  ASMu2DNastran(unsigned char n, unsigned char n_f)
-    : ASMu2DLag(n,n_f,'N') { beamPatch = nullptr; }
+  ASMu2DNastran(unsigned char n, unsigned char n_f, bool noSets)
+    : ASMu2DLag(n,n_f,'N'), useSets(!noSets) { beamPatch = nullptr; }
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief Empty destructor.
@@ -113,6 +113,8 @@ private:
   std::map<int,BeamProps>  myBprops; //!< Beam element property container
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
   std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
+
+  bool useSets; //!< If \e true, read Nastran SET definitions
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements
 };

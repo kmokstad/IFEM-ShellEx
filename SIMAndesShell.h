@@ -70,6 +70,9 @@ protected:
   virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
                                      const TimeDomain& time);
 
+public:
+  static bool noSets; //!< If \e true, ignore Nastran SET definitions
+
 private:
   //! \brief Struct defining a nodal point load.
   struct PointLoad

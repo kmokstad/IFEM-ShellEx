@@ -113,6 +113,7 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   \arg -refsol \a file1 \a file2 ... : Files with reference solution
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
+  \arg -noSets : Ignore Nastran SET definitions
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state whne evaluating
@@ -155,6 +156,8 @@ int main (int argc, char** argv)
       iop = 200;
     else if (!strcmp(argv[i],"-vizRHS"))
       vizRHS = true;
+    else if (!strcmp(argv[i],"-noSets"))
+      SIMAndesShell::noSets = true;
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;
@@ -217,8 +220,8 @@ int main (int argc, char** argv)
               <<" [-ignoreSol]\n      "
               <<" [-keep-previous-state] [-hdf5 [<filename>] [-dumpNodeMap]]\n"
               <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
-              <<" [-vizRHS]]\n"
-              <<"       [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
+              <<" [-vizRHS]]\n      "
+              <<" [-noSets] [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
     delete prof;
     return 0;
   }
