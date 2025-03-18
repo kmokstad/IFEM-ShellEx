@@ -78,6 +78,7 @@ public:
   bool getMassProperties(double& mass, FaVec3& cog, FFaTensor3& inertia) const;
 
   // Geometrical mapping:
+  virtual bool getLocalSystem(double*) const { return false; }
   virtual FaMat33 getGlobalizedElmCS() const;
   virtual FaVec3 interpolate(const double*, const std::vector<FaVec3>&) const;
   virtual FaVec3 mapping(double, double = 0.0, double = 0.0) const;
