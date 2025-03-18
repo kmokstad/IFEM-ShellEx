@@ -26,6 +26,8 @@
 
 static bool withBeams = false; //!< If \e true, the model contains beam elements
 
+bool SIMAndesShell::noSets = false;
+
 
 SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
 {
@@ -129,7 +131,7 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   ASMbase* pch = NULL;
   bool nastran = nf.size() == 2 && nf[1] == 'n';
   if (nastran) // Nastran bulk data file
-    pch = new ASMu2DNastran(nsd,nf.front());
+    pch = new ASMu2DNastran(nsd,nf.front(),noSets);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 

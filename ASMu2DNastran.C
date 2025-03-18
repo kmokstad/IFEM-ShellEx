@@ -65,6 +65,19 @@ public:
     if (!myLink->hasGeometry())
       return false;
 
+    // Remove all solid elements (not yet supported)
+    ElementsVec toBeErased;
+    ElementsCIter eit;
+    for (eit = myLink->elementsBegin(); eit != myLink->elementsEnd(); ++eit)
+      if ((*eit)->getCathegory() == FFlTypeInfoSpec::SOLID_ELM)
+        toBeErased.push_back(*eit);
+    if (!toBeErased.empty())
+    {
+      IFEM::cout <<"  ** Erasing "<< toBeErased.size()
+                 <<" solid elements from the model."<< std::endl;
+      myLink->removeElements(toBeErased);
+    }
+
     // Now parse the element set definitions, if any
     lastComment = { 0, "" };
     if (iset && !this->processAllSets(iset,nPreBulk))
@@ -100,7 +113,7 @@ bool ASMu2DNastran::read (std::istream& is)
       ++lCount;
       // Copy element SET definitions to a second stream,
       // since they have to be parsed after the FE model is loaded
-      if (!strncmp(cline,"SET ",4) || sets.tellp() > 0)
+      if (useSets && !strncmp(cline,"SET ",4) || sets.tellp() > 0)
         sets << cline << '\n';
     }
 
