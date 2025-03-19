@@ -76,6 +76,7 @@ public:
 
   FFlReference& operator=(const T* objPtr) // fast resolving manually
   {
+    if (myResolvedRef) myResolvedRef->unref();
     myResolvedRef = const_cast<T*>(objPtr);
     if (myResolvedRef) myResolvedRef->ref();
     iAmResolved = true;
