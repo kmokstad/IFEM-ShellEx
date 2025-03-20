@@ -399,12 +399,16 @@ contains
 
   !> @brief Transforms a 2D strain tensor.
   subroutine traStrain (eps,T_str)
+#ifdef HAS_FFLLIB
     use FFaTensorTransformsInterface, only : tratensor
+#endif
     real(dp), intent(inout) :: eps(3)
     real(dp), intent(in)    :: T_str(2,2)
+#ifdef HAS_FFLLIB
     eps(3) = 0.5_dp * eps(3) ! to tensorial shear strain, epsilon_xy
     call tratensor (2,eps,T_str)
     eps(3) = 2.0_dp * eps(3) ! back to enginering shear strain, gamma_xy
+#endif
   end subroutine traStrain
 
 end subroutine IFEM_STRS24
