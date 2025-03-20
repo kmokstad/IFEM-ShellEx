@@ -50,6 +50,8 @@ static void printMatrix6 (const double A[6][6])
 namespace FF_NAMESPACE {
 #endif
 
+const double Zero = 1.0e-16;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -303,7 +305,6 @@ bool FFlNastranReader::getTmatrixAtPt (const int CID, CORD& cs,
   if (!this->computeTmatrix(CID,cs))
     return false;
 
-  const double Zero = 1.0e-16;
   if (cs.type == cylindrical)
   {
     // Rotate the local axes such that global point X lies in the local XZ-plane
@@ -441,8 +442,7 @@ bool FFlNastranReader::resolveAttributes ()
       std::map<int,FaVec3*>::iterator xit = massX.find(curElm->getID());
       int CID = cit != massCID.end() ? cit->second : 0;
       FaVec3* X = xit != massX.end() ? xit->second : NULL;
-      if (CID || X)
-        ok &= this->transformMassMatrix(curElm,CID,X);
+      ok &= this->transformMassMatrix(curElm,CID,X);
     }
     else if (curTyp == "RGD" || curTyp == "RBAR" || curTyp == "WAVGM")
 
@@ -723,7 +723,7 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
 
   double Sy = theSec->Sy.getValue();
   double Sz = theSec->Sz.getValue();
-  if (fabs(Sy)+fabs(Sz) <= 1.0e-16)
+  if (fabs(Sy)+fabs(Sz) <= Zero)
     return PID; // Negligible neutral axis offset for this beam
 
   if (!z.isZero())
@@ -1119,7 +1119,7 @@ void FFlNastranReader::resolveBushAttributes (FFlElementBase* curElm,
     FaVec3 eVec;
     if (!this->getElementAxis(curElm,1,2,eVec))
       ok = false;
-    else if (eVec.sqrLength() > 1.0e-16)
+    else if (eVec.sqrLength() > Zero)
     {
       FFlPBUSHECCENT* myEc = CREATE_ATTRIBUTE(FFlPBUSHECCENT,"PBUSHECCENT",EID);
       myEc->offset = (eVec*S).round(10);
@@ -1171,7 +1171,7 @@ void FFlNastranReader::resolveBushAttributes (FFlElementBase* curElm,
     FaVec3 x, y;
     if (!this->getElementAxis(curElm,1,2,x))
       ok = false;
-    else if (x.sqrLength() < 1.0e-16)
+    else if (x.sqrLength() <= Zero)
     {
       ok = false;
       ListUI <<"\n *** Error: Bushing element "<< EID <<" has coincident nodes."
@@ -1224,8 +1224,7 @@ bool FFlNastranReader::transformMassMatrix (FFlElementBase* elm,
   int EID = elm->getID();
   int PID = elm->getAttributeID("PMASS");
 
-  FFlPMASS* theMass = NULL;
-  if (PID > 0) theMass = GET_ATTRIBUTE(FFlPMASS,"PMASS",PID);
+  FFlPMASS* theMass = PID > 0 ? GET_ATTRIBUTE(FFlPMASS,"PMASS",PID) : NULL;
   if (!theMass)
   {
     std::cerr <<"FFlNastranReader::transformMassMatrix: Internal error, "
@@ -1233,15 +1232,17 @@ bool FFlNastranReader::transformMassMatrix (FFlElementBase* elm,
     return false;
   }
 
+  std::vector<double>& Mvec = theMass->M.data();
+
   double M[6][6];
   size_t i, j, k;
   for (i = k = 0; i < 6; i++)
     for (j = 0; j <= i; j++)
     {
-      if (k >= theMass->M.data().size())
+      if (k >= Mvec.size())
         M[i][j] = 0.0;
       else
-        M[i][j] = theMass->M.data()[k++];
+        M[i][j] = Mvec[k++];
       if (j < i) M[j][i] = M[i][j];
     }
 
@@ -1280,17 +1281,23 @@ bool FFlNastranReader::transformMassMatrix (FFlElementBase* elm,
     if (!this->transformSymmMatrix6(M,n1->getPos(),CID))
       return false;
 
-  for (i = k = 0; i < 6; i++)
-    for (j = 0; j <= i; j++)
-      if (k < theMass->M.data().size())
-        theMass->M.data()[k++] = round(M[i][j],10); // use 10 significant digits
-      else if (M[i][j] != 0.0)
+  if (X || CID > 0)
+    for (i = k = 0; i < 6; i++)
+      for (j = 0; j <= i; j++)
       {
-        theMass->M.data().resize(k+1,0.0);
-        theMass->M.data()[k++] = round(M[i][j],10); // use 10 significant digits
+        if (++k > Mvec.size())
+        {
+          if (fabs(M[i][j]) > Zero)
+            Mvec.resize(k,0.0);
+          else
+            continue;
+        }
+        Mvec[k-1] = round(M[i][j],10); // round to 10 significant digits
       }
-      else
-        k++;
+
+  // If the point mass has non-zero inertia, ensure its node has 6 DOFs
+  if (Mvec.size() > 6)
+    n1->pushDOFs(6);
 
   return true;
 }
