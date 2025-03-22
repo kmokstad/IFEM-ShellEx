@@ -671,7 +671,7 @@ int FFlNastranReader::resolveBeamAttributes (FFlElementBase* curElm, bool& ok)
   {
     // Orientation (local y-axis) is given component-wise
     IntMap::iterator cit = nodeCDID.find(curElm->getNodeID(1));
-    if (cit == nodeCDID.end())
+    if (cit == nodeCDID.end() || !curOr.basic)
       y = curOr.X;
     else
     {

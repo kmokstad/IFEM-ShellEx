@@ -84,12 +84,13 @@ private:
 
   struct BEAMOR
   {
-    int PID;
-    int G0;
+    int PID = 0;
+    int G0 = 0;
     FaVec3 X;
     bool isBAR;
+    bool basic = false;
     bool empty[5] = { false, false, false, false, false };
-    BEAMOR(bool b = false) : isBAR(b) { PID = G0 = 0; }
+    BEAMOR(bool b = false) : isBAR(b) {}
   };
 
   using IntPair     = std::pair<int,int>;

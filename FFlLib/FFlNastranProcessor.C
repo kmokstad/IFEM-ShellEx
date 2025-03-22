@@ -480,7 +480,7 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
     EID = myLink->getNewElmID();
 
   // Store the property and beam orientation data temporarily in the bOri map
-  // must be resolved later after all coordinate systems has been read in
+  // and must be resolved later after all coordinate systems have been read
   BEAMOR* bo = new BEAMOR(true);
   bo->PID = PID;
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
@@ -561,21 +561,23 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
   if (entry.front().empty())
     EID = myLink->getNewElmID();
 
-  if (!entry[7].empty() && entry[7] != "GGG")
+  // Store the property and beam orientation data temporarily in the bOri map
+  // and must be resolved later after all coordinate systems have been read
+  BEAMOR* bo = new BEAMOR;
+  bo->PID = PID;
+  if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
+    if (entry[4].find('.') == std::string::npos)
+      bo->G0 = X[0];
+
+  if (entry[7] == "BGG")
+    bo->basic = true; // Orientation vector in the Basic coordinate system
+  else if (!entry[7].empty() && entry[7] != "GGG")
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: CBEAM element "<< EID
            <<" has offset vector flag \""<< entry[7] <<"\"."
            <<"\n              This is not implemented yet, \"GGG\" is used.\n";
   }
-
-  // Store the property and beam orientation data temporarily in the bOri map
-  // must be resolved later after all coordinate systems has been read in
-  BEAMOR* bo = new BEAMOR;
-  bo->PID = PID;
-  if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
-    if (entry[4].find('.') == std::string::npos)
-      bo->G0 = X[0];
 
   bo->X = X;
   bo->empty[0] = entry[1].empty();
