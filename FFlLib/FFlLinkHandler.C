@@ -1795,6 +1795,8 @@ void FFlLinkHandler::removeElements(const ElementsVec& toBeErased)
   for (FFlElementBase* elm : toBeErased)
   {
     myElements.erase(std::find(myElements.begin(),myElements.end(),elm));
+    for (GroupMap::value_type& g : myGroupMap)
+      g.second->removeElement(elm->getID());
     delete elm;
   }
 }

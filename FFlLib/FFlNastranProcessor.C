@@ -12,6 +12,7 @@
 #include "FFlLib/FFlFEParts/FFlNode.H"
 #include "FFlLib/FFlElementBase.H"
 #include "FFlLib/FFlLoadBase.H"
+#include "FFlLib/FFlGroup.H"
 #include "FFlLib/FFlFEParts/FFlPBEAMSECTION.H"
 #include "FFlLib/FFlFEParts/FFlPBEAMECCENT.H"
 #include "FFlLib/FFlFEParts/FFlPBEAMPIN.H"
@@ -222,6 +223,7 @@ bool FFlNastranReader::processThisEntry (const std::string& name,
   if (name == "QSET1")  return process_QSET1  (entry);
   if (name == "SPC")    return process_SPC    (entry);
   if (name == "SPC1")   return process_SPC1   (entry);
+  if (name == "SET1")   return process_SET1   (entry);
   if (name == "GRDSET") return process_GRDSET (entry);
   if (name == "BEAMOR") return process_BEAMOR (entry);
   if (name == "BAROR")  return process_BAROR  (entry);
@@ -3870,6 +3872,64 @@ bool FFlNastranReader::process_RBE3 (std::vector<std::string>& entry)
 
   STOPP_TIMER("process_RBE3")
   return sizeOK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////// SET1 //
+////////////////////////////////////////////////////////////////////////////////
+
+bool FFlNastranReader::process_SET1 (std::vector<std::string>& entry)
+{
+  START_TIMER("process_SET1")
+
+  int ID1 = 0, ID2 = 0, SID = 0;
+
+  if (!entry.empty())
+    CONVERT_ENTRY ("SET1",fieldValue(entry.front(),SID));
+
+  std::vector<int> IDs;
+  IDs.reserve(entry.size()-1);
+  for (size_t i = 1; i < entry.size(); i++)
+    if (entry[i] == "THRU")
+      ID1 = ID2;
+    else
+    {
+      ID2 = 0;
+      CONVERT_ENTRY ("SET1",fieldValue(entry[i],ID2));
+      if (ID1 > 0)
+      {
+        for (int i = ID1+1; i <= ID2; i++)
+          IDs.push_back(i);
+        ID1 = 0;
+      }
+      else if (ID2 > 0)
+        IDs.push_back(ID2);
+    }
+
+  int oldNotes = nNotes;
+  if (SID > 0 && !IDs.empty())
+  {
+    FFlGroup* newGroup = new FFlGroup(SID,"Nastran SET");
+    for (int eID : IDs)
+      if (myLink->getElement(eID))
+        newGroup->addElement(eID);
+      else if (nNotes++ < oldNotes+10)
+        ListUI <<"\n   * Note: Ignoring non-existing element "<< eID
+               <<" in Nastran SET "<< SID;
+    if (nNotes > oldNotes) ListUI <<"\n";
+    newGroup->sortElements();
+
+    // Check if the group was named
+    if (lastComment.first > 0 && extractNameFromComment(lastComment.second))
+      newGroup->setName(lastComment.second);
+    lastComment = { 0, "" };
+
+    myLink->addGroup(newGroup); // Add element group to the FE model
+  }
+
+  STOPP_TIMER("process_SET1")
+  return true;
 }
 
 
