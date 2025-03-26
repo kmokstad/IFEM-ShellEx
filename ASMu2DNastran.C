@@ -208,7 +208,8 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout <<"Beam element "<< beamElms.size() <<" "<< eid <<":";
       for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
-      this->addBeamElement(*e,eid,mnpc,beamMNPC,beamElms,beamNodes,nErr);
+      this->addBeamElement(*e,eid,mnpc,beamMNPC,beamElms,beamNodes,
+                           nErr, useBeams == 1);
     }
     else if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
@@ -317,7 +318,7 @@ bool ASMu2DNastran::read (std::istream& is)
 #endif
 #endif
 
-  if (nBel > 0 && nErr == 0)
+  if (nBel > 0 && nErr == 0 && useBeams)
   {
     // Create a separate patch for the beam elements
     Vec3Vec bXYZ;
@@ -337,7 +338,7 @@ bool ASMu2DNastran::read (std::istream& is)
 void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
                                     const IntVec& mnpc, IntMat& beamMNPC,
                                     IntVec& beamElms, IntVec& beamNodes,
-                                    int& nErr)
+                                    int& nErr, bool useEcc)
 {
   beamElms.push_back(eId);
   beamMNPC.push_back(mnpc);
@@ -386,7 +387,7 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
     bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
 
   FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(elm,PBEAMECCENT);
-  if (bEcc)
+  if (bEcc && useEcc)
     bprop.eccN = {
       -Vec3(bEcc->node1Offset.getValue().getPt()),
       -Vec3(bEcc->node2Offset.getValue().getPt())

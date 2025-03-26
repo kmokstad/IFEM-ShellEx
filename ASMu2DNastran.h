@@ -31,8 +31,8 @@ class ASMu2DNastran : public ASMu2DLag
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  ASMu2DNastran(unsigned char n, unsigned char n_f, bool noSets)
-    : ASMu2DLag(n,n_f,'N'), useSets(!noSets) { beamPatch = nullptr; }
+  ASMu2DNastran(unsigned char n, unsigned char n_f, bool ns, char b)
+    : ASMu2DLag(n,n_f,'N'), useBeams(b), useSets(!ns), beamPatch(nullptr) {}
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief Empty destructor.
@@ -85,7 +85,7 @@ protected:
   //! \brief Adds a beam element to this patch.
   void addBeamElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
                       IntMat& beamMNPC, IntVec& beamElms, IntVec& beamNodes,
-                      int& nErr);
+                      int& nErr, bool useEcc = true);
   //! \brief Adds a shell element to this patch.
   void addShellElement(FFlElementBase* elm, int eId, const IntVec& mnpc);
   //! \brief Adds a mass element to this patch.
@@ -131,6 +131,7 @@ private:
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
   std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
 
+  char useBeams; //!< If nonzero include beam elements as a separate patch
   bool useSets; //!< If \e true, read Nastran SET definitions
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements

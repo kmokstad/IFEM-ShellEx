@@ -71,6 +71,7 @@ protected:
                                      const TimeDomain& time);
 
 public:
+  static char useBeams; //!< If non-zero, include beam elements, if any
   static bool noSets; //!< If \e true, ignore Nastran SET definitions
 
 private:

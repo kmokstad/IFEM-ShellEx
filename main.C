@@ -114,6 +114,8 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
   \arg -noSets : Ignore Nastran SET definitions
+  \arg -noBeams : Ignore beam elements
+  \arg -noEccs : Ignore beam end offsets
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state whne evaluating
@@ -158,6 +160,10 @@ int main (int argc, char** argv)
       vizRHS = true;
     else if (!strcmp(argv[i],"-noSets"))
       SIMAndesShell::noSets = true;
+    else if (!strcmp(argv[i],"-noBeams"))
+      SIMAndesShell::useBeams = 0;
+    else if (!strcmp(argv[i],"-noEccs"))
+      SIMAndesShell::useBeams = 2;
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;
@@ -213,15 +219,37 @@ int main (int argc, char** argv)
 
   if (!infile)
   {
-    std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n"
-              <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
-              <<"       [-free] [-time <t>] [-mlc|-qstatic|-dynamic] [-check]"
-              <<" [-ignoreSol]\n      "
-              <<" [-keep-previous-state] [-hdf5 [<filename>] [-dumpNodeMap]]\n"
-              <<"       [-vtf <format> [-vtfres <files>] [-vtfgrp <files>]"
-              <<" [-vizRHS]]\n      "
-              <<" [-noSets] [-fixDup [<tol>]] [-refsol <files>] [-split]\n";
+    // Lambda function for nicely print of usage.
+    auto&& showUsage = [argv](const std::vector<const char*>& args)
+    {
+      const size_t width = 80;
+      size_t col = 7 + strlen(argv[0]);
+      std::cout <<"usage: "<< argv[0];
+      for (const char* arg : args)
+      {
+        size_t w = strlen(arg);
+        if (col+w <= width)
+        {
+          std::cout <<" "<< arg;
+          col += 1+w;
+        }
+        else
+        {
+          std::cout <<"\n       "<< arg;
+          col = 7+w;
+        }
+      }
+      std::cout << std::endl;
+    };
+
+    showUsage({"<inputfile>","[-dense|-spr|-superlu[<nt>]|-samg|-petsc]",
+               "[-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]",
+               "[-free]","[-time <t>]","[-check]","[-ignoreSol]",
+               "[-mlc|-qstatic|-dynamic]","[-keep-previous-state]",
+               "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS]]",
+               "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
+               "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
+               "[-split]"});
     delete prof;
     return 0;
   }
