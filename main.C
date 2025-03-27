@@ -19,6 +19,7 @@
 #include "ElasticityUtils.h"
 #include "ElasticityArgs.h"
 #include "DynamicSim.h"
+#include "EigenModeSIM.h"
 #include "DataExporter.h"
 #include "Profiler.h"
 #ifdef INT_DEBUG
@@ -84,6 +85,61 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
 
 
 /*!
+  \brief Simulation driver creating a time history from a set of eigen modes.
+*/
+
+class MyModesSIM : public EigenModeSIM
+{
+public:
+  //! \brief The constructor forwards to the parent class constructor.
+  explicit MyModesSIM(SIMbase& sim) : EigenModeSIM(sim) {}
+
+protected:
+  using EigenModeSIM::parse;
+  //! \brief Parses a data section from an XML document.
+  virtual bool parse(const tinyxml2::XMLElement* elem)
+  {
+    return params.parse(elem) && this->EigenModeSIM::parse(elem);
+  }
+
+public:
+  //! \brief Initializes the solver and runs through the time history.
+  int solve(char* infile, double ztol = 1.0e-8, std::streamsize outPrec = 0)
+  {
+    IFEM::cout <<"\nGenerating time history from eigenmode shapes."<< std::endl;
+    int status = strcasestr(infile,".xinp") && this->readXML(infile) ? 0 : 1;
+    utl::profiler->stop("Model input");
+
+    if (status == 0 && !model.preprocess())
+      status = 2;
+
+    if (status == 0 && model.opt.format >= 0 && !this->saveModel(infile))
+      status = 3;
+
+    if (Elastic::time > 1.0)
+      params.stopTime = Elastic::time;
+
+    this->initSol(0,0);
+    for (int iStep = 1; status == 0 && this->advanceStep(params); iStep++)
+    {
+      model.printStep(params.step,params.time);
+      if (this->solveStep(params,SIM::DYNAMIC,ztol,outPrec) != SIM::CONVERGED)
+        status = 5;
+      else if (!this->saveStep(iStep,params.time.t))
+        status = 11;
+      else if (!model.saveResults(solution,params.time.t,iStep))
+        status = 13;
+    }
+
+    return status;
+  }
+
+private:
+  TimeStep params; //!< Time stepping parameters
+};
+
+
+/*!
   \brief Main program for the linear elastic shell solver.
 
   The input to the program is specified through the following
@@ -104,6 +160,7 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   \arg -mlc : Solve the linear static problem as a multi-load-case problem
   \arg -qstatic : Solve the linear dynamics problem as quasi-static
   \arg -dynamic : Solve the linear dynamics problem using modal transformation
+  \arg -modes : Create time history as a linear combination of mode shapes
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -ignoreSol : Assembly only and output to VTF (skip solution)
   \arg -fixDup \a tol : Resolve co-located nodes by merging them into one
@@ -134,6 +191,7 @@ int main (int argc, char** argv)
   char nodalR = false;
   bool splitM = false;
   char dynSol = false;
+  bool eigSim = false;
   unsigned short int nstates = 0;
   bool dumpNodeMap = false;
   char* infile = nullptr;
@@ -172,6 +230,8 @@ int main (int argc, char** argv)
     }
     else if (!strncmp(argv[i],"-mlc",4))
       mlcase = true;
+    else if (!strncmp(argv[i],"-modes",6))
+      eigSim = true;
     else if (!strncmp(argv[i],"-qstat",6))
     {
       dynSol = 's';
@@ -245,7 +305,7 @@ int main (int argc, char** argv)
     showUsage({"<inputfile>","[-dense|-spr|-superlu[<nt>]|-samg|-petsc]",
                "[-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]",
                "[-free]","[-time <t>]","[-check]","[-ignoreSol]",
-               "[-mlc|-qstatic|-dynamic]","[-keep-previous-state]",
+               "[-mlc|-qstatic|-dynamic|-modes]","[-keep-previous-state]",
                "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
@@ -263,6 +323,7 @@ int main (int argc, char** argv)
   if (args.eig < 3) SIMbase::ignoreDirichlet = false;
 
   bool modal = dynSol && args.eig >= 3 && args.eig != 5; // Modal solution
+  if (dynSol || args.eig < 3) eigSim = false;
 
   IFEM::cout <<"\nInput file: "<< infile;
   if (!mlcase && !dynSol)
@@ -314,6 +375,12 @@ int main (int argc, char** argv)
 
   if (dynSol && !modal) // Invoke the linear Newmark time integration simulator
     return terminate(dynamicSim(infile,model,fixDup),true);
+
+  if (eigSim) // Create a time history from the mode shapes
+  {
+    MyModesSIM simulator(*model);
+    return terminate(simulator.solve(infile));
+  }
 
   // Read in model definitions
   if (!model->read(infile))
