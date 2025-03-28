@@ -44,6 +44,12 @@ public:
   //! \brief Retrieves the specified element group \a iset as a scalar field.
   bool getElementGroup(int iset, std::string& name, RealArray& elGroup) const;
 
+  //! \brief Writes current model geometry to the VTF-file.
+  //! \param nBlock Running geometry block counter
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
+  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
+
 protected:
   using SIMElasticity<SIM2D>::parse;
   //! \brief Parses a data section from an XML element.

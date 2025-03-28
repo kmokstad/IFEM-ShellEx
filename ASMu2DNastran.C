@@ -15,6 +15,7 @@
 #include "FiniteElement.h"
 #include "ElasticBeam.h"
 #include "BeamProperty.h"
+#include "ElementBlock.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
@@ -92,6 +93,8 @@ public:
 
 bool ASMu2DNastran::read (std::istream& is)
 {
+  massMax = 0.0;
+  spiders.clear();
   myMLGE.clear();
   myMLGN.clear();
   myCoord.clear();
@@ -234,8 +237,9 @@ bool ASMu2DNastran::read (std::istream& is)
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
       std::cout << std::endl;
 #endif
+      spiders.push_back(mnpc);
       for (int& inod : mnpc) ++inod; // Need 1-based node indices
-      this->addRigidCouplings((*e)->getNodeID(1),myCoord[mnpc.front()-1],
+      this->addRigidCouplings((*e)->getNodeID(1),coord[mnpc.front()-1],
                               IntVec(mnpc.begin()+1,mnpc.end()));
     }
     else if ((*e)->getTypeName() == "WAVGM" && mnpc.size() > 1)
@@ -247,6 +251,7 @@ bool ASMu2DNastran::read (std::istream& is)
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
       std::cout << std::endl;
 #endif
+      spiders.push_back(mnpc);
       this->addFlexibleCouplings(*e,eid,mnpc);
     }
     else if ((*e)->getTypeName() == "CMASS" && !mnpc.empty())
@@ -324,7 +329,7 @@ bool ASMu2DNastran::read (std::istream& is)
     Vec3Vec bXYZ;
     bXYZ.reserve(beamNodes.size());
     for (int node : beamNodes)
-      bXYZ.push_back(myCoord[this->getNodeIndex(node)-1]);
+      bXYZ.push_back(coord[this->getNodeIndex(node)-1]);
     beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
   }
 
@@ -455,6 +460,9 @@ void ASMu2DNastran::addMassElement (FFlElementBase* elm, int eId, int inod)
 
   const RealArray& Mvec = mass->M.getValue();
   RealArray::const_iterator m = Mvec.begin();
+
+  if (*m > massMax)
+    massMax = *m;
 
   myMLGE.push_back(eId);
   myMNPC.push_back({inod});
@@ -718,6 +726,71 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 }
 
 
+ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
+{
+  ElementBlock* geo = nullptr;
+  if (myMass.empty()) return geo;
+
+  // Let the largest point mass be visualized as a sphere
+  // with diameter ~5% of the total length of the structure
+  const double massScale = 0.025*modelSize/massMax;
+
+  for (const std::pair<const int,Matrix>& mass : myMass)
+  {
+    Vec3 XYZ = coord[MNPC[this->getElmIndex(mass.first)-1].front()];
+    double R = mass.second(1,1)*massScale;
+    if (!geo)
+      geo = new SphereBlock(XYZ,R,8,6);
+    else
+    {
+      ElementBlock* tmp = new SphereBlock(XYZ,R,8,6);
+      geo->merge(*tmp);
+      delete tmp;
+    }
+  }
+
+  if (geo && name)
+    sprintf(name,"Point masses for Patch %zu",idx+1);
+
+  return geo;
+}
+
+
+ElementBlock* ASMu2DNastran::couplingGeometry (char* name) const
+{
+  ElementBlock* geo = nullptr;
+  if (spiders.empty()) return geo;
+
+  geo = new ElementBlock(2);
+  geo->unStructResize(0,spiders.size());
+
+  size_t iref = 0;
+  for (const IntVec& mnpc : spiders)
+    geo->setCoor(iref++,coord[mnpc.front()]);
+
+  iref = 0;
+  for (const IntVec& mnpc : spiders)
+  {
+    const Vec3& X = coord[mnpc.front()];
+    for (size_t i = 1; i < mnpc.size(); i++)
+      if (!X.equal(coord[mnpc[i]],1.0e-4*modelSize))
+        geo->addLine(iref,coord[mnpc[i]]);
+    iref++;
+  }
+
+  if (geo->getNoElms() == 0)
+  {
+    delete geo;
+    return nullptr;
+  }
+
+  if (name)
+    sprintf(name,"Couplings for Patch %zu",idx+1);
+
+  return geo;
+}
+
+
 /*!
   This method overrides the parent class method to always evaluate the secondary
   solution at the nodal points of the patch.
@@ -856,8 +929,8 @@ bool ASMuBeam::initLocalElementAxes (const Vec3& Zaxis)
     // Set up the global-to-local transformation matrix
     int n1 = MNPC[iel-1].front();
     int n2 = MNPC[iel-1].back();
-    const Vec3& X1 = myCoord[n1];
-    const Vec3& X2 = myCoord[n2];
+    const Vec3& X1 = coord[n1];
+    const Vec3& X2 = coord[n2];
     if (!it->second.Zaxis.isZero())
       Tlg = Tensor(X2-X1,it->second.Zaxis,false,true);
     else if (!Zaxis.isZero())

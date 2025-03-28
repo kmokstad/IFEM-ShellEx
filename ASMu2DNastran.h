@@ -32,7 +32,8 @@ class ASMu2DNastran : public ASMu2DLag
 public:
   //! \brief The constructor forwards to the parent class constructor.
   ASMu2DNastran(unsigned char n, unsigned char n_f, bool ns, char b)
-    : ASMu2DLag(n,n_f,'N'), useBeams(b), useSets(!ns), beamPatch(nullptr) {}
+    : ASMu2DLag(n,n_f,'N'),
+      useBeams(b), useSets(!ns), massMax(0.0), beamPatch(nullptr) {}
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief Empty destructor.
@@ -54,6 +55,11 @@ public:
 
   //! \brief Evaluates the surface pressure at current integration point.
   bool addPressureAt(Vec3& p, int eId, const RealArray& N) const;
+
+  //! \brief Returns an additional geometry to visualize (point masses, etc.).
+  virtual ElementBlock* immersedGeometry(char* name) const;
+  //! \brief Returns an additional geometry to visualize (constraints, etc.).
+  ElementBlock* couplingGeometry(char* name) const;
 
   //! \brief Evaluates the secondary solution field at all nodal points.
   //! \param[out] sField Solution field
@@ -133,6 +139,9 @@ private:
 
   char useBeams; //!< If nonzero include beam elements as a separate patch
   bool useSets; //!< If \e true, read Nastran SET definitions
+
+  double massMax; //!< The largets point mass in the model
+  IntMat spiders; //!< Constraint element topologies
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements
 };
