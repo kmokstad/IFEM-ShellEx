@@ -157,6 +157,15 @@ bool ASMu2DNastran::read (std::istream& is)
                <<" node(s) without any element connections (ignored)."
                <<"\n     Please check the FE data file.\n"<< std::endl;
 
+  if (ASMbase::modelSize == 1.0)
+  {
+    FaVec3 max, min;
+    fem.getExtents(max,min);
+    ASMbase::modelSize = (max-min).length();
+  }
+  IFEM::cout <<"Model extension (diameter):     "
+             << ASMbase::modelSize << std::endl;
+
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
   myCoord.reserve(nnod);
