@@ -52,9 +52,10 @@ int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
   if (Elastic::time > 1.0)
     simulator.setStopTime(Elastic::time);
 
-  model->opt.print(IFEM::cout,true) << std::endl;
-
   utl::profiler->stop("Model input");
+
+  model->opt.print(IFEM::cout,true) << std::endl;
+  simulator.printProblem();
 
   // Preprocess the model and establish data structures for the algebraic system
   if (!model->preprocess({},fixDup))
@@ -110,6 +111,9 @@ public:
     int status = strcasestr(infile,".xinp") && this->readXML(infile) ? 0 : 1;
     utl::profiler->stop("Model input");
 
+    model.opt.print(IFEM::cout,true) << std::endl;
+    this->printProblem();
+
     if (status == 0 && !model.preprocess())
       status = 2;
 
@@ -121,15 +125,12 @@ public:
 
     this->initSol(0,0);
     for (int iStep = 1; status == 0 && this->advanceStep(params); iStep++)
-    {
-      model.printStep(params.step,params.time);
       if (this->solveStep(params,SIM::DYNAMIC,ztol,outPrec) != SIM::CONVERGED)
         status = 5;
       else if (!this->saveStep(iStep,params.time.t))
         status = 11;
       else if (!model.saveResults(solution,params.time.t,iStep))
         status = 13;
-    }
 
     return status;
   }
@@ -195,6 +196,7 @@ int main (int argc, char** argv)
   unsigned short int nstates = 0;
   bool dumpNodeMap = false;
   char* infile = nullptr;
+  char* bdfile = nullptr;
   ElasticityArgs args;
   std::vector<std::string> resfiles, grpfiles, disfiles;
 
@@ -264,18 +266,36 @@ int main (int argc, char** argv)
       dumpNodeMap = true;
     else if (!strncmp(argv[i],"-split",6))
       splitM = true;
-    else if (!infile)
+    else if (!infile && strcasestr(argv[i],".xinp") && !bdfile)
     {
       infile = argv[i];
-      if (strcasestr(infile,".xinp"))
-      {
-        if (!args.readXML(infile,false))
-          return 1;
-        i = 0; // start over and let command-line options override input file
-      }
+      if (!args.readXML(infile,false))
+        return 1;
+      i = 0; // start over and let command-line options override input file
     }
+    else if (!bdfile && strcasestr(argv[i],".dat") && !infile)
+      bdfile = argv[i];
     else
       std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
+
+  if (bdfile)
+  {
+    // Create a temporary input file referring to the Nastran bulk data file
+    static const char* tmpname = "/tmp/tmp.xinp";
+    infile = const_cast<char*>(tmpname);
+    std::ofstream xinp(infile);
+    xinp <<"<simulation><geometry dim=\"3\">\n"
+         <<"  <patchfile type=\"Nastran\">"<< bdfile <<"</patchfile>\n"
+         <<"</geometry></simulation>\n";
+
+    if (IFEM::getOptions().format >= 0)
+    {
+      // Set default vtf file name
+      std::string& vtf = IFEM::getOptions().vtf;
+      vtf = bdfile;
+      vtf.replace(vtf.find_last_of('.'),std::string::npos,".vtf");
+    }
+  }
 
   if (!infile)
   {
