@@ -18,10 +18,10 @@
 !> @param[in] nW SiNumber of independent nodes in current element
 !> @param[in] indC Nodal component indices (common for all nodes)
 !> @param[in] tenc Table of nodal coordinates for current element
+!> @param[in] weight Independent DOF weights for current element
 !> @param[in] epsX Relative geometric tolerance for WAVGM elements
 !> @param dX Element nodal coordinates relative to the centre of gravity
 !> @param work Work array
-!> @param[in] weight Independent DOF weights for current element
 !> @param[out] omega Resulting constraint equation coefficients
 !> @param[in] ipsw Print switch
 !> @param[in] lpu File unit number for res-file output
@@ -82,6 +82,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
 
      iFrst = indC(lDof)
      iLast = iFrst + nM-1
+     if (iLast > nW) goto 9
      sumWM = sum(weight(iFrst:iLast))
      if (sumWM > epsDiv0_p) then
         call DAXPY (nM,1.0_dp/sumWM,weight(iFrst),1,omega(lDof),nndof)
@@ -103,6 +104,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(j) /= 0) then
         iFrst = indC(j)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -129,6 +131,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(k) /= 0) then
         iFrst = indC(k)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -162,6 +165,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(i) /= 0) then
         iFrst = indC(i)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -192,6 +196,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(j) /= 0) then
         iFrst = indC(j)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -221,6 +226,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (3+k <= nndof .and. indC(3+k) > 0) then
         iFrst = indC(3+k)
         iLast = iFrst + nM-1
+        if (iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            call computePointCoords (weight(iFrst:iLast))
@@ -244,6 +250,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(i) /= 0) then
         iFrst = indC(i)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -274,6 +281,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (indC(k) /= 0) then
         iFrst = indC(k)
         iLast = iFrst + nM-1
+        if (iFrst > 0 .and. iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            if (iFrst > 0) then
@@ -304,6 +312,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
      if (3+j <= nndof .and. indC(3+j) > 0) then
         iFrst = indC(3+j)
         iLast = iFrst + nM-1
+        if (iLast > nW) goto 9
         if (reComputeCG .and. iFrst /= lastIC) then
            lastIC = iFrst
            call computePointCoords (weight(iFrst:iLast))
@@ -322,12 +331,17 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
 
   end if
 
-  if (ipsw > 4) then
+5 if (ipsw > 4) then
      write(lpu,*)
      write(label,"('     Omega for dependent DOF',I2,' :')") lDof
      call writeObject(omega,lpu,label,nndof)
   end if
   if (ipsw > 0) call flush (lpu)
+  return
+
+9 continue
+  write(lpu,690) iFrst, iLast, nW, iel
+  goto 5
 
 600 format('  ** Warning: WAVGM element',I10, &
          & ': Ignored coupling by dependent DOF',I2,' to independent DOFs',I2 &
@@ -336,6 +350,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
          & ': Ignored coupling by dependent DOF',I2,' to independent DOFs',I2 &
          / 14X, 'due to small eccentricity',1PE13.5,'  tolerance =',E12.5 )
 620 format(14X,1P10E13.5/(14X,1P10E13.5))
+690 format(' *** Error: Indices out of range:',3I6,/12X,'For WAVGM element',I10)
 
 contains
 
