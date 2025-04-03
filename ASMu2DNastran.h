@@ -103,7 +103,7 @@ protected:
   void addFlexibleCouplings(FFlElementBase* elm, int eId, const IntVec& mnpc);
   //! \brief Adds MPCs representing a flexible coupling to this patch.
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
-                           const RealArray& weights,
+                           const RealArray& weights, double* work,
                            const IntVec& mnpc, const Matrix& Xnod);
 
 public:

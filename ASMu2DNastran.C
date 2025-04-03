@@ -537,7 +537,6 @@ void ASMu2DNastran::addSpringElement (FFlElementBase* elm, int eId,
 }
 
 
-
 void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
                                           const IntVec& mnpc)
 {
@@ -569,8 +568,11 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
   Matrix Xnod(nsd,mnpc.size());
   for (int inod : mnpc)
     Xnod.fillColumn(++icol,this->getCoord(1+inod).ptr());
+
+  double* work = new double[10*mnpc.size()-7];
   for (int lDof : refC)
-    this->addFlexibleCoupling(eId,lDof,indC,weights,mnpc,Xnod);
+    this->addFlexibleCoupling(eId,lDof,indC,weights,work,mnpc,Xnod);
+  delete[] work;
 }
 #endif
 
@@ -696,7 +698,7 @@ extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
 
 
 void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
-                                         const RealArray& weights,
+                                         const RealArray& weights, double* work,
                                          const IntVec& mnpc, const Matrix& Xnod)
 {
 #ifdef HAS_ANDES
@@ -710,18 +712,16 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
   const int lpu = 6;
   const double epsX = 1.0e-4;
   const double Zero = 1.0e-8;
-  double* rwork = new double[10*nM+3];
-  double* omega = rwork+4*nM+3;
-
-  //TODO: Convert this Fortran subroutine to C++
+  double* dX = work + nM;
+  double* omega = dX + 3*(1+nM);
   wavgmconstreqn_(eId,lDof,nM,nW,indC,Xnod.ptr(),weights.data(),epsX,
-                  rwork+nM,rwork,omega,ips,lpu);
+                  dX,work,omega,ips,lpu);
 
   MPC* cons = new MPC(MLGN[mnpc.front()],lDof);
   if (this->addMPC(cons) && cons)
     for (int iM = 1; iM <= nM; iM++)
       for (int mDof = 1; mDof <= 6; mDof++, omega++)
-        if (*omega < -Zero || *omega > Zero)
+        if (fabs(*omega) > Zero)
           cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
 #ifdef INT_DEBUG
         else
@@ -730,7 +730,6 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
                     <<" of master node "<< MLGN[mnpc[iM]]
                     <<" in RBE3 element "<< eId << std::endl;
 #endif
-  delete[] rwork;
 #endif
 }
 
