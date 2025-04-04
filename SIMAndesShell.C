@@ -20,9 +20,11 @@
 #include "HDF5Writer.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "ElementBlock.h"
 #include "VTF.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <fstream>
 
 
 char SIMAndesShell::useBeams = 1;
@@ -141,9 +143,6 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
     return nullptr;
   }
 
-  if (whiteSpace)
-    IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
-
   ASMbase* bpch = nullptr;
   if (nastran)
   {
@@ -159,6 +158,8 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   }
 
   pch->idx = myModel.size();
+  if (whiteSpace)
+    IFEM::cout << whiteSpace <<"Read patch "<< pch->idx+1 << std::endl;
   return pch;
 }
 
@@ -289,6 +290,38 @@ bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       if ((couplingGeom = shell->couplingGeometry(gName)))
         if (!this->getVTF()->writeGrid(couplingGeom,gName,++nBlock))
           return false;
+
+  return true;
+}
+
+
+bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
+                                 bool nodalR, int& nBlock) const
+{
+  ElementBlock* sensor;
+  const ASMu2DNastran* shell;
+  for (const std::string& fName : locfiles)
+  {
+    ElementBlock* sensorBlock = new ElementBlock(8);
+    std::ifstream locs(fName);
+    while (locs.good())
+    {
+      Vec3 XYZloc;
+      int idx = 0;
+      locs >> idx;
+      for (const ASMbase* pch : myModel)
+        if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)) &&
+            (sensor = shell->sensorGeometry(idx,nodalR)))
+        {
+          sensorBlock->merge(*sensor,false);
+          break;
+        }
+    }
+
+    if (sensorBlock->getNoElms() > 0)
+      if (!this->getVTF()->writeGrid(sensorBlock,fName.c_str(),++nBlock))
+        return false;
+  }
 
   return true;
 }

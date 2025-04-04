@@ -60,6 +60,8 @@ public:
   virtual ElementBlock* immersedGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize (constraints, etc.).
   ElementBlock* couplingGeometry(char* name) const;
+  //! \brief Returns an additional geometry to visualize a sensor location.
+  ElementBlock* sensorGeometry(int idx, bool nodal) const;
 
   //! \brief Evaluates the secondary solution field at all nodal points.
   //! \param[out] sField Solution field

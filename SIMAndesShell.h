@@ -50,6 +50,13 @@ public:
   //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
   virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
 
+  //! \brief Writes additional geometries issustrating sensor locations.
+  //! \param[in] locfiles Files with sensor locations (node or element IDs)
+  //! \param[in] nodal If \e true, nodal sensors. Othwerwise element sensors.
+  //! \param nBlock Running geometry block counter
+  bool writeGlvLoc(std::vector<std::string>& locfiles,
+                   bool nodal, int& nBlock) const;
+
 protected:
   using SIMElasticity<SIM2D>::parse;
   //! \brief Parses a data section from an XML element.
