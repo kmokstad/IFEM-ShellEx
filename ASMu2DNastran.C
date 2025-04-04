@@ -19,6 +19,7 @@
 #include "MPC.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
+#include <fstream>
 #include <sstream>
 
 #ifdef HAS_FFLLIB
@@ -340,6 +341,8 @@ bool ASMu2DNastran::read (std::istream& is)
     for (int node : beamNodes)
       bXYZ.push_back(coord[this->getNodeIndex(node)-1]);
     beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
+    IFEM::cout <<"\tCreated beam patch "<< beamPatch->idx+1
+               <<" with "<< beamNodes.size() <<" nodes"<< std::endl;
   }
 
   return nErr == 0;
@@ -796,6 +799,18 @@ ElementBlock* ASMu2DNastran::couplingGeometry (char* name) const
     sprintf(name,"Couplings for Patch %zu",idx+1);
 
   return geo;
+}
+
+
+ElementBlock* ASMu2DNastran::sensorGeometry (int idx, bool nodal) const
+{
+  if (idx < 1 || idx > static_cast<int>(nodal ? nnod : nel))
+    return nullptr;
+
+  Vec3 XYZ = nodal ? coord[idx-1] : this->getElementCenter(idx);
+  IFEM::cout <<"   * Sensor "<< idx <<" at "<< XYZ << std::endl;
+  double L = ASMbase::modelSize/400.0;
+  return new CubeBlock(XYZ,L);
 }
 
 

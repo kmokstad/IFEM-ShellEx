@@ -15,7 +15,6 @@ Number of constraint elements:  0
 Number of other elements:       0
 Pre-defined node sets:          1
 	"SPC63"	1 nodes
-	Reading patch 1
   Parsing <topologysets>
 	Topology sets: SPC63 (2,1,4D)
   Parsing <patchfile>

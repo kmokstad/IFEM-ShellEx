@@ -168,6 +168,7 @@ private:
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -vtfres \a file1 \a file2 ... : Extra files for direct VTF output
   \arg -vtfgrp \a file1 \a file2 ... : Extra files for element set visualisation
+  \arg -vtfloc \a file1 \a file2 ... : Extra files for sensor visualisation
   \arg -refsol \a file1 \a file2 ... : Files with reference solution
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
@@ -198,7 +199,7 @@ int main (int argc, char** argv)
   char* infile = nullptr;
   char* bdfile = nullptr;
   ElasticityArgs args;
-  std::vector<std::string> resfiles, grpfiles, disfiles;
+  std::vector<std::string> resfiles, grpfiles, locfiles, disfiles;
 
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
   ASM::cachePolicy = ASM::NO_CACHE;
@@ -259,6 +260,9 @@ int main (int argc, char** argv)
     else if (!strncmp(argv[i],"-vtfgrp",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         grpfiles.push_back(argv[++i]);
+    else if (!strncmp(argv[i],"-vtfloc",6))
+      while (i+1 < argc && argv[i+1][0] != '-')
+        locfiles.push_back(argv[++i]);
     else if (!strncmp(argv[i],"-refsol",6))
       while (i+1 < argc && argv[i+1][0] != '-')
         disfiles.push_back(argv[++i]);
@@ -544,6 +548,10 @@ int main (int argc, char** argv)
     if (!model->writeGlvG(geoBlk,infile))
       return terminate(12);
 
+    // Write sensor locations, if any
+    if (nodalR != 'm' && !model->writeGlvLoc(locfiles,nodalR,geoBlk))
+      return terminate(12);
+
     // Write surface pressures, if any
     if (!model->writeGlvT(iStep,geoBlk,nBlock))
       return terminate(13);
@@ -613,8 +621,8 @@ int main (int argc, char** argv)
       if (!model->writeGlvM(mode,true,nBlock))
         return terminate(18);
 
-    if (nodalR && !(grpfiles.empty() && resfiles.empty()))
-      data.resize(model->getNoNodes());
+    if (!grpfiles.empty() || !resfiles.empty())
+      data.resize(nodalR ? model->getNoNodes() : model->getNoElms(true));
 
     bool ok = true;
     int idBlock = 100;

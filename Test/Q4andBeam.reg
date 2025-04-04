@@ -16,7 +16,6 @@ Number of constraint elements:  0
 Number of other elements:       0
 Pre-defined node sets:          1
 	"ASET"	2 nodes
-	Reading patch 1
   Parsing <topologysets>
 	Topology sets: ASET (2,1,4D)
   Parsing <patchfile>

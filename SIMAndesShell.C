@@ -20,9 +20,11 @@
 #include "HDF5Writer.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "ElementBlock.h"
 #include "VTF.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
+#include <fstream>
 
 
 char SIMAndesShell::useBeams = 1;
@@ -125,8 +127,8 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
 }
 
 
-ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
-                                   const CharVec&, const char* whiteSpace) const
+ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
+                                   const char*) const
 {
   ASMbase* pch = NULL;
   bool nastran = nf.size() == 2 && nf[1] == 'n';
@@ -135,21 +137,18 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 
-  if (!pch->read(isp) || this->getLocalPatchIndex(pchInd+1) < 1)
+  if (!pch->read(isp))
   {
     delete pch;
     return nullptr;
   }
 
-  if (whiteSpace)
-    IFEM::cout << whiteSpace <<"Reading patch "<< pchInd+1 << std::endl;
-
-  ASMbase* bpch = nullptr;
   if (nastran)
   {
     // Check if we also have beam elements in the model.
     // They will be kept in a separate patch of 1D elements.
-    if ((bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams()))
+    ASMbase* bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams();
+    if (bpch)
     {
       bpch->idx = myModel.size();
       const_cast<SIMAndesShell*>(this)->myModel.push_back(bpch);
@@ -159,6 +158,12 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int pchInd,
   }
 
   pch->idx = myModel.size();
+  if (nastran && useBeams)
+    IFEM::cout <<"\tCreated shell patch "<< pch->idx+1
+               <<" with "<< pch->getNoElms() <<" elements"<< std::endl;
+  else
+    IFEM::cout <<"\tReading patch "<< pch->idx+1 << std::endl;
+
   return pch;
 }
 
@@ -289,6 +294,39 @@ bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
       if ((couplingGeom = shell->couplingGeometry(gName)))
         if (!this->getVTF()->writeGrid(couplingGeom,gName,++nBlock))
           return false;
+
+  return true;
+}
+
+
+bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
+                                 bool nodalR, int& nBlock) const
+{
+  ElementBlock* sensor;
+  const ASMu2DNastran* shell;
+  for (const std::string& fName : locfiles)
+  {
+    ElementBlock* sensorBlock = new ElementBlock(8);
+    std::ifstream locs(fName);
+    while (locs.good())
+    {
+      Vec3 XYZloc;
+      int idx = 0;
+      locs >> idx;
+      for (const ASMbase* pch : myModel)
+        if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)) &&
+            (sensor = shell->sensorGeometry(idx,nodalR)))
+        {
+          sensorBlock->merge(*sensor,false);
+          break;
+        }
+    }
+
+    if (sensorBlock->getNoElms() < 1)
+      delete sensorBlock;
+    else if (!this->getVTF()->writeGrid(sensorBlock,fName.c_str(),++nBlock))
+      return false;
+  }
 
   return true;
 }
