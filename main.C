@@ -204,6 +204,14 @@ int main (int argc, char** argv)
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
   ASM::cachePolicy = ASM::NO_CACHE;
 
+  auto&& isBDF = [](const char* fname)
+  {
+    static const char* bdfext[] = { ".dat", ".nas", ".bdf", NULL };
+    for (const char** ext = bdfext; *ext; ++ext)
+      if (strcasestr(fname,*ext)) return true;
+    return false;
+  };
+
   for (int i = 1; i < argc; i++)
     if (argv[i] == infile || args.parseArg(argv[i]))
       ; // ignore the input file on the second pass
@@ -277,7 +285,7 @@ int main (int argc, char** argv)
         return 1;
       i = 0; // start over and let command-line options override input file
     }
-    else if (!bdfile && strcasestr(argv[i],".dat") && !infile)
+    else if (!bdfile && isBDF(argv[i]) && !infile)
       bdfile = argv[i];
     else
       std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
