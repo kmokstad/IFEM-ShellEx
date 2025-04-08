@@ -92,13 +92,23 @@ public:
 #endif
 
 
+ASMu2DNastran::~ASMu2DNastran ()
+{
+  for (const ElementBlockID& geo : myBlocks)
+    delete geo.second;
+}
+
+
 bool ASMu2DNastran::read (std::istream& is)
 {
-  massMax = 0.0;
+  this->clear(true);
+
+  nGnod.fill(0);
   spiders.clear();
-  myMLGE.clear();
-  myMLGN.clear();
-  myCoord.clear();
+  myProps.clear();
+  myBprops.clear();
+  myStiff.clear();
+  myMass.clear();
   myLoads.clear();
   IntVec beamElms;
   IntVec beamNodes;
@@ -473,7 +483,7 @@ void ASMu2DNastran::addMassElement (FFlElementBase* elm, int eId, int inod)
   const RealArray& Mvec = mass->M.getValue();
   RealArray::const_iterator m = Mvec.begin();
 
-  if (*m > massMax)
+  if (myMass.empty() || *m > massMax)
     massMax = *m;
 
   myMLGE.push_back(eId);
@@ -737,10 +747,21 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 }
 
 
+void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
+{
+  myBlocks.emplace_back(idx,blk);
+  nGnod[idx > 0 ? 0 : 1] += blk->getNoNodes();
+}
+
+
+/*!
+  This method creates an element block visualizing the point mass elements
+  as spheres with radii proportional to the mass magnintudes.
+*/
+
 ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 {
   ElementBlock* geo = nullptr;
-  if (myMass.empty()) return geo;
 
   // Let the largest point mass be visualized as a sphere
   // with diameter ~5% of the total length of the structure
@@ -748,16 +769,15 @@ ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 
   for (const std::pair<const int,Matrix>& mass : myMass)
   {
-    Vec3 XYZ = coord[MNPC[this->getElmIndex(mass.first)-1].front()];
+    int inod = MNPC[this->getElmIndex(mass.first)-1].front();
     double R = mass.second(1,1)*massScale;
+    ElementBlock* newBlock = new SphereBlock(coord[inod],R,8,6);
     if (!geo)
-      geo = new SphereBlock(XYZ,R,8,6);
+      geo = new ElementBlock(*newBlock);
     else
-    {
-      ElementBlock* tmp = new SphereBlock(XYZ,R,8,6);
-      geo->merge(*tmp);
-      delete tmp;
-    }
+      geo->merge(*newBlock,false);
+
+    const_cast<ASMu2DNastran*>(this)->addBlock(inod,newBlock);
   }
 
   if (geo && name)
@@ -767,7 +787,13 @@ ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 }
 
 
-ElementBlock* ASMu2DNastran::couplingGeometry (char* name) const
+/*!
+  This method creates an element block visualizing the constraint elements as
+  spiders. The node indices are store as external element ID of each spider leg.
+  This is then used to assign correct deformation values in extraSolution().
+*/
+
+ElementBlock* ASMu2DNastran::extraGeometry (char* name) const
 {
   ElementBlock* geo = nullptr;
   if (spiders.empty()) return geo;
@@ -785,7 +811,7 @@ ElementBlock* ASMu2DNastran::couplingGeometry (char* name) const
     const Vec3& X = coord[mnpc.front()];
     for (size_t i = 1; i < mnpc.size(); i++)
       if (!X.equal(coord[mnpc[i]],1.0e-4*modelSize))
-        geo->addLine(iref,coord[mnpc[i]]);
+        geo->addLine(iref,coord[mnpc[i]],mnpc[i]);
     iref++;
   }
 
@@ -794,6 +820,8 @@ ElementBlock* ASMu2DNastran::couplingGeometry (char* name) const
     delete geo;
     return nullptr;
   }
+
+  const_cast<ASMu2DNastran*>(this)->addBlock(-1, new ElementBlock(*geo));
 
   if (name)
     sprintf(name,"Couplings for Patch %zu",idx+1);
@@ -892,6 +920,49 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
   for (size_t i = 0; i < checkPt.size(); i++)
     if (checkPt[i])
       sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
+
+  return true;
+}
+
+
+bool ASMu2DNastran::immersedSolution (Matrix& field, const Vector& locSol) const
+{
+  field.resize(3,nGnod.front());
+  if (nGnod.front() < 1) return false;
+
+  size_t inod = 0;
+  for (const ElementBlockID& geo : myBlocks)
+    if (geo.first >= 0)
+    {
+      unsigned int ipnod = nf*geo.first;
+      Vec3 X0(coord[geo.first]);
+      Vec3 U0(locSol.ptr() + ipnod);
+      Tensor T0(locSol[ipnod+3],locSol[ipnod+4],locSol[ipnod+5]);
+      for (size_t i = 0; i < geo.second->getNoNodes(); i++)
+      {
+        const Vec3& X1 = geo.second->getCoord(i);
+        Vec3 U1 = (X0+U0) + T0*(X1-X0) - X1;
+        field.fillColumn(++inod, U1.ptr());
+      }
+    }
+
+  return true;
+}
+
+
+bool ASMu2DNastran::extraSolution (Matrix& field, const Vector& locSol) const
+{
+  field.resize(3,nGnod.back());
+  if (nGnod.back() < 1) return false;
+
+  size_t inod = 0;
+  for (const IntVec& mnpc : spiders)
+    field.fillColumn(++inod, locSol.ptr() + nf*mnpc.front());
+
+  for (const ElementBlockID& geo : myBlocks)
+    if (geo.first < 0)
+      for (size_t i = 1; i <= geo.second->getNoElms(); i++)
+        field.fillColumn(++inod, locSol.ptr() + nf*geo.second->getElmId(i));
 
   return true;
 }

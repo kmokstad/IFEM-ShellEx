@@ -277,28 +277,6 @@ DataExporter* SIMAndesShell::getHDF5writer (const Vector& psol,
 }
 
 
-/*!
-  This method is reimplemented to render the rigid and flexible couplings.
-*/
-
-bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
-{
-  if (!this->SIMElasticity<SIM2D>::writeGlvG(nBlock,inpFile,doClear))
-    return false;
-
-  char gName[64];
-  ElementBlock* couplingGeom;
-  const ASMu2DNastran* shell;
-  for (const ASMbase* pch : myModel)
-    if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)))
-      if ((couplingGeom = shell->couplingGeometry(gName)))
-        if (!this->getVTF()->writeGrid(couplingGeom,gName,++nBlock))
-          return false;
-
-  return true;
-}
-
-
 bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
                                  bool nodalR, int& nBlock) const
 {

@@ -17,6 +17,7 @@
 #include "ASMu2DLag.h"
 #include "ASMu1DLag.h"
 
+class ElementBlock;
 class BeamProperty;
 class FFlElementBase;
 
@@ -32,12 +33,12 @@ class ASMu2DNastran : public ASMu2DLag
 public:
   //! \brief The constructor forwards to the parent class constructor.
   ASMu2DNastran(unsigned char n, unsigned char n_f, bool ns, char b)
-    : ASMu2DLag(n,n_f,'N'),
-      useBeams(b), useSets(!ns), massMax(0.0), beamPatch(nullptr) {}
+    : ASMu2DLag(n,n_f,'N'), useBeams(b), useSets(!ns),
+      massMax(1.0), beamPatch(nullptr) { nGnod.fill(0); }
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
-  //! \brief Empty destructor.
-  virtual ~ASMu2DNastran() {}
+  //! \brief The destructor deletes the immersed/extra element blocks, if any.
+  virtual ~ASMu2DNastran();
 
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
@@ -59,7 +60,7 @@ public:
   //! \brief Returns an additional geometry to visualize (point masses, etc.).
   virtual ElementBlock* immersedGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize (constraints, etc.).
-  ElementBlock* couplingGeometry(char* name) const;
+  virtual ElementBlock* extraGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize a sensor location.
   ElementBlock* sensorGeometry(int idx, bool nodal) const;
 
@@ -74,6 +75,15 @@ public:
   //! \param[in] atElmCenters If \e false, evaluate at nodal points instead
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
                             const RealArray*, bool atElmCenters) const;
+
+  //! \brief Evaluates the primary solution at immersed geometry points.
+  //! \param[out] field Solution field values at immersed geometry points
+  //! \param[in] locSol Solution vector local to current patch
+  virtual bool immersedSolution(Matrix& field, const Vector& locSol) const;
+  //! \brief Evaluates the primary solution at extra geometry points.
+  //! \param[out] field Solution field values at extra geometry points
+  //! \param[in] locSol Solution vector local to current patch
+  virtual bool extraSolution(Matrix& field, const Vector& locSol) const;
 
   //! \brief Checks if an external element ID is within a predefined set.
   //! \todo Maybe put this in ASMbase later, or extend isInElementSet()
@@ -90,6 +100,9 @@ public:
   ASMbase* haveBeams() const { return beamPatch; }
 
 protected:
+  //! \brief Adds an element block with additional geometry.
+
+  void addBlock(int idx, ElementBlock* blk);
   //! \brief Adds a beam element to this patch.
   void addBeamElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
                       IntMat& beamMNPC, IntVec& beamElms, IntVec& beamNodes,
@@ -142,8 +155,12 @@ private:
   char useBeams; //!< If nonzero include beam elements as a separate patch
   bool useSets; //!< If \e true, read Nastran SET definitions
 
-  double massMax; //!< The largets point mass in the model
+  double massMax; //!< The largets point mass in the model (for scaling)
   IntMat spiders; //!< Constraint element topologies
+
+  using ElementBlockID = std::pair<int,ElementBlock*>; //!< Convenience type
+  std::vector<ElementBlockID> myBlocks; //!< Geometries for masses and spiders
+  std::array<size_t,2> nGnod; //!< Total number of additional geometry nodes
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements
 };

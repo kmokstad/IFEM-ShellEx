@@ -1,21 +1,22 @@
 Q4andBeam.xinp -time 0.5
 
 Input file: Q4andBeam.xinp
-Equation solver: 2
-Number of Gauss points: 4
 Evaluation time for property functions: 0.5
 Parsing input file Q4andBeam.xinp
 Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
 	Reading data file Q4andBeam.nas
-Total number of nodes:          7
+Total number of nodes:          8
 Number of shell elements:       2
 Number of beam elements:        2
-Number of constraint elements:  0
-Number of other elements:       0
+Number of constraint elements:  1
+Number of other elements:       1
+Model extension (diameter):     3.20156
 Pre-defined node sets:          1
 	"ASET"	2 nodes
+	Created beam patch 1 with 3 nodes
+	Created shell patch 2 with 3 elements
   Parsing <topologysets>
 	Topology sets: ASET (2,1,4D)
   Parsing <patchfile>
@@ -26,6 +27,7 @@ Parsing <boundaryconditions>
 Parsing <elasticity>
   Parsing <nodeload>
 	Node 7 dof 3 Load: (expression) 1.0e6\*sin(PI\*t)\*t
+Parsing <newmarksolver>
 Parsing input file succeeded.
 Equation solver: 2
 Number of Gauss points: 4
@@ -36,10 +38,11 @@ Renumbered 10 nodes.
 Resolving Dirichlet boundary conditions
 	Constraining P2 in direction(s) 123456
  >>> SAM model summary <<<
-Number of elements    4
-Number of nodes       7
-Number of dofs        42
+Number of elements    5
+Number of nodes       8
+Number of dofs        48
 Detected 1 elements out of order, reordering...
+Number of constraints 6
 Number of unknowns    30
 Processing integrand associated with code 0
 Assembling interior matrix terms for P1
@@ -48,7 +51,7 @@ Done.
 Solving the equation system ...
 	Condition number: 1672.94
  >>> Solution summary <<<
-L2-norm            : 0.0549888
+L2-norm            : 0.0514948
 Max X-displacement : 0.00513252
 Max Y-displacement : 0.00116429
 Max Z-displacement : 0.224569
