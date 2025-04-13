@@ -15,11 +15,10 @@
 #include "SIMenums.h"
 #include "SIMShellModal.h"
 #include "SIMAndesSplit.h"
-#include "NonlinearDriver.h"
 #include "ElasticityUtils.h"
 #include "ElasticityArgs.h"
+#include "MultiLoadCaseSim.h"
 #include "DynamicSim.h"
-#include "EigenModeSIM.h"
 #include "DataExporter.h"
 #include "Profiler.h"
 #ifdef INT_DEBUG
@@ -33,111 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-
-/*!
-  \brief Reads the input file and invokes the multi-load-case simulation driver.
-*/
-
-int mlcSim (char* infile, SIMAndesShell* model, bool fixDup, bool dumpNodeMap)
-{
-  IFEM::cout <<"\nUsing the multi-load-case simulation driver."<< std::endl;
-  NonlinearDriver simulator(*model,true);
-
-  // Read in solver and model definitions
-  if (!simulator.read(infile))
-    return 1;
-
-  // Let the stop time specified on command-line override input file setting
-  if (Elastic::time > 1.0)
-    simulator.setStopTime(Elastic::time);
-
-  utl::profiler->stop("Model input");
-
-  model->opt.print(IFEM::cout,true) << std::endl;
-  simulator.printProblem();
-
-  // Preprocess the model and establish data structures for the algebraic system
-  if (!model->preprocess({},fixDup))
-    return 2;
-
-  // Save FE model to VTF file for visualization
-  if (model->opt.format >= 0 && !simulator.saveModel(infile))
-    return 3;
-
-  // Initialize the solution vectors
-  simulator.initPrm();
-  simulator.initSol();
-
-  // Initialize the linear equation solver
-  if (!simulator.initEqSystem())
-    return 3;
-
-  // Open HDF5 result database, if requested
-  DataExporter* writer = nullptr;
-  if (model->opt.dumpHDF5(infile))
-    writer = model->getHDF5writer(simulator.getSolution(),dumpNodeMap);
-
-  // Now invoke the main solution driver
-  int status = simulator.solveProblem(writer);
-  delete writer;
-  return status;
-}
-
-
-/*!
-  \brief Simulation driver creating a time history from a set of eigen modes.
-*/
-
-class MyModesSIM : public EigenModeSIM
-{
-public:
-  //! \brief The constructor forwards to the parent class constructor.
-  explicit MyModesSIM(SIMbase& sim) : EigenModeSIM(sim) {}
-
-protected:
-  using EigenModeSIM::parse;
-  //! \brief Parses a data section from an XML document.
-  virtual bool parse(const tinyxml2::XMLElement* elem)
-  {
-    return params.parse(elem) && this->EigenModeSIM::parse(elem);
-  }
-
-public:
-  //! \brief Initializes the solver and runs through the time history.
-  int solve(char* infile, double ztol = 1.0e-8, std::streamsize outPrec = 0)
-  {
-    IFEM::cout <<"\nGenerating time history from eigenmode shapes."<< std::endl;
-    int status = strcasestr(infile,".xinp") && this->readXML(infile) ? 0 : 1;
-    utl::profiler->stop("Model input");
-
-    model.opt.print(IFEM::cout,true) << std::endl;
-    this->printProblem();
-
-    if (status == 0 && !model.preprocess())
-      status = 2;
-
-    if (status == 0 && model.opt.format >= 0 && !this->saveModel(infile))
-      status = 3;
-
-    if (Elastic::time > 1.0)
-      params.stopTime = Elastic::time;
-
-    this->initSol(0,0);
-    for (int iStep = 1; status == 0 && this->advanceStep(params); iStep++)
-      if (this->solveStep(params,SIM::DYNAMIC,ztol,outPrec) != SIM::CONVERGED)
-        status = 5;
-      else if (!this->saveStep(iStep,params.time.t))
-        status = 11;
-      else if (!model.saveResults(solution,params.time.t,iStep))
-        status = 13;
-
-    return status;
-  }
-
-private:
-  TimeStep params; //!< Time stepping parameters
-};
 
 
 /*!
@@ -409,10 +303,7 @@ int main (int argc, char** argv)
     return terminate(dynamicSim(infile,model,fixDup),true);
 
   if (eigSim) // Create a time history from the mode shapes
-  {
-    MyModesSIM simulator(*model);
-    return terminate(simulator.solve(infile));
-  }
+    return terminate(modeHistSim(infile,model));
 
   // Read in model definitions
   if (!model->read(infile))
