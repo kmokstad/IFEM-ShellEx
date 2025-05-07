@@ -456,6 +456,7 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
 
   std::vector<int> G(2,0);
 
+  bool haveOffset = entry.size() > 10;
   if (entry.size() < 16) entry.resize(16,"");
 
   CONVERT_ENTRY ("CBAR",
@@ -466,7 +467,6 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
 		 fieldValue(entry[4],X[0]) &&
 		 fieldValue(entry[5],X[1]) &&
 		 fieldValue(entry[6],X[2]) &&
-	 	            entry[7].empty() &&
 		 fieldValue(entry[8],PA) &&
 		 fieldValue(entry[9],PB) &&
 		 fieldValue(entry[10],WA[0]) &&
@@ -486,6 +486,22 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
   if (!entry[4].empty() && entry[5].empty() && entry[6].empty())
     if (entry[4].find('.') == std::string::npos)
       bo->G0 = X[0];
+
+  if (entry[7].empty())
+    entry[7] = "GGG";
+  if (entry[7].front() == 'B')
+    bo->basic = true; // Orientation vector in the Basic coordinate system
+  else if (entry[7].front() != 'G')
+    entry[7].front() = 'G';
+
+  if (haveOffset && entry[7].substr(1,2) != "GG")
+  {
+    nWarnings++;
+    ListUI <<"\n  ** Warning: CBAR element "<< EID
+           <<" has offset vector flag \""<< entry[7] <<"\"."
+           <<"\n              This is not implemented yet, \""
+           << entry[7].front() <<"GG\" is used.\n";
+  }
 
   bo->X = X;
   bo->empty[0] = entry[1].empty();
@@ -539,6 +555,7 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
 
   std::vector<int> G(2,0);
 
+  bool haveOffset = entry.size() > 10;
   if (entry.size() < 16) entry.resize(16,"");
 
   CONVERT_ENTRY ("CBEAM",
@@ -569,14 +586,20 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
     if (entry[4].find('.') == std::string::npos)
       bo->G0 = X[0];
 
-  if (entry[7] == "BGG")
+  if (entry[7].empty())
+    entry[7] = "GGG";
+  if (entry[7].front() == 'B')
     bo->basic = true; // Orientation vector in the Basic coordinate system
-  else if (!entry[7].empty() && entry[7] != "GGG")
+  else if (entry[7].front() != 'G')
+    entry[7].front() = 'G';
+
+  if (haveOffset && entry[7].substr(1,2) != "GG")
   {
     nWarnings++;
     ListUI <<"\n  ** Warning: CBEAM element "<< EID
            <<" has offset vector flag \""<< entry[7] <<"\"."
-           <<"\n              This is not implemented yet, \"GGG\" is used.\n";
+           <<"\n              This is not implemented yet, \""
+           << entry[7].front() <<"GG\" is used.\n";
   }
 
   bo->X = X;
