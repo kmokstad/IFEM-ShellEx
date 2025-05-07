@@ -22,6 +22,9 @@
 #include <fstream>
 #include <sstream>
 
+namespace ASM { bool skipVTFmass = false; }
+
+
 #ifdef HAS_FFLLIB
 #include "FFlLinkHandler.H"
 #include "FFlNastranReader.H"
@@ -762,6 +765,7 @@ void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
 ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 {
   ElementBlock* geo = nullptr;
+  if (myMass.empty() || ASM::skipVTFmass) return geo;
 
   // Let the largest point mass be visualized as a sphere
   // with diameter ~5% of the total length of the structure
@@ -780,7 +784,7 @@ ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
     const_cast<ASMu2DNastran*>(this)->addBlock(inod,newBlock);
   }
 
-  if (geo && name)
+  if (name)
     sprintf(name,"Point masses for Patch %zu",idx+1);
 
   return geo;

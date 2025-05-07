@@ -33,6 +33,8 @@
 #include <string.h>
 #include <ctype.h>
 
+namespace ASM { extern bool skipVTFmass; }
+
 
 /*!
   \brief Main program for the linear elastic shell solver.
@@ -73,6 +75,7 @@
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state whne evaluating
        state-dependent property functions
+  \arg -no-vtfmass : Skip sphere geometries for 1-noded mass elements
 */
 
 int main (int argc, char** argv)
@@ -149,6 +152,8 @@ int main (int argc, char** argv)
     }
     else if (!strcmp(argv[i],"-keep-previous-state"))
       nstates = 2; // both current and previous state will reside in core
+    else if (!strcmp(argv[i],"-no-vtfmass"))
+      ASM::skipVTFmass = true;
     else if (!strncmp(argv[i],"-vtfres",6))
     {
       while (i+1 < argc && argv[i+1][0] != '-')
@@ -232,7 +237,8 @@ int main (int argc, char** argv)
                "[-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]",
                "[-free]","[-time <t>]","[-check]","[-ignoreSol]",
                "[-mlc|-qstatic|-dynamic|-modes]","[-keep-previous-state]",
-               "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS]]",
+               "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS] "
+               "[-no-vtfmass]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
                "[-split]"});
