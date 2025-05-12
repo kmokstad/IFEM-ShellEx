@@ -339,8 +339,9 @@ bool ASMu2DNastran::read (std::istream& is)
   if (!elemSets.empty())
   {
     IFEM::cout <<"Pre-defined element sets:       "<< elemSets.size();
-    for (const ASM::NodeSet& es : elemSets)
-      IFEM::cout <<"\n\t\""<< es.first <<"\t"<< es.second.size() <<" elements";
+    for (const ASM::NodeSet& eset : elemSets)
+      IFEM::cout <<"\n\t\""<< eset.first <<"\"\t"<< eset.second.size()
+                 <<" elements";
     IFEM::cout << std::endl;
   }
 #endif
@@ -739,7 +740,7 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
       for (int mDof = 1; mDof <= 6; mDof++, omega++)
         if (fabs(*omega) > Zero)
           cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
-#ifdef INT_DEBUG
+#if INT_DEBUG > 1
         else
           std::cout <<"  ** Ignoring small coupling coefficient "<< *omega
                     <<" to local dof "<< mDof
@@ -753,7 +754,7 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
 {
   myBlocks.emplace_back(idx,blk);
-  nGnod[idx > 0 ? 0 : 1] += blk->getNoNodes();
+  nGnod[idx < 0 ? 1 : 0] += blk->getNoNodes();
 }
 
 
