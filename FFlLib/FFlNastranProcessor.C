@@ -72,34 +72,6 @@ namespace FF_NAMESPACE {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static FFlAttributeBase* createBeamSection (int PID, FFlCrossSection& data,
-                                            std::pair<int,std::string>& comment)
-{
-  FFlPBEAMSECTION* myAtt = CREATE_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
-  myAtt->crossSectionArea = round(data.A,10);
-  myAtt->phi = round(data.findMainAxes(),10);
-  myAtt->Iy  = round(data.Izz,10);
-  myAtt->Iz  = round(data.Iyy,10);
-  myAtt->It  = round(data.J,10);
-  myAtt->Kxy = round(data.K1,10);
-  myAtt->Kxz = round(data.K2,10);
-  myAtt->Sy  = round(data.S1,10);
-  myAtt->Sz  = round(data.S2,10);
-
-  if (comment.first > 0)
-    // Set property name from the first comment line before this PBEAM entry
-    if (FFlNastranReader::extractNameFromComment(comment.second,true))
-      myAtt->setName(comment.second);
-
-#ifdef FFL_DEBUG
-  std::cout << data;
-  myAtt->print();
-#endif
-  return myAtt;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 static FFlAttributeBase* createNSM (int PID, double NSM, bool isShell = false)
 {
   FFlPNSM* myAtt = CREATE_ATTRIBUTE(FFlPNSM,"PNSM",PID);
@@ -1153,8 +1125,7 @@ bool FFlNastranReader::process_CONROD (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  this->insertBeamPropMat("PROD",EID,MID);
-  myLink->addAttribute(createBeamSection(EID,params,lastComment));
+  this->createBeamSection("PROD",EID,MID,params);
 
   if (params.NSM != 0.0)
   {
@@ -2317,13 +2288,7 @@ bool FFlNastranReader::process_MAT1 (std::vector<std::string>& entry)
   myAtt->poissonsRatio   = round(NU,10);
   myAtt->materialDensity = round(RHO,10);
 
-  if (lastComment.first > 0)
-    if (extractNameFromComment(lastComment.second))
-      myAtt->setName(lastComment.second);
-
-#ifdef FFL_DEBUG
-  myAtt->print();
-#endif
+  this->nameFromLastComment(myAtt);
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT1")
@@ -2372,13 +2337,7 @@ bool FFlNastranReader::process_MAT2 (std::vector<std::string>& entry)
     myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
-  if (lastComment.first > 0)
-    if (extractNameFromComment(lastComment.second))
-      myAtt->setName(lastComment.second);
-
-#ifdef FFL_DEBUG
-  myAtt->print();
-#endif
+  this->nameFromLastComment(myAtt);
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT2")
@@ -2434,13 +2393,7 @@ bool FFlNastranReader::process_MAT8 (std::vector<std::string>& entry)
   myAtt->G2Z  = round(G2Z,10);
   myAtt->materialDensity = round(RHO,10);
 
-  if (lastComment.first > 0)
-    if (extractNameFromComment(lastComment.second))
-      myAtt->setName(lastComment.second);
-
-#ifdef FFL_DEBUG
-  myAtt->print();
-#endif
+  this->nameFromLastComment(myAtt);
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT8")
@@ -2490,13 +2443,7 @@ bool FFlNastranReader::process_MAT9 (std::vector<std::string>& entry)
     myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
-  if (lastComment.first > 0)
-    if (extractNameFromComment(lastComment.second))
-      myAtt->setName(lastComment.second);
-
-#ifdef FFL_DEBUG
-  myAtt->print();
-#endif
+  this->nameFromLastComment(myAtt);
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT9")
@@ -2712,8 +2659,7 @@ bool FFlNastranReader::process_PBAR (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  this->insertBeamPropMat("PBAR",PID,MID);
-  myLink->addAttribute(createBeamSection(PID,params,lastComment));
+  this->createBeamSection("PBAR",PID,MID,params);
 
   if (params.NSM != 0.0)
   {
@@ -2796,10 +2742,7 @@ bool FFlNastranReader::process_PBARL (std::vector<std::string>& entry)
 
   FFlCrossSection params(Type,Dim);
   if (params.A > 0.0)
-  {
-    this->insertBeamPropMat("PBARL",PID,MID);
-    myLink->addAttribute(createBeamSection(PID,params,lastComment));
-  }
+    this->createBeamSection("PBARL",PID,MID,params);
   else
     ListUI <<"            Error occurred when processing PBARL "<< PID <<".\n";
 
@@ -2948,8 +2891,7 @@ bool FFlNastranReader::process_PBEAM (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  this->insertBeamPropMat("PBEAM",PID,MID);
-  myLink->addAttribute(createBeamSection(PID,params,lastComment));
+  this->createBeamSection("PBEAM",PID,MID,params);
 
   if (params.NSM != 0.0)
   {
@@ -3054,10 +2996,7 @@ bool FFlNastranReader::process_PBEAML (std::vector<std::string>& entry)
 
   FFlCrossSection params(Type,Dim);
   if (params.A > 0.0)
-  {
-    this->insertBeamPropMat("PBEAML",PID,MID);
-    myLink->addAttribute(createBeamSection(PID,params,lastComment));
-  }
+    this->createBeamSection("PBEAML",PID,MID,params);
   else
     ListUI <<"            Error occurred when processing PBEAML "<< PID <<".\n";
 
@@ -3125,10 +3064,7 @@ bool FFlNastranReader::process_PBUSH (std::vector<std::string>& entry)
   FFlPBUSHCOEFF* myAtt = CREATE_ATTRIBUTE(FFlPBUSHCOEFF,"PBUSHCOEFF",PID);
   for (i = 0; i < 6; i++) myAtt->K[i] = round(K[i],10);
 
-  if (lastComment.first > 0)
-    if (extractNameFromComment(lastComment.second))
-      myAtt->setName(lastComment.second);
-
+  this->nameFromLastComment(myAtt);
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_PBUSH")
@@ -3359,8 +3295,7 @@ bool FFlNastranReader::process_PROD (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  this->insertBeamPropMat("PROD",PID,MID);
-  myLink->addAttribute(createBeamSection(PID,params,lastComment));
+  this->createBeamSection("PROD",PID,MID,params);
 
   if (params.NSM != 0.0)
   {
@@ -3438,13 +3373,7 @@ bool FFlNastranReader::process_PSHELL (std::vector<std::string>& entry)
              <<"            This may result in a singular stiffness matrix.\n";
     }
 
-    if (lastComment.first > 0)
-      if (extractNameFromComment(lastComment.second))
-	myAtt->setName(lastComment.second);
-
-#ifdef FFL_DEBUG
-    myAtt->print();
-#endif
+    this->nameFromLastComment(myAtt);
     myLink->addAttribute(myAtt);
     PTHICKs.insert(PID);
   }
@@ -3525,10 +3454,8 @@ bool FFlNastranReader::process_PWELD (std::vector<std::string>& entry)
 	    << std::endl;
 #endif
 
-  this->insertBeamPropMat("PWELD",PID,MID);
-
   FFlCrossSection params("ROD",{0.5*D});
-  myLink->addAttribute(createBeamSection(PID,params,lastComment));
+  this->createBeamSection("PWELD",PID,MID,params);
 
   STOPP_TIMER("process_PWELD")
   return true;
@@ -4048,7 +3975,8 @@ bool FFlNastranReader::process_SPC1 (std::vector<std::string>& entry)
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-bool FFlNastranReader::insertBeamPropMat (const char* bulk, int PID, int MID)
+bool FFlNastranReader::createBeamSection (const char* bulk, int PID, int MID,
+                                          FFlCrossSection& data)
 {
   IntMap& beamMID = propMID[FFlTypeInfoSpec::BEAM_ELM];
 
@@ -4070,6 +3998,36 @@ bool FFlNastranReader::insertBeamPropMat (const char* bulk, int PID, int MID)
     return false;
   }
 
+  FFlPBEAMSECTION* myAtt = CREATE_ATTRIBUTE(FFlPBEAMSECTION,"PBEAMSECTION",PID);
+  myAtt->crossSectionArea = round(data.A,10);
+  myAtt->phi = round(data.findMainAxes(),10);
+  myAtt->Iy  = round(data.Izz,10);
+  myAtt->Iz  = round(data.Iyy,10);
+  myAtt->It  = round(data.J,10);
+  myAtt->Kxy = round(data.K1,10);
+  myAtt->Kxz = round(data.K2,10);
+  myAtt->Sy  = round(data.S1,10);
+  myAtt->Sz  = round(data.S2,10);
+#ifdef FFL_DEBUG
+  std::cout << data;
+#endif
+
+  // Set property name from the first comment line before this PBEAM entry
+  this->nameFromLastComment(myAtt,true);
+  return myLink->addAttribute(myAtt);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+bool FFlNastranReader::nameFromLastComment (FFlAttributeBase* att, bool first)
+{
+  if (!att || lastComment.first < 1 || !this->extractNameFromLastComment(first))
+    return false;
+
+  att->setName(lastComment.second);
+#ifdef FFL_DEBUG
+  att->print();
+#endif
   return true;
 }
 

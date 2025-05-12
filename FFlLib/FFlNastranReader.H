@@ -20,6 +20,7 @@
 
 #define DEF_PROCESSOR(rec) bool process_##rec (std::vector<std::string>& entry);
 
+class FFlCrossSection;
 class FFaCheckSum;
 
 #ifdef FF_NAMESPACE
@@ -155,9 +156,6 @@ public:
   static void identifierCB (const std::string& fileName, int& positiveIdent);
   static void readerCB     (const std::string& fileName, FFlLinkHandler* link);
 
-  static bool extractNameFromComment (std::string& commentLine,
-                                      bool first = false);
-
 protected:
 
   bool read (const std::string& fileName, bool includedFile = false);
@@ -172,6 +170,12 @@ protected:
   bool processAllSets (std::istream& fs, const int startBulk);
   FFlGroup* processThisSet (std::string& setLine,
 			    const int startL, const int stopL);
+
+  bool extractNameFromLastComment (bool first = false);
+  // Extract element group name from the last comment read
+  bool nameFromLastComment (FFlGroup* group, bool first = false);
+  // Extract attribute name from the last comment read
+  bool nameFromLastComment (FFlAttributeBase* att, bool first = false);
 
   // Read next bulk-entry from the input stream
   bool getNextEntry (std::istream& is, BulkEntry& entry);
@@ -220,7 +224,8 @@ protected:
   bool processThisEntry (const std::string& name,
 			 std::vector<std::string>& entry);
 
-  bool insertBeamPropMat (const char* bulk, int PID, int MID);
+  bool createBeamSection (const char* bulk, int PID, int MID,
+                          FFlCrossSection& data);
 
   IntMap::iterator setDofFlag (int n, int flg);
 
