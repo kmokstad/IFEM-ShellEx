@@ -134,7 +134,7 @@ public:
   FFlVAppearance*   getAppearance(int ID) const;
 #endif
 
-  bool getRefNodes(std::vector<FFlNode*>& refNodes) const;
+  bool getRefNodes(NodesVec& refNodes) const;
   bool getLoads(int ID, LoadsVec& loads) const;
   void getLoadCases(std::set<int>& IDs) const;
 
@@ -221,7 +221,9 @@ public:
   FFlNode* findClosestNode(const FaVec3& point) const;
 
   FFlNode* createAttachableNode(FFlNode* fromNode, const FaVec3& nodePos,
-                                FFlConnectorItems* cItems = NULL);
+                                FFlConnectorItems* cItems = NULL,
+                                double Ktra = 0.0, double Krot = 0.0,
+                                double Mass = 0.0);
 
   FFlElementBase* findClosestElement(const FaVec3& point,
                                      const CathegoryVec& wantedTypes) const;
@@ -234,6 +236,10 @@ public:
                             double* xi) const;
   FFlElementBase* findPoint(const FaVec3& point,
                             double* xi, int groupID = 0) const;
+
+  using Strings = std::vector<std::string>;
+  //! \brief Returns the list of elements connected to the specified node \a ID.
+  FFlNode* getNodeConnectivity(int ID, Strings& elmList) const;
 
   // Strain coat creation (these methods are defined in FFlStrainCoatCreator.C)
 
@@ -288,7 +294,7 @@ public:
   void addComponentModes(int nGen) { nGenDofs += nGen; }
   void addOP2file(const std::string& fname) { myOP2files.push_back(fname); }
   void clearOP2files() { myOP2files.clear(); }
-  const std::vector<std::string>& getOP2files() const { return myOP2files; }
+  const Strings& getOP2files() const { return myOP2files; }
   size_t getNumberOfGenDofs() const { return nGenDofs; }
 
   void dump() const;
@@ -350,6 +356,7 @@ protected:
   AttributeTypeMap      myAttributes;
 
   std::map<unsigned int,FFlAttributeBase*> uniqueAtts;
+  mutable std::map<FFlNode*,ElementsSet>   myNodeMapping;
 
   bool                  isResolved;    // Flag to avoid resolving more than once
   bool                  hasLooseNodes; // true if unconnected nodes are present
@@ -358,7 +365,7 @@ protected:
   mutable ElmTypeCount  myNumElements; // the number of elements of each type
   mutable ElementsVec   myFElements;   // pointers to the Finite Elements only
   mutable ElementsSet   myBushElements;// pointers to the BUSH elements only
-  std::vector<std::string> myOP2files; // files with externally reduced matrices
+  Strings               myOP2files;    // files with externally reduced matrices
   size_t                nGenDofs;      // as read from Nastran bulk data file
 
   mutable FFaCheckSum*  myChkSum;

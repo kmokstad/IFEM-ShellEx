@@ -24,6 +24,8 @@
 #include "FFlLib/FFlFEParts/FFlVAppearance.H"
 #endif
 #include "FFlLib/FFlFEParts/FFlPCOORDSYS.H"
+#include "FFlLib/FFlFEParts/FFlPBUSHCOEFF.H"
+#include "FFlLib/FFlFEParts/FFlPMASS.H"
 #include "FFlLib/FFlFEParts/FFlPWAVGM.H"
 #include "FFlLib/FFlFEParts/FFlWAVGM.H"
 #include "FFlLib/FFlFEParts/FFlRGD.H"
@@ -211,15 +213,18 @@ void FFlLinkHandler::deleteGeometry()
   myElements.clear();
   myFElements.clear();
   myBushElements.clear();
+  myOP2files.clear();
   myNodes.clear();
   myFEnodes.clear();
 #ifdef FT_USE_VERTEX
   myVertices.clear();
+  myVxMapping.clear();
 #endif
   myGroupMap.clear();
   myLoads.clear();
   myAttributes.clear();
   uniqueAtts.clear();
+  myNodeMapping.clear();
 #ifdef FT_USE_VISUALS
   myVisuals.clear();
 #endif
@@ -235,6 +240,7 @@ void FFlLinkHandler::deleteGeometry()
   areVisualsSorted = true;
 #endif
 
+  nGenDofs = 0;
   isResolved = true;
 }
 
@@ -726,6 +732,7 @@ FFlNode* FFlLinkHandler::getFENode(int inod) const
 {
   if (inod <= 0) return NULL;
 
+  size_t idx = inod-1;
   if (hasLooseNodes)
   {
     if (myFEnodes.empty())
@@ -743,11 +750,11 @@ FFlNode* FFlLinkHandler::getFENode(int inod) const
         return NULL;
     }
 
-    if ((size_t)inod <= myFEnodes.size())
-      return myFEnodes[inod-1];
+    if (idx < myFEnodes.size())
+      return myFEnodes[idx];
   }
-  else if ((size_t)inod <= myNodes.size())
-    return myNodes[inod-1]; // Assuming no loose nodes exist!
+  else if (idx < myNodes.size())
+    return myNodes[idx]; // Assuming no loose nodes exist!
 
   return NULL;
 }
@@ -807,8 +814,8 @@ FFlLinkHandler::ElementsIter FFlLinkHandler::getElementIter(int ID) const
 
 FFlElementBase* FFlLinkHandler::getElement(int ID, bool internalID) const
 {
-  if (internalID)
-    return ID >= 0 && (size_t)ID < myElements.size() ? myElements[ID] : NULL;
+  if (internalID && ID >= 0)
+    return ID < static_cast<int>(myElements.size()) ? myElements[ID] : NULL;
 
   ElementsIter eit = this->getElementIter(ID);
   return eit == myElements.end() ? NULL : *eit;
@@ -909,7 +916,7 @@ FFlElementBase* FFlLinkHandler::getFiniteElement(int iel) const
     if (this->buildFiniteElementVec() < 1)
       return NULL;
 
-  return (size_t)iel <= myFElements.size() ? myFElements[iel-1] : NULL;
+  return --iel < static_cast<int>(myFElements.size()) ? myFElements[iel] : NULL;
 }
 
 
@@ -963,7 +970,7 @@ const AttributeMap& FFlLinkHandler::getAttributes(const std::string& type) const
   which are not connected to other elements than the spider itself.
 */
 
-bool FFlLinkHandler::getRefNodes(std::vector<FFlNode*>& refNodes) const
+bool FFlLinkHandler::getRefNodes(NodesVec& refNodes) const
 {
   refNodes.clear();
   if (myNodes.empty())
@@ -1507,15 +1514,19 @@ int FFlLinkHandler::buildBUSHelementSet() const
 /*!
   Creates a new node at \a nodePos, a BUSH element between \a fromNode and the
   new node, and a CMASS element at \a fromNode. The new node is returned.
-  The elements are created without properties - only topology.
+  The elements are created without properties - only topology,
+  unless \a Ktra, \a Krot, or \a Mass are non-zero.
 */
 
 FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
-					      const FaVec3& nodePos,
-					      FFlConnectorItems* cItems)
+                                              const FaVec3& nodePos,
+                                              FFlConnectorItems* cItems,
+                                              double Ktra, double Krot,
+                                              double Mass)
 {
   if (!fromNode) return NULL;
 
+  FFlAttributeBase* newAtt = NULL;
   FFlElementBase* newElm = NULL;
   FFlNode* newNode = new FFlNode(this->getNewNodeID(),nodePos);
   ListUI <<"  -> Creating FE node "<< newNode->getID() <<"\n";
@@ -1542,6 +1553,17 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
     this->buildBUSHelementSet();
   myBushElements.insert(newElm);
 
+  if (Ktra > 0.0 || Krot > 0.0)
+  {
+    // Add stiffness properties to the BUSH element
+    newAtt = AttributeFactory::instance()->create("PBUSHCOEFF",newElm->getID());
+    std::array<FFlField<double>,6>& K = static_cast<FFlPBUSHCOEFF*>(newAtt)->K;
+    if (Ktra > 0.0) K[0] = K[1] = K[2] = Ktra;
+    if (Krot > 0.0) K[3] = K[4] = K[5] = Krot;
+    int PID = this->addUniqueAttribute(newAtt);
+    newElm->setAttribute(this->getAttribute("PBUSHCOEFF",PID));
+  }
+
   newElm = ElementFactory::instance()->create("CMASS",this->getNewElmID());
   newElm->setNode(1,fromNode);
   ListUI <<"  -> Creating CMASS element "<< newElm->getID()
@@ -1551,6 +1573,15 @@ FFlNode* FFlLinkHandler::createAttachableNode(FFlNode* fromNode,
   if (cItems)
     cItems->addElement(newElm->getID());
 #endif
+
+  if (Mass > 0.0)
+  {
+    // Add stiffness properties to the BUSH element
+    newAtt = AttributeFactory::instance()->create("PMASS",newElm->getID());
+    static_cast<FFlPMASS*>(newAtt)->M = { Mass, 0.0, Mass, 0.0, 0.0, Mass };
+    int PID = this->addUniqueAttribute(newAtt);
+    newElm->setAttribute(this->getAttribute("PMASS",PID));
+  }
 
   return newNode;
 }
@@ -1731,6 +1762,28 @@ FFlElementBase* FFlLinkHandler::findPoint(const FaVec3& point, double* xi,
 }
 
 
+FFlNode* FFlLinkHandler::getNodeConnectivity(int ID, Strings& elmList) const
+{
+  NodesIter nit = this->getNodeIter(ID);
+  if (nit == myNodes.end()) return NULL;
+
+  if (myNodeMapping.empty())
+    for (FFlElementBase* elm : myElements)
+      for (NodeCIter n = elm->nodesBegin(); n != elm->nodesEnd(); ++n)
+        myNodeMapping[n->getReference()].insert(elm);
+
+  std::map<FFlNode*,ElementsSet>::const_iterator cit = myNodeMapping.find(*nit);
+  if (cit == myNodeMapping.end() || cit->second.empty()) return NULL;
+
+  elmList.clear();
+  elmList.reserve(cit->second.size());
+  for (FFlElementBase* elm : cit->second)
+    elmList.push_back(elm->getTypeName() + " " + std::to_string(elm->getID()));
+
+  return *nit;
+}
+
+
 #ifdef FT_USE_VERTEX
 FFlVertex* FFlLinkHandler::getVertex(size_t i) const
 {
@@ -1749,7 +1802,7 @@ const FFlrVxToElmMap& FFlLinkHandler::getVxToElementMapping()
       if (filterFiniteElements(elm,false,true)) // Skip result-less elements
         for (nit = elm->nodesBegin(), n = 1; nit != elm->nodesEnd(); ++nit, n++)
           if ((id = (*nit)->getVertexID()) >= 0)
-            myVxMapping[id].push_back({elm,n});
+            myVxMapping[id].emplace_back(elm,n);
   }
 
   return myVxMapping;
@@ -1958,7 +2011,7 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
       // Find all dependent nodes that are connected to other elements
       int looseDn = 0;
       NodeCIter n = elm->nodesBegin();
-      std::vector<FFlNode*> depNodes;
+      NodesVec depNodes;
       depNodes.reserve(nNod-1);
       for (++n; n != elm->nodesEnd(); ++n)
         if ((*n)->hasDOFs())
@@ -2354,7 +2407,7 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
   if (spiderType < 2 || spiderType > 3)
     return -1; // Invalid spider type
 
-  std::vector<FFlNode*> nodes;
+  NodesVec nodes;
   for (FFlNode* node : myNodes)
     if (node->hasDOFs() && node->getStatus() == FFlNode::INTERNAL)
       if (compound.isInside(node->getPos()))
