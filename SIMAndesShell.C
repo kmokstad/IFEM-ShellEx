@@ -131,9 +131,9 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
                                    const char*) const
 {
   ASMbase* pch = NULL;
-  bool nastran = nf.size() == 2 && nf[1] == 'n';
-  if (nastran) // Nastran bulk data file
-    pch = new ASMu2DNastran(nsd,nf.front(),noSets,useBeams);
+  ASMu2DNastran* shell = NULL;
+  if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),noSets,useBeams);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 
@@ -143,11 +143,11 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
     return nullptr;
   }
 
-  if (nastran)
+  if (shell)
   {
     // Check if we also have beam elements in the model.
     // They will be kept in a separate patch of 1D elements.
-    ASMbase* bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams();
+    ASMbase* bpch = shell->haveBeams();
     if (bpch)
     {
       bpch->idx = myModel.size();
@@ -158,11 +158,22 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   }
 
   pch->idx = myModel.size();
-  if (nastran && useBeams)
+  if (shell && useBeams)
     IFEM::cout <<"\tCreated shell patch "<< pch->idx+1
                <<" with "<< pch->getNoElms() <<" elements"<< std::endl;
   else
     IFEM::cout <<"\tReading patch "<< pch->idx+1 << std::endl;
+
+  if (shell)
+  {
+    // Add topology items for the predefined node- and element sets
+    std::string name;
+    SIMinput* sim = const_cast<SIMAndesShell*>(this);
+    for (int iset = 1; shell->getNodeSet(iset,name); iset++)
+      sim->topology(name).emplace(pch->idx+1,iset,4);
+    for (int iset = 1; shell->getElementSet(iset,name); iset++)
+      sim->topology(name).emplace(pch->idx+1,iset,5);
+  }
 
   return pch;
 }
