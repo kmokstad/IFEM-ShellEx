@@ -131,9 +131,9 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
                                    const char*) const
 {
   ASMbase* pch = NULL;
-  bool nastran = nf.size() == 2 && nf[1] == 'n';
-  if (nastran) // Nastran bulk data file
-    pch = new ASMu2DNastran(nsd,nf.front(),noSets,useBeams);
+  ASMu2DNastran* shell = NULL;
+  if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),noSets,useBeams);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 
@@ -143,11 +143,11 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
     return nullptr;
   }
 
-  if (nastran)
+  if (shell)
   {
     // Check if we also have beam elements in the model.
     // They will be kept in a separate patch of 1D elements.
-    ASMbase* bpch = static_cast<ASMu2DNastran*>(pch)->haveBeams();
+    ASMbase* bpch = shell->haveBeams();
     if (bpch)
     {
       bpch->idx = myModel.size();
@@ -158,11 +158,22 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   }
 
   pch->idx = myModel.size();
-  if (nastran && useBeams)
+  if (shell && useBeams)
     IFEM::cout <<"\tCreated shell patch "<< pch->idx+1
                <<" with "<< pch->getNoElms() <<" elements"<< std::endl;
   else
     IFEM::cout <<"\tReading patch "<< pch->idx+1 << std::endl;
+
+  if (shell)
+  {
+    // Add topology items for the predefined node- and element sets
+    std::string name;
+    SIMinput* sim = const_cast<SIMAndesShell*>(this);
+    for (int iset = 1; shell->getNodeSet(iset,name); iset++)
+      sim->topology(name).emplace(pch->idx+1,iset,4);
+    for (int iset = 1; shell->getElementSet(iset,name); iset++)
+      sim->topology(name).emplace(pch->idx+1,iset,5);
+  }
 
   return pch;
 }
@@ -172,22 +183,25 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
   // Include also the collapsed and non-shell elements,
   // because that is what the VTF-writer expects
-  elmThick.resize(this->getNoElms(false,true),0.0);
+  elmThick.clear();
+  elmThick.reserve(this->getNoElms(false,true));
 
-  int iel = 0, missing = 0;
+  int missing = 0;
+  const ASMu2DNastran* shell;
   for (const ASMbase* pch : myModel)
-  {
-    const ASMu2DNastran* shell = dynamic_cast<const ASMu2DNastran*>(pch);
-    if (shell)
-      for (size_t jel = 1; jel <= pch->getNoElms(true); iel++, jel++)
-      {
-        int ielNo = pch->getElmID(jel);
-        if (ielNo > 0 && !shell->getThickness(ielNo,elmThick[iel]))
-          ++missing;
-      }
+    if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)))
+    {
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
+        {
+          elmThick.push_back(0.0);
+          int ielNo = pch->getElmID(iel);
+          if (ielNo > 0 && !shell->getThickness(ielNo,elmThick.back()))
+            ++missing;
+        }
+    }
     else
-      iel += pch->getNoElms(true);
-  }
+      elmThick.insert(elmThick.end(),pch->getNoElms(true),0);
 
   if (missing > 1)
     IFEM::cout <<" *** A total of "<< missing <<" elements lack thickness.\n"
@@ -199,21 +213,20 @@ bool SIMAndesShell::getElementGroup (int iset, std::string& name,
                                      RealArray& elGroup) const
 {
   elGroup.clear();
+  elGroup.reserve(this->getNoElms(false,true));
 
-  int iel = 0;
+  const ASMu2DLag* shell;
   for (const ASMbase* pch : myModel)
-  {
-    const ASMu2DLag* shell = dynamic_cast<const ASMu2DLag*>(pch);
-    if (shell && shell->getElementSet(iset,name))
+    if ((shell = dynamic_cast<const ASMu2DLag*>(pch)) &&
+	shell->getElementSet(iset,name))
     {
-      if (elGroup.empty())
-        elGroup.resize(this->getNoElms(false,true),0.0);
-      for (size_t je = 1; je <= pch->getNoElms(true); iel++, je++)
-        elGroup[iel] = pch->getElmID(je) > 0 && shell->isInElementSet(iset,je);
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
+          elGroup.push_back(pch->getElmID(iel) > 0 &&
+                            shell->isInElementSet(iset,iel));
     }
     else
-      iel += pch->getNoElms(true);
-  }
+      elGroup.insert(elGroup.end(),pch->getNoElms(true),0);
 
   return !elGroup.empty();
 }

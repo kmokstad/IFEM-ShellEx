@@ -210,14 +210,6 @@ bool ASMu2DNastran::read (std::istream& is)
     }
   }
 
-  if (!nodeSets.empty())
-  {
-    IFEM::cout <<"Pre-defined node sets:          "<< nodeSets.size();
-    for (const ASM::NodeSet& ns : nodeSets)
-      IFEM::cout <<"\n\t\""<< ns.first <<"\"\t"<< ns.second.size() <<" nodes";
-    IFEM::cout << std::endl;
-  }
-
   // Extract the element data
   for (ElementsCIter e = fem.elementsBegin(); e != fem.elementsEnd(); ++e)
   {
@@ -323,29 +315,6 @@ bool ASMu2DNastran::read (std::istream& is)
     }
   }
 
-  // Extract the element sets, if any
-  for (GroupCIter g = fem.groupsBegin(); g != fem.groupsEnd(); ++g)
-  {
-    std::string name = g->second->getName() + "_" + std::to_string(g->first);
-#ifdef INT_DEBUG
-    std::cout <<"\tAdding element set \""<< name
-              <<"\" (size="<< g->second->size() <<")"<< std::endl;
-#endif
-    for (const GroupElemRef& elm : *g->second)
-      this->addToElemSet(name,elm->getID(),true);
-  }
-
-#ifndef INT_DEBUG
-  if (!elemSets.empty())
-  {
-    IFEM::cout <<"Pre-defined element sets:       "<< elemSets.size();
-    for (const ASM::NodeSet& es : elemSets)
-      IFEM::cout <<"\n\t\""<< es.first <<"\t"<< es.second.size() <<" elements";
-    IFEM::cout << std::endl;
-  }
-#endif
-#endif
-
   if (nBel > 0 && nErr == 0 && useBeams)
   {
     // Create a separate patch for the beam elements
@@ -356,6 +325,37 @@ bool ASMu2DNastran::read (std::istream& is)
     beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
     IFEM::cout <<"\tCreated beam patch "<< beamPatch->idx+1
                <<" with "<< beamNodes.size() <<" nodes"<< std::endl;
+  }
+
+  // Extract the element sets, if any
+  for (GroupCIter g = fem.groupsBegin(); g != fem.groupsEnd(); ++g)
+  {
+    std::string name = g->second->getName() + "_" + std::to_string(g->first);
+    for (const GroupElemRef& elm : *g->second)
+      if (std::find(beamElms.begin(),beamElms.end(),
+                    elm->getID()) == beamElms.end())
+        this->addToElemSet(name,elm->getID(),true);
+      else
+        IFEM::cout <<"  ** Ignoring beam element "<< elm->getID()
+                   <<" in element group "<< name << std::endl;
+  }
+#endif
+
+  if (!nodeSets.empty())
+  {
+    IFEM::cout <<"Pre-defined node sets:          "<< nodeSets.size();
+    for (const ASM::NodeSet& ns : nodeSets)
+      IFEM::cout <<"\n\t\""<< ns.first <<"\"\t"<< ns.second.size() <<" nodes";
+    IFEM::cout << std::endl;
+  }
+
+  if (!elemSets.empty())
+  {
+    IFEM::cout <<"Pre-defined element sets:       "<< elemSets.size();
+    for (const ASM::NodeSet& eset : elemSets)
+      IFEM::cout <<"\n\t\""<< eset.first <<"\"\t"<< eset.second.size()
+                 <<" elements";
+    IFEM::cout << std::endl;
   }
 
   return nErr == 0;
@@ -410,7 +410,7 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
   }
   else if (++nErr <= 20)
     std::cerr <<" *** No beam cross section attached to beam element "<< eId
-	      << std::endl;
+              << std::endl;
 
   FFlPORIENT* bori = GET_ATTRIBUTE(elm,PORIENT);
   if (bori)
@@ -509,7 +509,7 @@ void ASMu2DNastran::addSpringElement (FFlElementBase* elm, int eId,
   if (!bush)
   {
     IFEM::cout <<"  ** No property attached to bush element "<< eId
-	       <<" (ignored)"<< std::endl;
+               <<" (ignored)"<< std::endl;
     return;
   }
 #if INT_DEBUG > 5
@@ -739,7 +739,7 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
       for (int mDof = 1; mDof <= 6; mDof++, omega++)
         if (fabs(*omega) > Zero)
           cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
-#ifdef INT_DEBUG
+#if INT_DEBUG > 1
         else
           std::cout <<"  ** Ignoring small coupling coefficient "<< *omega
                     <<" to local dof "<< mDof
@@ -753,7 +753,7 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
 void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
 {
   myBlocks.emplace_back(idx,blk);
-  nGnod[idx > 0 ? 0 : 1] += blk->getNoNodes();
+  nGnod[idx < 0 ? 1 : 0] += blk->getNoNodes();
 }
 
 
