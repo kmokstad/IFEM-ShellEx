@@ -38,6 +38,18 @@ void FFlPBUSHCOEFF::convertUnits(const FFaUnitCalculator* convCal)
 }
 
 
+bool FFlPBUSHCOEFF::isIdentic(const FFlAttributeBase* otherAttrib) const
+{
+  const FFlPBUSHCOEFF* other = dynamic_cast<const FFlPBUSHCOEFF*>(otherAttrib);
+  if (!other) return false;
+
+  for (size_t i = 0; i < this->K.size(); i++)
+    if (this->K[i] != other->K[i]) return false;
+
+  return true;
+}
+
+
 void FFlPBUSHCOEFF::init()
 {
   using TypeInfoSpec = FFaSingelton<FFlTypeInfoSpec,FFlPBUSHCOEFF>;

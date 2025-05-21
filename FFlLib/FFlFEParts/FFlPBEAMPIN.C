@@ -35,12 +35,7 @@ FFlPBEAMPIN::FFlPBEAMPIN(const FFlPBEAMPIN& obj) : FFlAttributeBase(obj)
 bool FFlPBEAMPIN::isIdentic(const FFlAttributeBase* otherAttrib) const
 {
   const FFlPBEAMPIN* other = dynamic_cast<const FFlPBEAMPIN*>(otherAttrib);
-  if (!other) return false;
-
-  if (this->PA != other->PA) return false;
-  if (this->PB != other->PB) return false;
-
-  return true;
+  return other ? (this->PA == other->PA && this->PB == other->PB) : false;
 }
 
 

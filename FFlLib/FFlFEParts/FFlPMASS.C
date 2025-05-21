@@ -26,6 +26,17 @@ FFlPMASS::FFlPMASS(const FFlPMASS& obj) : FFlAttributeBase(obj)
 }
 
 
+void FFlPMASS::calculateChecksum(FFaCheckSum* cs, int csMask) const
+{
+  this->FFlAttributeBase::calculateChecksum(cs, csMask);
+
+  const double zero = 0.0;
+  // Add zeroes to fill up a full 6x6 matrix to match older files
+  for (int i = M.getValue().size(); i < 21; i++)
+    cs->add(zero);
+}
+
+
 void FFlPMASS::convertUnits(const FFaUnitCalculator* convCal)
 {
   int i, j;
@@ -43,13 +54,10 @@ void FFlPMASS::convertUnits(const FFaUnitCalculator* convCal)
 }
 
 
-void FFlPMASS::calculateChecksum(FFaCheckSum* cs, int csMask) const
+bool FFlPMASS::isIdentic(const FFlAttributeBase* otherAttrib) const
 {
-  this->FFlAttributeBase::calculateChecksum(cs, csMask);
-
-  // Add zeroes to fill up a full 6x6 matrix to match older files
-  for (int i = M.getValue().size(); i < 21; i++)
-    cs->add((double)0.0);
+  const FFlPMASS* other = dynamic_cast<const FFlPMASS*>(otherAttrib);
+  return other ? (this->M == other->M) : false;
 }
 
 

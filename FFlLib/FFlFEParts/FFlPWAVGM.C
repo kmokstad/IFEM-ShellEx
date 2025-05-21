@@ -49,9 +49,7 @@ bool FFlPWAVGM::isIdentic(const FFlAttributeBase* otherAttrib) const
   for (size_t i = 0; i < indC.size(); i++)
     if (this->indC[i] != other->indC[i]) return false;
 
-  if (this->weightMatrix != other->weightMatrix) return false;
-
-  return true;
+  return this->weightMatrix == other->weightMatrix;
 }
 
 

@@ -27,6 +27,7 @@ public:
   virtual ~FFlPBUSHCOEFF() {}
 
   virtual void convertUnits(const FFaUnitCalculator* convCal);
+  virtual bool isIdentic(const FFlAttributeBase* otherAttrib) const;
 
   static void init();
 

@@ -29,11 +29,7 @@ FFlPRGD::FFlPRGD(const FFlPRGD& obj) : FFlAttributeBase(obj)
 bool FFlPRGD::isIdentic(const FFlAttributeBase* otherAttrib) const
 {
   const FFlPRGD* other = dynamic_cast<const FFlPRGD*>(otherAttrib);
-  if (!other) return false;
-
-  if (this->dependentDofs != other->dependentDofs) return false;
-
-  return true;
+  return other ? (this->dependentDofs == other->dependentDofs) : false;
 }
 
 

@@ -28,6 +28,7 @@ public:
 
   virtual void calculateChecksum(FFaCheckSum* cs, int csMask) const;
   virtual void convertUnits(const FFaUnitCalculator* convCal);
+  virtual bool isIdentic(const FFlAttributeBase* otherAttrib) const;
 
   static void init();
 
