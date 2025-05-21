@@ -28,7 +28,7 @@
 
 
 char SIMAndesShell::useBeams = 1;
-bool SIMAndesShell::noSets = false;
+bool SIMAndesShell::readSets = true;
 
 
 SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
@@ -56,12 +56,27 @@ ElasticBase* SIMAndesShell::getIntegrand ()
 
 bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
 {
+  if (!strcasecmp(elem->Value(),"geometry"))
+  {
+    const tinyxml2::XMLElement* child = elem->FirstChildElement("fixRBE3");
+    if (child && child->FirstChild())
+      utl::parseIntegers(ASMu2DNastran::fixRBE3,child->FirstChild()->Value());
+  }
+
   if (!this->SIMElasticity<SIM2D>::parse(elem))
     return false;
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
-    if (!strcasecmp(child->Value(),"pressure") && child->FirstChild())
+    if (!strcasecmp(elem->Value(),"postprocessing"))
+    {
+      if (myProblem && !strcasecmp(child->Value(),"vonMises_only"))
+        static_cast<AndesShell*>(myProblem)->vonMisesOnly();
+    }
+    else if (strcasecmp(elem->Value(),"elasticity"))
+      continue; // The remaining should be within the elasticity context
+
+    else if (!strcasecmp(child->Value(),"pressure") && child->FirstChild())
     {
       IFEM::cout <<"  Parsing <pressure>"<< std::endl;
 
@@ -117,12 +132,6 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
       this->getIntegrand()->parseMatProp(child,true);
     }
 
-  if (!strcasecmp(elem->Value(),"postprocessing") && myProblem)
-    for (child = elem->FirstChildElement(); child;
-         child = child->NextSiblingElement())
-      if (!strcasecmp(child->Value(),"vonMises_only"))
-        static_cast<AndesShell*>(myProblem)->vonMisesOnly();
-
   return true;
 }
 
@@ -133,7 +142,7 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   ASMbase* pch = NULL;
   ASMu2DNastran* shell = NULL;
   if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
-    pch = shell = new ASMu2DNastran(nsd,nf.front(),noSets,useBeams);
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),readSets,useBeams);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 
@@ -158,7 +167,7 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   }
 
   pch->idx = myModel.size();
-  if (shell && useBeams)
+  if (shell && useBeams && pch->getNoElms() > 0)
     IFEM::cout <<"\tCreated shell patch "<< pch->idx+1
                <<" with "<< pch->getNoElms() <<" elements"<< std::endl;
   else
@@ -218,7 +227,7 @@ bool SIMAndesShell::getElementGroup (int iset, std::string& name,
   const ASMu2DLag* shell;
   for (const ASMbase* pch : myModel)
     if ((shell = dynamic_cast<const ASMu2DLag*>(pch)) &&
-	shell->getElementSet(iset,name))
+        shell->getElementSet(iset,name))
     {
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
         if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements

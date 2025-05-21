@@ -33,7 +33,7 @@
 #include <string.h>
 #include <ctype.h>
 
-namespace ASM { extern bool skipVTFmass; }
+namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
 
 
 /*!
@@ -73,9 +73,10 @@ namespace ASM { extern bool skipVTFmass; }
   \arg -noEccs : Ignore beam end offsets
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
-  \arg -keep-previous-state : Use previous state whne evaluating
+  \arg -keep-previous-state : Use previous state when evaluating the
        state-dependent property functions
-  \arg -no-vtfmass : Skip sphere geometries for 1-noded mass elements
+  \arg -no-vtfmass : Skip the sphere geometries for 1-noded mass elements
+  \arg -Kbush : Spring stiffness(es) connecting RBE3 reference nodes to ground
 */
 
 int main (int argc, char** argv)
@@ -101,6 +102,7 @@ int main (int argc, char** argv)
   IFEM::Init(argc,argv,"Linear Elastic Shell solver");
   ASM::cachePolicy = ASM::NO_CACHE;
 
+  // Lambda function checking for valid Nastran bulkk data file extension.
   auto&& isBDF = [](const char* fname)
   {
     static const char* bdfext[] = { ".dat", ".nas", ".bdf", NULL };
@@ -125,11 +127,18 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-vizRHS"))
       vizRHS = true;
     else if (!strcmp(argv[i],"-noSets"))
-      SIMAndesShell::noSets = true;
+      SIMAndesShell::readSets = false;
     else if (!strcmp(argv[i],"-noBeams"))
       SIMAndesShell::useBeams = 0;
     else if (!strcmp(argv[i],"-noEccs"))
       SIMAndesShell::useBeams = 2;
+    else if (!strcmp(argv[i],"-Kbush"))
+    {
+      if (i+1 < argc && argv[i+1][0] != '-')
+        ASM::Ktra = ASM::Krot = atof(argv[++i]);
+      if (i+1 < argc && argv[i+1][0] != '-')
+        ASM::Krot = atof(argv[++i]);
+    }
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;

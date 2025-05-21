@@ -44,7 +44,7 @@ public:
   //! \brief Retrieves the specified element group \a iset as a scalar field.
   bool getElementGroup(int iset, std::string& name, RealArray& elGroup) const;
 
-  //! \brief Writes additional geometries issustrating sensor locations.
+  //! \brief Writes additional geometries illustrating sensor locations.
   //! \param[in] locfiles Files with sensor locations (node or element IDs)
   //! \param[in] nodal If \e true, nodal sensors. Othwerwise element sensors.
   //! \param nBlock Running geometry block counter
@@ -57,9 +57,8 @@ protected:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  virtual ASMbase* readPatch(std::istream& isp, int, const CharVec&,
-                             const char*) const;
+  virtual ASMbase* readPatch(std::istream& isp,
+                             int, const CharVec&, const char*) const;
 
   //! \brief Returns the actual integrand.
   virtual ElasticBase* getIntegrand();
@@ -67,8 +66,7 @@ protected:
   //! \brief Dummy override, does nothing.
   virtual bool initBodyLoad(size_t) { return true; }
 
-  //! \brief Renumbers all global nodes number if the model.
-  //! \param[in] nodeMap Mapping from old to new node number
+  //! \brief Renumbers the global node numbers of the nodal point loads.
   virtual bool renumberNodes(const std::map<int,int>& nodeMap);
 
   //! \brief Assembles the nodal point loads, if any.
@@ -77,7 +75,7 @@ protected:
 
 public:
   static char useBeams; //!< If non-zero, include beam elements, if any
-  static bool noSets; //!< If \e true, ignore Nastran SET definitions
+  static bool readSets; //!< If \e true, also read Nastran SET definitions
 
 private:
   //! \brief Struct defining a nodal point load.

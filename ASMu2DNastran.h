@@ -32,8 +32,8 @@ class ASMu2DNastran : public ASMu2DLag
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  ASMu2DNastran(unsigned char n, unsigned char n_f, bool ns, char b)
-    : ASMu2DLag(n,n_f,'N'), useBeams(b), useSets(!ns),
+  ASMu2DNastran(unsigned char n, unsigned char n_f, bool sets, char beams)
+    : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets),
       massMax(1.0), beamPatch(nullptr) { nGnod.fill(0); }
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
@@ -85,14 +85,6 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   virtual bool extraSolution(Matrix& field, const Vector& locSol) const;
 
-  //! \brief Checks if an external element ID is within a predefined set.
-  //! \todo Maybe put this in ASMbase later, or extend isInElementSet()
-  //! to handle both internal indices and external element numbers.
-  bool isElementInSet(int elmId, int iset) const
-  {
-    return this->isInElementSet(iset,this->getElmIndex(elmId));
-  }
-
   //! \brief Returns \e true if this patch has element-wise surface pressures.
   bool haveLoads() const { return !myLoads.empty(); }
 
@@ -101,8 +93,8 @@ public:
 
 protected:
   //! \brief Adds an element block with additional geometry.
-
   void addBlock(int idx, ElementBlock* blk);
+
   //! \brief Adds a beam element to this patch.
   void addBeamElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
                       IntMat& beamMNPC, IntVec& beamElms, IntVec& beamNodes,
@@ -114,9 +106,10 @@ protected:
   //! \brief Adds a spring element to this patch.
   void addSpringElement(FFlElementBase* elm, int eId, const IntVec& mnpc,
                         int& nErr);
-  //! \brief Adds MPCs representing a flexible coupling to this patch.
+
+  //! \brief Adds MPCs representing a set of flexible couplings to this patch.
   void addFlexibleCouplings(FFlElementBase* elm, int eId, const IntVec& mnpc);
-  //! \brief Adds MPCs representing a flexible coupling to this patch.
+  //! \brief Adds one MPC representing a flexible coupling to this patch.
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
                            const RealArray& weights, double* work,
                            const IntVec& mnpc, const Matrix& Xnod);
@@ -141,7 +134,6 @@ public:
     Vec3 Zaxis; //!< Vector defining the local Z-axis of the element
 
     std::array<Vec3,2> eccN{}; //!< Nodal eccentricity vectors
-
     std::array<double,9> cs{}; //!< Cross section parameters
   };
 
@@ -153,7 +145,7 @@ private:
   std::map<int,Vec3Vec>    myLoads;  //!< Surface pressures
 
   char useBeams; //!< If nonzero include beam elements as a separate patch
-  bool useSets; //!< If \e true, read Nastran SET definitions
+  bool readSets; //!< If \e true, read the pre-bulk Nastran SET definitions
 
   double massMax; //!< The largets point mass in the model (for scaling)
   IntMat spiders; //!< Constraint element topologies
@@ -163,6 +155,9 @@ private:
   std::array<size_t,2> nGnod; //!< Total number of additional geometry nodes
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements
+
+public:
+  static std::vector<int> fixRBE3; //!< List of RBE3 elements to be constrained
 };
 
 

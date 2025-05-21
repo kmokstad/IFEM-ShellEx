@@ -22,7 +22,11 @@
 #include <fstream>
 #include <sstream>
 
-namespace ASM { bool skipVTFmass = false; }
+namespace ASM {
+  double Ktra = 0.0;
+  double Krot = 0.0;
+  bool skipVTFmass = false;
+}
 
 
 #ifdef HAS_FFLLIB
@@ -94,6 +98,8 @@ public:
 };
 #endif
 
+std::vector<int> ASMu2DNastran::fixRBE3;
+
 
 ASMu2DNastran::~ASMu2DNastran ()
 {
@@ -131,7 +137,7 @@ bool ASMu2DNastran::read (std::istream& is)
       ++lCount;
       // Copy element SET definitions to a second stream,
       // since they have to be parsed after the FE model is loaded
-      if (useSets && !strncmp(cline,"SET ",4) || sets.tellp() > 0)
+      if (readSets && (!strncmp(cline,"SET ",4) || sets.tellp() > 0))
         sets << cline << '\n';
     }
 
@@ -147,6 +153,19 @@ bool ASMu2DNastran::read (std::istream& is)
               <<"     The FE model is probably not consistent and has not been"
               <<" resolved completely.\n";
     return false;
+  }
+
+  for (int eId : fixRBE3)
+  {
+    FFlElementBase* elm = fem.getElement(eId);
+    FFlNode* refNode = elm ? elm->getNode(1) : nullptr;
+    if (refNode && refNode->isRefNode())
+    {
+      // Create a new node co-located with this reference node
+      refNode = fem.createAttachableNode(refNode,refNode->getPos(),
+                                         nullptr,ASM::Ktra,ASM::Krot);
+      if (refNode) refNode->setExternal();
+    }
   }
 
   nnod = fem.getNodeCount(FFlLinkHandler::FFL_FEM);
@@ -583,7 +602,7 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
   size_t icol = 0;
   Matrix Xnod(nsd,mnpc.size());
   for (int inod : mnpc)
-    Xnod.fillColumn(++icol,this->getCoord(1+inod).ptr());
+    Xnod.fillColumn(++icol,coord[inod].ptr());
 
   double* work = new double[10*mnpc.size()-7];
   for (int lDof : refC)
@@ -792,8 +811,9 @@ ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 
 
 /*!
-  This method creates an element block visualizing the constraint elements as
-  spiders. The node indices are store as external element ID of each spider leg.
+  This method creates an element block visualizing constraint elements as a set
+  of line elements with one common node. The other node indices are stored as
+  external element ID of each line element in the element block.
   This is then used to assign correct deformation values in extraSolution().
 */
 
