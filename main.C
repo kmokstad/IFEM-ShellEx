@@ -359,6 +359,7 @@ int main (int argc, char** argv)
   case 0:
   case 200:
     // Static solution: Assemble [Km] and {R}
+    model->initForSingleStep();
     model->setMode(SIM::STATIC);
     model->setQuadratureRule(2,true);
     model->initSystem(model->opt.solver);
@@ -457,6 +458,7 @@ int main (int argc, char** argv)
     int geoBlk = 0, nBlock = 0;
     size_t iStep = 1, nStep = 0;
     double time = 0.0;
+    Vector data;
 
     // Write VTF-file with model geometry
     if (!model->writeGlvG(geoBlk,infile))
@@ -474,19 +476,15 @@ int main (int argc, char** argv)
     if (!model->writeGlvBC(nBlock))
       return terminate(13);
 
-    // Write global node numbers as scalar fields
-    if (!model->writeGlvNo(nBlock))
+    // Write global node and element numbers as scalar fields
+    int idBlock = 7;
+    if (!model->writeGlvNo(nBlock,idBlock,18))
       return terminate(14);
 
-    Vector data;
+    // Write shell thickness as scalar field
     model->getShellThicknesses(data);
-    if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",11,true))
+    if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",idBlock++,true))
       return terminate(15);
-
-    std::string Grp("Group 1");
-    for (int g = 1; g < 10 && model->getElementGroup(g,Grp,data); g++)
-      if (!model->writeGlvE(data,iStep,nBlock,Grp.c_str(),100+g,true))
-        return terminate(15);
 
     // Write load vector to VTF-file
     if (vizRHS && !model->writeGlvV(load,"Load vector",iStep,nBlock,1))
@@ -494,11 +492,12 @@ int main (int argc, char** argv)
 
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);
-    if (!model->writeGlvS(displ.front(),iStep,nBlock,time,nullptr,12))
+    if (!model->writeGlvS(displ.front(),iStep,nBlock,time,nullptr,idBlock))
       return terminate(16);
 
     // Write reference solution, if any
-    if (model->writeGlvS1(displ.back(),iStep,nBlock,time,"Reference",20,-1) < 0)
+    if (model->writeGlvS1(displ.back(),iStep,nBlock,time,
+                          "Reference",idBlock,-1) < 0)
       return terminate(17);
 
     if (modes.empty() && resfiles.size() == 1 && nodalR == 'm')
@@ -539,7 +538,7 @@ int main (int argc, char** argv)
       data.resize(nodalR ? model->getNoNodes() : model->getNoElms(true));
 
     bool ok = true;
-    int idBlock = 100;
+    idBlock = 100;
     for (const std::string& fName : grpfiles)
     {
       // Write node/element set definition

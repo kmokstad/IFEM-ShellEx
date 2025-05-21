@@ -34,6 +34,26 @@ public:
   //! \brief The destructor deletes the nodal point load functions.
   virtual ~SIMAndesShell();
 
+  //! \brief Enables the element matrix cache for reaction force calculation.
+  void initForSingleStep() { if (!myRFset.empty()) this->initLHSbuffers(); }
+  //! \brief Switches off separate reaction force calculations when multi-steps.
+  virtual void initForMultiStep() { myRFset.clear(); }
+
+  using SIMElasticity<SIM2D>::solveSystem;
+  //! \brief Solves the assembled linear system of equations for a given load.
+  //! \param[out] solution Global primary solution vector
+  //! \param[in] printSol Print solution if its size is less than \a printSol
+  //! \param[out] rCond Reciprocal condition number
+  //!
+  //! \details This method is overridden to also compute nodal reaction forces.
+  //! This requires an additional assembly loop calculating the internal forces,
+  //! since we only are doing a linear solve here.
+  virtual bool solveSystem(Vector& solution, int printSol, double* rCond,
+                           const char*, size_t);
+
+  //! \brief Returns current reaction force container.
+  virtual const RealArray* getReactionForces() const;
+
   //! \brief Creates a HDF5 data exporter for the simulator.
   //! \param[in] psol Primary solution vector
   //! \param[in] dumpNodeMap If \e true, write node mapping to the HDF5 as well
@@ -89,6 +109,9 @@ private:
   };
 
   std::vector<PointLoad> myLoads; //!< Nodal point loads
+
+  RealArray   myReact; //!< Nodal reaction forces
+  std::string myRFset; //!< Node set for calculation of reaction forces
 
   unsigned short int nss; //!< Number of consequtive solution states in core
 

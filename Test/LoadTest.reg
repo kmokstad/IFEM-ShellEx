@@ -1,10 +1,9 @@
 LoadTest.xinp
 
 Input file: LoadTest.xinp
-Equation solver: 2
-Number of Gauss points: 4
 Evaluation time for property functions: 1
 Parsing input file LoadTest.xinp
+Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
 	Reading data file Q4andT3withLoad.nas
@@ -12,17 +11,19 @@ Total number of nodes:          6
 Number of shell elements:       3
 Number of constraint elements:  0
 Number of other elements:       0
+Model extension (diameter):     2.23607
+Pre-defined node sets:          1
+	"SPC7"	4 nodes
 	Reading patch 1
-  Parsing <topologysets>
-	Topology sets: SPC7 (1,1,4D)
   Parsing <patchfile>
-  Parsing <topologysets>
 Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 123: (fixed)
+Parsing <postprocessing>
+  Parsing <reactions>
 Parsing input file succeeded.
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 2
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell
@@ -43,3 +44,9 @@ L2-norm            : 0.000734757
 Max Z-displacement : 0.00153451
 Max x-displacement : 0.000566322
 Max y-displacement : 0.00214289
+ >>> Nodal reaction forces <<<
+   Internal External               Fx             Fy             Fz             Mx             My             Mz
+Node      1        1 :              0              0        458.333              0              0              0
+Node      2        2 :              0              0        541.667              0              0              0
+Node      5        5 :              0              0        541.667              0              0              0
+Node      6        6 :              0              0        458.333              0              0              0

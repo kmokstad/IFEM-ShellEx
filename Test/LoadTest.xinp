@@ -4,15 +4,18 @@
 
   <geometry dim="3">
     <patchfile type="Nastran">Q4andT3withLoad.nas</patchfile>
-    <topologysets>
-      <set name="SPC7" type="nodes">
-        <item patch="1"/>
-      </set>
-    </topologysets>
   </geometry>
 
   <boundaryconditions>
     <dirichlet set="SPC7" comp="123"/>
   </boundaryconditions>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
+
+  <postprocessing>
+    <reactions/>
+  </postprocessing>
 
 </simulation>

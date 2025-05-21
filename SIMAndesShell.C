@@ -30,6 +30,8 @@
 char SIMAndesShell::useBeams = 1;
 bool SIMAndesShell::readSets = true;
 
+namespace Elastic { extern double time; }
+
 
 SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
 {
@@ -72,6 +74,9 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     {
       if (myProblem && !strcasecmp(child->Value(),"vonMises_only"))
         static_cast<AndesShell*>(myProblem)->vonMisesOnly();
+      else if (!strcasecmp(child->Value(),"reactions"))
+        if (!utl::getAttribute(child,"set",myRFset))
+          myRFset = "(all)";
     }
     else if (strcasecmp(elem->Value(),"elasticity"))
       continue; // The remaining should be within the elasticity context
@@ -278,6 +283,45 @@ bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
     }
 
   return ok;
+}
+
+
+/*!
+  This method is overridden to optionally compute the reaction forces.
+  This requires an additional assembly loop calculating the internal forces,
+  since we only are doing a linear solve here.
+*/
+
+bool SIMAndesShell::solveSystem (Vector& solution, int printSol, double* rCond,
+                                 const char*, size_t)
+{
+  if (!this->solveEqSystem(solution,0,rCond,printSol))
+    return false;
+  else if (myRFset.empty())
+    return true;
+
+  // Assemble the reaction forces. Strictly, we only need to assemble those
+  // elements that have nodes on the Dirichlet boundaries, but...
+  int oldlevel = msgLevel;
+  msgLevel = 1;
+  bool oki = this->assembleForces({solution},Elastic::time,&myReact);
+  msgLevel = oldlevel;
+  if (!oki) return false;
+
+  IFEM::cout <<"\n >>> Nodal reaction forces <<<\n"
+             <<"\n   Internal External               Fx             Fy"
+             <<"             Fz             Mx             My             Mz";
+  this->printNRforces(this->getNodeSet(myRFset));
+  return true;
+}
+
+
+const RealArray* SIMAndesShell::getReactionForces() const
+{
+  if (!myRFset.empty())
+    return myReact.empty() ? nullptr : &myReact;
+
+  return this->SIMElasticity<SIM2D>::getReactionForces();
 }
 
 

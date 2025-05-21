@@ -14,6 +14,7 @@
 #include "AndesShell.h"
 #include "ElasticBeam.h"
 #include "ASMu2DNastran.h"
+#include "GlobalIntegral.h"
 #include "FiniteElement.h"
 #include "NewmarkMats.h"
 #include "TimeDomain.h"
@@ -68,6 +69,7 @@ AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
 
   currentPatch = nullptr;
   beamPatch = nullptr;
+  myReacI = nullptr;
 
   if (withBeams)
   {
@@ -288,6 +290,22 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
 
   result->redim(6*nen);
   return result;
+}
+
+
+void AndesShell::setSecondaryInt (GlobalIntegral* gq)
+{
+  delete myReacI;
+  myReacI = gq;
+}
+
+
+GlobalIntegral& AndesShell::getGlobalInt (GlobalIntegral* gq) const
+{
+  if (m_mode == SIM::RHS_ONLY && myReacI)
+    return *myReacI;
+
+  return this->ElasticBase::getGlobalInt(gq);
 }
 
 
@@ -614,15 +632,15 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 }
 
 
-bool AndesShell::havePressure (int iel) const
+bool AndesShell::havePressure (int iEl) const
 {
   if (Rho > 0.0 && !gravity.isZero())
     return true;
 
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    if (press.first < 0 || iel < 0)
+    if (press.first < 0 || iEl < 0)
       return true;
-    else if (currentPatch && currentPatch->isElementInSet(iel,press.first))
+    else if (currentPatch && currentPatch->isInElementSet(press.first,-iEl))
       return true;
 
   return currentPatch ? currentPatch->haveLoads() : false;
@@ -630,10 +648,10 @@ bool AndesShell::havePressure (int iel) const
 
 
 void AndesShell::addPressure (Vec3& p, const Vec3& X,
-                              const Vec3& n, int iel) const
+                              const Vec3& n, int iEl) const
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    if (press.first < 0 || currentPatch->isElementInSet(iel,press.first))
+    if (press.first < 0 || currentPatch->isInElementSet(press.first,-iEl))
       p += (*press.second)(X)*n;
 }
 

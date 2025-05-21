@@ -89,6 +89,11 @@ public:
   //! \param[in] iEl Global element number (1-based)
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl, bool) const;
 
+  //! \brief Defines the global integral for calculating reaction forces only.
+  virtual void setSecondaryInt(GlobalIntegral* gq);
+  //! \brief Returns the system quantity to be integrated by \a *this.
+  virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const;
+
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const;
 
@@ -156,14 +161,14 @@ protected:
   virtual bool evalSol2(Vector& s, const Vectors& eV,
                         const FiniteElement& fe, const Vec3&) const;
 
-  //! \brief Returns whether element \a iel has pressure loads or not.
-  bool havePressure(int iel = -1) const;
+  //! \brief Returns whether global element \a iEl has pressure loads or not.
+  bool havePressure(int iEl = -1) const;
   //! \brief Evaluates the surface pressure function(s) at specified point.
   //! \param p Updated surface pressue value at evaluation point
   //! \param[in] X Cartesian coordinates of evaluation point
   //! \param[in] n Shell surface normal vector at evaluation point
-  //! \param[in] iel External index of element containing the evaluation point
-  void addPressure(Vec3& p, const Vec3& X, const Vec3& n, int iel) const;
+  //! \param[in] iEl Global element number (1-based) containing evaluation point
+  void addPressure(Vec3& p, const Vec3& X, const Vec3& n, int iEl) const;
 
 private:
   double Thck0; //!< Initial (uniform) shell thickness
@@ -183,6 +188,7 @@ private:
   const ASMuBeam*      beamPatch;    //!< Pointer to underlying beam model
   ElasticBeam*         beamProblem;  //!< Pointer to beam problem integrand
   BeamProperty         myBeamProps;  //!< Beam cross section properties
+  GlobalIntegral*      myReacI;      //!< Reaction-forces-only integral
 
   std::map<int,RealFunc*> presFld; //!< Pointers to pressure field functions
 
