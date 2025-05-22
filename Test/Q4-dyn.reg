@@ -11,14 +11,15 @@ Total number of nodes:          27
 Number of shell elements:       16
 Number of constraint elements:  2
 Number of other elements:       0
+Model extension (diameter):     1.0198
+Pre-defined node sets:          1
+	"ASET"	2 nodes
 	Reading patch 1
-  Parsing <topologysets>
-	Topology sets: ASET (1,1,4D)
   Parsing <patchfile>
-  Parsing <topologysets>
-Parsing <elasticity>
+Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 1236: (fixed)
+Parsing <elasticity>
 	Gravitation vector: 0 -9.81 0
   Parsing <pressure>
 	Pressure code 1 (expression): if(above(t,1.0),0.0,1.0e6\*sin(PI\*t))
@@ -27,15 +28,14 @@ Parsing <newmarksolver>
 	beta = 0.25  gamma = 0.5
 Parsing input file succeeded.
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 2
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell
 Newmark predictor/multicorrector: beta = 0.25 gamma = 0.5
+ using constant coefficient matrices
  using zero acceleration predictor
 Stiffness-proportional damping (alpha2): 0.001
-Problem definition:
-Formulation: ANDES shell
 Resolving Dirichlet boundary conditions
 	Constraining P1 in direction(s) 1236
  >>> SAM model summary <<<

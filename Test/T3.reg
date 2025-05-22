@@ -1,9 +1,9 @@
 T3.xinp
 
 Input file: T3.xinp
-Equation solver: 2
-Number of Gauss points: 4
+Evaluation time for property functions: 1
 Parsing input file T3.xinp
+Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
 	Reading data file CTRIA03_.nas
@@ -11,18 +11,19 @@ Total number of nodes:          27
 Number of shell elements:       32
 Number of constraint elements:  2
 Number of other elements:       0
+Model extension (diameter):     1.0198
+Pre-defined node sets:          1
+	"ASET"	2 nodes
 	Reading patch 1
-  Parsing <topologysets>
-	Topology sets: ASET (1,1,4D)
   Parsing <patchfile>
-  Parsing <topologysets>
-Parsing <elasticity>
+Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 1236: (fixed)
+Parsing <elasticity>
 	Gravitation vector: 0 -9.81 0
 Parsing input file succeeded.
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 1
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell

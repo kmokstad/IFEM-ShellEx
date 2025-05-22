@@ -6,26 +6,19 @@
 
   <geometry dim="3">
     <patchfile type="Nastran">Q4andBeam.nas</patchfile>
-    <topologysets>
-      <set name="ASET" type="nodes">
-        <!-- Since this patch also contains beam elements,
-             a separate internal patch will be created for those,
-             and it will be ordered before the shell element patch.
-             Therefore, the patch index will be 2 instead of 1. !-->
-        <item patch="2"/>
-      </set>
-    </topologysets>
   </geometry>
 
   <boundaryconditions>
     <dirichlet set="ASET" comp="123456"/>
   </boundaryconditions>
 
-  <discretization type="lagrange"/>
-
   <elasticity>
     <nodeload node="7" dof="3" type="expression">1.0e6*sin(PI*t)*t</nodeload>
   </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
 
   <newmarksolver alpha2="0.001">
     <timestepping>

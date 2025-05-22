@@ -5,9 +5,6 @@
   <geometry dim="3">
     <patchfile type="Nastran">plate28x20.nas</patchfile>
     <topologysets>
-      <set name="SPC7" type="nodes">
-        <item patch="1"/>
-      </set>
       <set name="plate" type="face">
         <item patch="1"/>
       </set>

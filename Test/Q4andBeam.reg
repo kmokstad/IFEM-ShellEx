@@ -13,14 +13,11 @@ Number of beam elements:        2
 Number of constraint elements:  1
 Number of other elements:       1
 Model extension (diameter):     3.20156
+	Created beam patch 1 with 3 nodes
 Pre-defined node sets:          1
 	"ASET"	2 nodes
-	Created beam patch 1 with 3 nodes
 	Created shell patch 2 with 3 elements
-  Parsing <topologysets>
-	Topology sets: ASET (2,1,4D)
   Parsing <patchfile>
-  Parsing <topologysets>
 Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 123456: (fixed)
@@ -30,7 +27,7 @@ Parsing <elasticity>
 Parsing <newmarksolver>
 Parsing input file succeeded.
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 2
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell with beam elements

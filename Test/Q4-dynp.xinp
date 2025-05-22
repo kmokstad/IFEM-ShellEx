@@ -4,26 +4,22 @@
 
   <geometry dim="3">
     <patchfile type="Nastran">CQUAD04_.nas</patchfile>
-    <topologysets>
-      <set name="ASET" type="nodes">
-        <item patch="1"/>
-      </set>
-    </topologysets>
   </geometry>
 
-  <discretization type="lagrange"/>
+  <boundaryconditions>
+    <dirichlet set="ASET" comp="1236"/>
+  </boundaryconditions>
 
   <elasticity>
-    <boundaryconditions>
-      <dirichlet set="ASET" comp="1236"/>
-    </boundaryconditions>
     <gravity y="-9.81"/>
     <pressure code="1" type="expression">
       1e6*if(above(t,0.5),1500*uy,sin(PI*t))
     </pressure>
   </elasticity>
 
-  <discretization type="lagrange"/>
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
 
   <newmarksolver alpha2="0.001">
     <nupdate>0</nupdate>

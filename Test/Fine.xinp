@@ -5,9 +5,6 @@
   <geometry dim="3">
     <patchfile type="Nastran">FEM_Fine.nas</patchfile>
     <topologysets>
-      <set name="SPC7" type="nodes">
-        <item patch="1"/>
-      </set>
       <set name="plate" type="elements">
         <item patch="1">1:902</item>
       </set>
@@ -19,7 +16,9 @@
   </boundaryconditions>
 
   <elasticity>
-    <pressure set="plate" type="expression">1.0e6*sin(PI*(t-x/0.13))*sin(PI*(1.5*z-y/0.065))</pressure>
+    <pressure set="plate" type="expression">
+      1.0e6*sin(PI*(t-x/0.13))*sin(PI*(1.5*z-y/0.065))
+    </pressure>
   </elasticity>
 
   <discretization type="lagrange">

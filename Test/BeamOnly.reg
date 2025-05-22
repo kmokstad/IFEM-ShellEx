@@ -1,8 +1,6 @@
 BeamOnly.xinp
 
 Input file: BeamOnly.xinp
-Equation solver: 2
-Number of Gauss points: 4
 Evaluation time for property functions: 1
 Parsing input file BeamOnly.xinp
 Parsing <discretization>
@@ -14,12 +12,12 @@ Number of shell elements:       0
 Number of beam elements:        2
 Number of constraint elements:  0
 Number of other elements:       0
+Model extension (diameter):     1.41421
+	Created beam patch 1 with 3 nodes
 Pre-defined node sets:          1
 	"ASET"	2 nodes
-  Parsing <topologysets>
-	Topology sets: ASET (2,1,4D)
+	Reading patch 2
   Parsing <patchfile>
-  Parsing <topologysets>
 Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 123456: (fixed)

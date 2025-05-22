@@ -4,20 +4,18 @@
 
   <geometry dim="3">
     <patchfile type="Nastran">CTRIA03_.nas</patchfile>
-    <topologysets>
-      <set name="ASET" type="nodes">
-        <item patch="1"/>
-      </set>
-    </topologysets>
   </geometry>
 
-  <discretization type="lagrange"/>
+  <boundaryconditions>
+    <dirichlet set="ASET" comp="1236"/>
+  </boundaryconditions>
 
   <elasticity>
-    <boundaryconditions>
-      <dirichlet set="ASET" comp="1236"/>
-    </boundaryconditions>
     <gravity y="-9.81"/>
   </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>1</nGauss>
+  </discretization>
 
 </simulation>

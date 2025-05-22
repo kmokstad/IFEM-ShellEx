@@ -1,9 +1,9 @@
 Q4.xinp
 
 Input file: Q4.xinp
-Equation solver: 2
-Number of Gauss points: 4
+Evaluation time for property functions: 1
 Parsing input file Q4.xinp
+Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
 	Reading data file CQUAD04_.nas
@@ -11,18 +11,22 @@ Total number of nodes:          27
 Number of shell elements:       16
 Number of constraint elements:  2
 Number of other elements:       0
+Model extension (diameter):     1.0198
+Pre-defined node sets:          1
+	"ASET"	2 nodes
 	Reading patch 1
-  Parsing <topologysets>
-	Topology sets: ASET (1,1,4D)
   Parsing <patchfile>
-  Parsing <topologysets>
-Parsing <elasticity>
+Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 1236: (fixed)
+Parsing <elasticity>
 	Gravitation vector: 0 -9.81 0
+  Parsing <pressure>
+	Pressure code 1 (expression): if(above(t,1.0),0.0,1.0e6\*sin(PI\*t))
+Parsing <newmarksolver>
 Parsing input file succeeded.
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 2
 Lagrangian basis functions are used
 Problem definition:
 Formulation: ANDES shell
