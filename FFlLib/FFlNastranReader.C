@@ -1130,24 +1130,24 @@ void FFlNastranReader::processAssignFile (const std::string& line)
 }
 
 
-bool FFlNastranReader::nameFromLastComment (FFlGroup* group, bool first)
+void FFlNastranReader::nameFromLastComment (FFlGroup* group, bool first)
 {
-  if (!group || !lastComment.first || !this->extractNameFromLastComment(first))
-    return false;
-
+  if (group && lastComment.first && this->extractNameFromLastComment(first))
+  {
 #if FFL_DEBUG > 2
-  std::cout <<"Element group "<< group->getID()
-            <<" is named \""<< lastComment.second <<"\""<< std::endl;
+    std::cout <<"Element group "<< group->getID()
+              <<" is named \""<< lastComment.second <<"\""<< std::endl;
 #endif
-  group->setName(lastComment.second);
-  return true;
+    group->setName(lastComment.second);
+  }
 }
 
 
-bool FFlNastranReader::extractNameFromLastComment (bool first)
+bool FFlNastranReader::extractNameFromLastComment (bool first,
+                                                   const char* NXkeyword)
 {
   std::string& commentLine = lastComment.second;
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
   std::cout <<"FFlNastranReader: Processing comment\n"<< commentLine;
 #endif
 
@@ -1159,7 +1159,7 @@ bool FFlNastranReader::extractNameFromLastComment (bool first)
     commentLine.erase(0,pos+6);
     pos = commentLine.find_first_of("\r\n");
     if (pos < commentLine.size()) commentLine.erase(pos);
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
     if (!commentLine.empty())
       std::cout <<"\tFound name: "<< commentLine << std::endl;
 #endif
@@ -1167,7 +1167,8 @@ bool FFlNastranReader::extractNameFromLastComment (bool first)
   }
 
   // Check for NX syntax
-  pos = first ? commentLine.find("$*  NX ") : commentLine.rfind("$*  NX ");
+  std::string tag = std::string("$*  ") + NXkeyword;
+  pos = first ? commentLine.find(tag) : commentLine.rfind(tag);
   if (pos < commentLine.size())
   {
     size_t pos2 = commentLine.substr(pos).find(": ");
@@ -1177,7 +1178,7 @@ bool FFlNastranReader::extractNameFromLastComment (bool first)
       commentLine.erase(0,pos+pos2+2);
       pos = commentLine.find_first_of("\r\n");
       if (pos < commentLine.size()) commentLine.erase(pos);
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
       if (!commentLine.empty())
         std::cout <<"\tFound name: "<< commentLine << std::endl;
 #endif
@@ -1196,7 +1197,7 @@ bool FFlNastranReader::extractNameFromLastComment (bool first)
       commentLine.erase(0,pos+pos2+2);
       pos = commentLine.find_first_of("\r\n");
       if (pos < commentLine.size()) commentLine.erase(pos);
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
       if (!commentLine.empty())
         std::cout <<"\tFound name: "<< commentLine << std::endl;
 #endif
@@ -1221,7 +1222,7 @@ bool FFlNastranReader::extractNameFromLastComment (bool first)
     // Erase everything outside the last ""-pair
     commentLine.erase(0,commentLine.find('"',pos)+1);
     commentLine.erase(commentLine.find('"'));
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
     if (!commentLine.empty())
       std::cout <<"\tFound name: "<< commentLine << std::endl;
 #endif

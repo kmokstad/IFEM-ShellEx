@@ -11,6 +11,7 @@
 #include "FFlLib/FFlTypeInfoSpec.H"
 #include "FFaLib/FFaAlgebra/FFaCheckSum.H"
 
+#include <cstring>
 #include <iostream>
 #if FFL_DEBUG > 2
 #include <iomanip>
@@ -62,9 +63,17 @@ bool FFlAttributeBase::isIdentic(const FFlAttributeBase* other) const
 
 void FFlAttributeBase::print(const char* prefix) const
 {
-  std::cout << prefix << this->getTypeName()
-            <<", ID = "<< this->getID() <<", Fields:";
-  for (FFlFieldBase* field : myFields) std::cout <<" "<< *field;
+  std::cout << prefix << this->getTypeName() <<", ID = "<< this->getID() <<",";
+  if (!this->getName().empty())
+  {
+    std::cout <<" Name: "<< this->getName();
+    size_t nindent = strlen(prefix) + this->getTypeName().size() + 8;
+    for (int id = this->getID(); id > 0; id /= 10) nindent++;
+    std::cout <<"\n" << std::string(nindent,' ');
+  }
+  std::cout <<" Fields:";
+  for (FFlFieldBase* field : myFields)
+    std::cout <<" "<< *field;
   std::cout << std::endl;
 }
 

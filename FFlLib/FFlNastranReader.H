@@ -169,13 +169,16 @@ protected:
   bool processSet     (const std::string& fileName, const int startBlk);
   bool processAllSets (std::istream& fs, const int startBulk);
   FFlGroup* processThisSet (std::string& setLine,
-			    const int startL, const int stopL);
+                            const int startL, const int stopL);
 
-  bool extractNameFromLastComment (bool first = false);
+  bool extractNameFromLastComment (bool first = false,
+                                   const char* NXkeyword = "NX ");
   // Extract element group name from the last comment read
-  bool nameFromLastComment (FFlGroup* group, bool first = false);
+  void nameFromLastComment (FFlGroup* group, bool first = false);
   // Extract attribute name from the last comment read
-  bool nameFromLastComment (FFlAttributeBase* att, bool first = false);
+  void nameFromLastComment (FFlAttributeBase* att,
+                            const char* keyword = "Property",
+                            bool first = false);
 
   // Read next bulk-entry from the input stream
   bool getNextEntry (std::istream& is, BulkEntry& entry);
@@ -184,7 +187,7 @@ protected:
 
   // Read next (name- or data-) field from the input stream
   int getNextField (std::istream& is, std::string& field,
-		    const FieldFormat size = UNDEFINED);
+                    const FieldFormat size = UNDEFINED);
 
   // Parse the given entry and put the data into the FFlLinkHandler object
   bool processThisEntry (BulkEntry& entry);
@@ -201,17 +204,17 @@ protected:
 
   int  resolveBeamAttributes   (FFlElementBase* theBeam, bool& ok);
   bool resolveWeldElement      (FFlElementBase* theElem, int& newEID,
-				const int PID);
+                                const int PID);
   bool getElementAxis          (FFlElementBase* theElem,
-				const int n1, const int n2, FaVec3& axis);
+                                const int n1, const int n2, FaVec3& axis);
   void resolveSpringAttributes (FFlElementBase* theSpring,
-				const double K, const int C, bool& ok);
+                                const double K, const int C, bool& ok);
   void resolveBushAttributes   (FFlElementBase* theSpring,
-			        const double S, const int CID, bool& ok);
+                                const double S, const int CID, bool& ok);
 
   bool transformMassMatrix  (FFlElementBase* theMass, const int CID, FaVec3* X);
   bool transformSymmMatrix6 (double mat[6][6], const FaVec3& X,
-			     const int CID, const int node = 0);
+                             const int CID, const int node = 0);
 
   bool transformVec3 (FaVec3& v, const FaVec3& X, const int CID);
 
@@ -222,7 +225,7 @@ protected:
   // The remaining methods are defined in FFlNastranProcessor.C
 
   bool processThisEntry (const std::string& name,
-			 std::vector<std::string>& entry);
+                         std::vector<std::string>& entry);
 
   bool createBeamSection (const char* bulk, int PID, int MID,
                           FFlCrossSection& data);

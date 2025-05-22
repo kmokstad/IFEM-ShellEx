@@ -2288,7 +2288,7 @@ bool FFlNastranReader::process_MAT1 (std::vector<std::string>& entry)
   myAtt->poissonsRatio   = round(NU,10);
   myAtt->materialDensity = round(RHO,10);
 
-  this->nameFromLastComment(myAtt);
+  this->nameFromLastComment(myAtt,"Material");
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT1")
@@ -2337,7 +2337,7 @@ bool FFlNastranReader::process_MAT2 (std::vector<std::string>& entry)
     myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
-  this->nameFromLastComment(myAtt);
+  this->nameFromLastComment(myAtt,"Material");
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT2")
@@ -2393,7 +2393,7 @@ bool FFlNastranReader::process_MAT8 (std::vector<std::string>& entry)
   myAtt->G2Z  = round(G2Z,10);
   myAtt->materialDensity = round(RHO,10);
 
-  this->nameFromLastComment(myAtt);
+  this->nameFromLastComment(myAtt,"Material");
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT8")
@@ -2443,7 +2443,7 @@ bool FFlNastranReader::process_MAT9 (std::vector<std::string>& entry)
     myAtt->C[i] = round(C[i],10);
   myAtt->materialDensity = round(RHO,10);
 
-  this->nameFromLastComment(myAtt);
+  this->nameFromLastComment(myAtt,"Material");
   myLink->addAttribute(myAtt);
 
   STOPP_TIMER("process_MAT9")
@@ -4013,22 +4013,22 @@ bool FFlNastranReader::createBeamSection (const char* bulk, int PID, int MID,
 #endif
 
   // Set property name from the first comment line before this PBEAM entry
-  this->nameFromLastComment(myAtt,true);
+  this->nameFromLastComment(myAtt,"Property",true);
   return myLink->addAttribute(myAtt);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool FFlNastranReader::nameFromLastComment (FFlAttributeBase* att, bool first)
+void FFlNastranReader::nameFromLastComment (FFlAttributeBase* att,
+                                            const char* keyword, bool first)
 {
-  if (!att || lastComment.first < 1 || !this->extractNameFromLastComment(first))
-    return false;
+  if (att && lastComment.first > 0)
+    if (this->extractNameFromLastComment(first,keyword))
+      att->setName(lastComment.second);
 
-  att->setName(lastComment.second);
 #ifdef FFL_DEBUG
   att->print();
 #endif
-  return true;
 }
 
 #ifdef FF_NAMESPACE
