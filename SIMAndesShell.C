@@ -34,7 +34,7 @@ bool SIMAndesShell::readSets = true;
 namespace Elastic { extern double time; }
 
 
-SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
+SIMAndesShell::SIMAndesShell (short int n, bool m) : nss(n), modal(m)
 {
   nsd = 3;
   nf.front() = 6;
@@ -50,8 +50,20 @@ SIMAndesShell::~SIMAndesShell ()
 
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
+  // Dummy empty integrand class
+  class NoProblem : public IntegrandBase
+  {
+  public:
+    NoProblem() : IntegrandBase(0) {}
+  };
+
   if (!myProblem)
-    myProblem = new AndesShell(nss,modal,useBeams);
+  {
+    if (nss >= 0)
+      myProblem = new AndesShell(nss,modal,useBeams);
+    else
+      myProblem = new NoProblem();
+  }
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }
