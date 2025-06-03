@@ -109,7 +109,7 @@ AndesShell::~AndesShell ()
 }
 
 
-Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem, bool)
+Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem)
 {
   if (utl::getAttribute(elem,"override",ovrMat) && ovrMat)
   {

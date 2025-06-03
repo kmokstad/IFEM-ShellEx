@@ -68,6 +68,10 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
   if (!this->SIMElasticity<SIM2D>::parse(elem))
     return false;
 
+  ElasticBase* elInt = nullptr;
+  if (!strcasecmp(elem->Value(),"elasticity"))
+    elInt = this->getIntegrand();
+
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"postprocessing"))
@@ -97,7 +101,9 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
         this->setPropertyType(code,Property::BODYLOAD);
         IFEM::cout << std::endl;
-        AndesShell* shellp = static_cast<AndesShell*>(this->getIntegrand());
+        AndesShell* shellp = dynamic_cast<AndesShell*>(elInt);
+        if (!shellp) continue; // Empty integrand - skip
+
         if (set.empty()) // Applies to all elements in the model
           shellp->setPressure(myScalars[code],code);
         else for (const ASMbase* pch : myModel)
@@ -130,11 +136,11 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         myLoads.push_back(load);
       }
     }
-    else if (!strcasecmp(child->Value(),"material"))
+    else if (!strcasecmp(child->Value(),"material") && elInt)
     {
       IFEM::cout <<"  Parsing <material>"<< std::endl;
 
-      this->getIntegrand()->parseMatProp(child,true);
+      elInt->parseMatProp(child);
     }
 
   return true;
