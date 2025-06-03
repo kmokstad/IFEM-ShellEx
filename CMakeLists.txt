@@ -77,11 +77,20 @@ include(IFEMTesting)
 if(IFEM_USE_ANDES AND TARGET FFlLib)
   file(GLOB SHELL_TESTFILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
                                      ${PROJECT_SOURCE_DIR}/Test/*.reg)
+  file(GLOB SHELL_VTF_FILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
+                                     ${PROJECT_SOURCE_DIR}/Test/*.vreg)
+  if(NOT IFEM_USE_FMX)
+    list(REMOVE_ITEM SHELL_TESTFILES Q4-sup.reg Q4andBeam-sup.reg)
+    list(REMOVE_ITEM SHELL_VTF_FILES Q4-sup.vreg)
+  endif()
 endif()
 
 if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
   foreach(TESTFILE ${SHELL_TESTFILES})
     ifem_add_test(${TESTFILE} ShellSim)
+  endforeach()
+  foreach(TESTFILE ${SHELL_VTF_FILES})
+    ifem_add_vtf_test(${TESTFILE} ShellSim)
   endforeach()
 endif()
 
