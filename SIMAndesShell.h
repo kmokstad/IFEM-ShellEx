@@ -30,7 +30,7 @@ public:
   //! \brief Default constructor.
   //! \param[in] n Number of consecutive solutions in core (0 = linear analysis)
   //! \param[in] m If \e true, a modal linear dynamics simulation is performed
-  explicit SIMAndesShell(unsigned short int n = 0, bool m = false);
+  explicit SIMAndesShell(short int n = 0, bool m = false);
   //! \brief The destructor deletes the nodal point load functions.
   virtual ~SIMAndesShell();
 
@@ -128,7 +128,7 @@ private:
   std::string myRFset; //!< Node set for calculation of reaction forces
   std::string myPath;  //!< Relative path of the patch file
 
-  unsigned short int nss; //!< Number of consequtive solution states in core
+  short int nss; //!< Number of consequtive solution states in core
 
   bool modal; //!< Modal dynamics simulation flag
 };
