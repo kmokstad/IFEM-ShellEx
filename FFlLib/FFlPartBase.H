@@ -45,8 +45,8 @@ public:
 
 #ifdef FFL_REFCOUNT
   unsigned char getRefCount() const { return refCount; }
-  unsigned char ref() { return ++refCount; }
-  bool unref() { if (refCount) --refCount; return refCount > 0; }
+  unsigned char ref() { if (refCount < 255) ++refCount; return refCount; }
+  bool unref() { if (refCount < 255) --refCount; return refCount > 0; }
 #else
   unsigned char getRefCount() const { return 1; }
   unsigned char ref() { return 1; }
