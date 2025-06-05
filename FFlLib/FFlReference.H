@@ -9,6 +9,7 @@
 #define FFL_REFERENCE_H
 
 #include <map>
+#include <cstdint>
 
 #include "FFlLib/FFlPartBase.H"
 
@@ -102,10 +103,10 @@ public:
 
     using RefIt = typename std::map<int,T*>::const_iterator;
 
-    RefIt it = possibleRefs.find(myID);
-    if (it != possibleRefs.end())
+    RefIt r = possibleRefs.find(static_cast<int>(myID));
+    if (r != possibleRefs.end())
     {
-      myResolvedRef = it->second;
+      myResolvedRef = r->second;
       myResolvedRef->ref();
       iAmResolved = true;
     }
@@ -119,10 +120,10 @@ public:
 
     using RefIt = typename std::vector<T*>::const_iterator;
 
-    RefIt it = FFlPartFinder<T>::findObject(possibleRefs,myID);
-    if (it != possibleRefs.end())
+    RefIt r = FFlPartFinder<T>::findObject(possibleRefs,static_cast<int>(myID));
+    if (r != possibleRefs.end())
     {
-      myResolvedRef = *it;
+      myResolvedRef = *r;
       myResolvedRef->ref();
       iAmResolved = true;
     }
@@ -145,7 +146,10 @@ public:
 
   int getID() const
   {
-    return iAmResolved && myResolvedRef ? myResolvedRef->getID() : myID;
+    if (iAmResolved && myResolvedRef)
+      return myResolvedRef->getID();
+
+    return static_cast<int>(myID);
   }
 
 
@@ -166,21 +170,16 @@ private:
   bool iAmResolved;
 
   union {
-    T*  myResolvedRef;
-    int myID;
+    T* myResolvedRef;
+    std::intptr_t myID;
   };
-
-  friend bool operator< <T> (const FFlReference<T>& lhs,
-                             const FFlReference<T>& rhs);
 };
 
 
 template <class T>
 bool operator< (const FFlReference<T>& lhs, const FFlReference<T>& rhs)
 {
-  int lhsID = lhs.isResolved() ? lhs.myResolvedRef->getID() : lhs.myID;
-  int rhsID = rhs.isResolved() ? rhs.myResolvedRef->getID() : rhs.myID;
-  return lhsID < rhsID;
+  return lhs.getID() < rhs.getID();
 }
 
 #ifdef FF_NAMESPACE
