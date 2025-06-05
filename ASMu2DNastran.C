@@ -19,7 +19,6 @@
 #include "MPC.h"
 #include "Vec3Oper.h"
 #include "IFEM.h"
-#include <fstream>
 #include <sstream>
 
 namespace ASM {
@@ -44,6 +43,7 @@ namespace ASM {
 #include "FFlFEParts/FFlPBEAMSECTION.H"
 #include "FFlFEParts/FFlPBEAMECCENT.H"
 #include "FFlFEParts/FFlPORIENT.H"
+#include <unordered_map>
 
 
 /*!
@@ -124,6 +124,7 @@ bool ASMu2DNastran::read (std::istream& is)
   IntMat beamMNPC;
   int nBel = 0;
   int nErr = 0;
+  int iErr = 0;
 
   // Fast-forward until "BEGIN BULK"
   int lCount = 0;
@@ -206,6 +207,10 @@ bool ASMu2DNastran::read (std::istream& is)
   beamElms.reserve(nBel);
   beamMNPC.reserve(nBel);
 
+  std::unordered_map<int,int> MEXINN; // External to internal node number map
+  // Using an unordered_map instead of relying on ASMbase::getNodeIndex,
+  // which is way to slow for very large models.
+
   // Extract the nodal points
   for (size_t inod = 1; inod <= nnod; inod++)
   {
@@ -218,6 +223,12 @@ bool ASMu2DNastran::read (std::istream& is)
     myMLGN.push_back(nid);
     myCoord.push_back(Vec3(X.x(),X.y(),X.z()));
 
+    if (!MEXINN.emplace(nid,inod).second)
+    {
+      IFEM::cout <<"  ** Multiple instances of node number "<< nid << std::endl;
+      iErr++;
+    }
+
     if (node->isExternal()) // Create a node set for the supernodes
       this->addToNodeSet("ASET",MLGN.size());
     else if (node->isFixed())
@@ -228,6 +239,9 @@ bool ASMu2DNastran::read (std::istream& is)
       this->addToNodeSet("SPC"+cstat,MLGN.size());
     }
   }
+  if (iErr > 0)
+    std::cerr <<" *** A total of "<< iErr
+              <<" multiple nodes where detected."<< std::endl;
 
   // Extract the element data
   for (ElementsCIter e = fem.elementsBegin(); e != fem.elementsEnd(); ++e)
@@ -237,7 +251,7 @@ bool ASMu2DNastran::read (std::istream& is)
     // Nodal connectivities
     IntVec mnpc((*e)->getNodeCount());
     for (size_t i = 0; i < mnpc.size(); i++)
-      mnpc[i] = this->getNodeIndex((*e)->getNodeID(1+i)) - 1;
+      mnpc[i] = MEXINN.at((*e)->getNodeID(1+i)) - 1;
 
     if ((*e)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM && mnpc.size() == 2)
     {
@@ -340,7 +354,7 @@ bool ASMu2DNastran::read (std::istream& is)
     Vec3Vec bXYZ;
     bXYZ.reserve(beamNodes.size());
     for (int node : beamNodes)
-      bXYZ.push_back(coord[this->getNodeIndex(node)-1]);
+      bXYZ.push_back(coord[MEXINN.at(node)-1]);
     beamPatch = new ASMuBeam(bXYZ,beamMNPC,beamNodes,beamElms,myBprops,nsd,nf);
     IFEM::cout <<"\tCreated beam patch "<< beamPatch->idx+1
                <<" with "<< beamNodes.size() <<" nodes"<< std::endl;
@@ -377,7 +391,13 @@ bool ASMu2DNastran::read (std::istream& is)
     IFEM::cout << std::endl;
   }
 
-  return nErr == 0;
+  if (this->empty() && nBel == 0)
+  {
+    std::cerr <<"\n *** No elements in this patch (ignored)."<< std::endl;
+    return false;
+  }
+
+  return nErr == 0 && iErr == 0;
 }
 
 
