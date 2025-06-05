@@ -346,7 +346,7 @@ void FFlLinkHandler::calculateChecksum(FFaCheckSum* cs,
       if (checkStrainCoat || !isStrainCoatProp(attr.second))
       {
         attr.second->calculateChecksum(cs,csType);
-#if FFL_DEBUG > 1
+#if FFL_DEBUG > 2
         std::cout <<"Link checksum after attribute "<< attr.first
                   <<" "<< attr.second->getID() <<" : "
                   << cs->getCurrent() << std::endl;
@@ -1270,7 +1270,7 @@ int FFlLinkHandler::addUniqueAttribute(FFlAttributeBase* attr, bool silence)
       return attp.first;
     }
 
-#ifdef FFL_DEBUG
+#if FFL_DEBUG > 2
   attr->print("Unique attribute ");
 #endif
 
@@ -1299,7 +1299,7 @@ int FFlLinkHandler::addUniqueAttributeCS(FFlAttributeBase*& attr)
     return attr->getID();
   }
 
-#ifdef FFL_DEBUG
+#if FFL_DEBUG > 2
   attr->print("Unique attribute ");
 #endif
 
