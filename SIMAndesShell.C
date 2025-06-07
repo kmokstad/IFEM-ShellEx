@@ -15,6 +15,7 @@
 #include "ASMu2DNastran.h"
 #include "AndesShell.h"
 #include "AlgEqSystem.h"
+#include "SystemMatrix.h"
 #include "SAM.h"
 #include "DataExporter.h"
 #include "HDF5Writer.h"
@@ -111,29 +112,54 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
             break; // Note: This assumes a set has elements from one patch only
       }
     }
+    else if (!strcasecmp(child->Value(),"spring") && child->FirstChild())
+    {
+      IFEM::cout <<"  Parsing <spring>"<< std::endl;
+
+      int inod = 0, ldof = 0;
+      utl::getAttribute(child,"node",inod);
+      utl::getAttribute(child,"dof",ldof);
+      double coeff = atof(child->FirstChild()->Value());
+
+      std::string set;
+      utl::getAttribute(child,"set",set);
+      IntVec nodes = this->getNodeSet(set);
+      if (ldof < 1 || ldof > 6)
+        nodes.clear();
+      else if (nodes.empty() && inod > 0)
+        nodes = { inod };
+
+      for (int n : nodes)
+      {
+        IFEM::cout <<"\tNode "<< n <<" dof "<< ldof
+                   <<" Spring stiffness: "<< coeff << std::endl;
+        mySprings.emplace_back(n,ldof,coeff);
+      }
+    }
     else if (!strcasecmp(child->Value(),"nodeload") && child->FirstChild())
     {
       IFEM::cout <<"  Parsing <nodeload>"<< std::endl;
 
-      PointLoad load;
-      utl::getAttribute(child,"node",load.inod);
-      utl::getAttribute(child,"dof",load.ldof);
+      int inod = 0, ldof = 0;
+      ScalarFunc* f = nullptr;
+      utl::getAttribute(child,"node",inod);
+      utl::getAttribute(child,"dof",ldof);
 
-      if (load.inod > 0 && load.ldof > 0 && load.ldof <= 6)
+      if (inod > 0 && ldof > 0 && ldof <= 6)
       {
         std::string type("constant");
         utl::getAttribute(child,"type",type);
 
-        IFEM::cout <<"\tNode "<< load.inod <<" dof "<< load.ldof <<" Load: ";
+        IFEM::cout <<"\tNode "<< inod <<" dof "<< ldof <<" Load: ";
         if (type == "constant")
         {
-          load.p = new ConstantFunc(atof(child->FirstChild()->Value()));
-          IFEM::cout << (*load.p)(0.0) << std::endl;
+          f = new ConstantFunc(atof(child->FirstChild()->Value()));
+          IFEM::cout << (*f)(0.0) << std::endl;
         }
         else
-          load.p = utl::parseTimeFunc(child->FirstChild()->Value(),type);
+          f = utl::parseTimeFunc(child->FirstChild()->Value(),type);
 
-        myLoads.push_back(load);
+        myLoads.emplace_back(inod,ldof,f);
       }
     }
     else if (!strcasecmp(child->Value(),"material") && elInt)
@@ -256,6 +282,10 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 {
   bool ok = this->SIMElasticity<SIM2D>::renumberNodes(nodeMap);
 
+  for (DOFspring& spr : mySprings)
+    if (spr.inod > 0)
+      ok &= utl::renumber(spr.inod,nodeMap,true);
+
   for (PointLoad& load : myLoads)
     if (load.inod > 0)
       ok &= utl::renumber(load.inod,nodeMap,true);
@@ -274,11 +304,16 @@ bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
                                            const TimeDomain& time)
 {
   bool ok = static_cast<AndesShell*>(myProblem)->allElementsOK();
-
-  if (itg != myProblem || !myEqSys || !myEqSys->getNoRHS())
+  if (itg != myProblem || !myEqSys)
     return ok;
 
-  SystemVector* R = myEqSys->getVector(myEqSys->getNoRHS()-1);
+  SystemMatrix* K = myEqSys->getMatrix();
+  if (K) // Assemble discrete DOF springs
+    for (const DOFspring& spr : mySprings)
+      ok &= K->add(spr.coeff,mySam->getEquation(spr.inod,spr.ldof));
+
+  const size_t nrhs = myEqSys->getNoRHS();
+  SystemVector* R = nrhs > 0 ? myEqSys->getVector(nrhs-1) : nullptr;
   if (R) // Assemble external nodal point loads
     for (const PointLoad& load : myLoads)
     {

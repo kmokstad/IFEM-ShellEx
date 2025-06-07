@@ -86,10 +86,10 @@ protected:
   //! \brief Dummy override, does nothing.
   virtual bool initBodyLoad(size_t) { return true; }
 
-  //! \brief Renumbers the global node numbers of the nodal point loads.
+  //! \brief Renumbers the global node numbers of the springs and point loads.
   virtual bool renumberNodes(const std::map<int,int>& nodeMap);
 
-  //! \brief Assembles the nodal point loads, if any.
+  //! \brief Assembles the DOF springs and nodal point loads, if any.
   virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
                                      const TimeDomain& time);
 
@@ -98,17 +98,30 @@ public:
   static bool readSets; //!< If \e true, also read Nastran SET definitions
 
 private:
+  //! \brief Struct defining a DOF spring.
+  struct DOFspring
+  {
+    int    inod;  //!< Node index
+    int    ldof;  //!< Local DOF number
+    double coeff; //!< Stiffness coefficient
+    //! \brief Default constructor.
+    explicit DOFspring(int n = 0, int d = 0, double c = 0.0)
+      : inod(n), ldof(d), coeff(c) {}
+  };
+
   //! \brief Struct defining a nodal point load.
   struct PointLoad
   {
-    int         inod; //!< Node or patch index
+    int         inod; //!< Node index
     int         ldof; //!< Local DOF number
     ScalarFunc* p;    //!< Load magnitude
     //! \brief Default constructor.
-    PointLoad(int n = 0) : inod(n), ldof(0), p(nullptr) {}
+    explicit PointLoad(int n = 0, int d = 0, ScalarFunc* f = nullptr)
+      : inod(n), ldof(d), p(f) {}
   };
 
-  std::vector<PointLoad> myLoads; //!< Nodal point loads
+  std::vector<DOFspring> mySprings; //!< Global DOF springs
+  std::vector<PointLoad> myLoads;   //!< Nodal point loads
 
   RealArray   myReact; //!< Nodal reaction forces
   std::string myRFset; //!< Node set for calculation of reaction forces
