@@ -34,11 +34,13 @@
 
 #define MAX_HEADER_LINES 1000
 
+namespace FFlNastran {
+  std::string mainPath;
+}
+
 #ifdef FF_NAMESPACE
 namespace FF_NAMESPACE {
 #endif
-
-static std::string mainPath;
 
 static bool identFoundSet = false;
 static bool procOK        = true; // Set to false if parsing errors detected
@@ -192,10 +194,11 @@ void FFlNastranReader::readerCB (const std::string& fname, FFlLinkHandler* link)
 {
   nWarnings = nNotes = 0;
   FFlNastranReader reader(link,startBulk);
-  mainPath = FFaFilePath::getPath(fname);
+  FFlNastran::mainPath = FFaFilePath::getPath(fname);
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: fileName = \""<< fname <<"\"\n"
-	    <<"FFlNastranReader: mainPath = \""<< mainPath <<"\""<< std::endl;
+            <<"FFlNastranReader: mainPath = \""<< FFlNastran::mainPath
+            <<"\""<< std::endl;
 #endif
   bool stillOk = reader.read(fname);
   bool setsOk  = true;
@@ -228,8 +231,8 @@ bool FFlNastranReader::read (const std::string& fname, bool includedFile)
   // the given fname is relative to the location of the main bulk data file
   std::string fileName(fname);
   if (includedFile)
-    if (FFaFilePath::isRelativePath(fname) && !mainPath.empty())
-      fileName = FFaFilePath::appendFileNameToPath(mainPath,fname);
+    if (FFaFilePath::isRelativePath(fname) && !FFlNastran::mainPath.empty())
+      fileName = FFaFilePath::appendFileNameToPath(FFlNastran::mainPath,fname);
   FFaFilePath::checkName(fileName);
 
   std::ifstream fs(fileName.c_str());
@@ -266,12 +269,12 @@ bool FFlNastranReader::read (const std::string& fname, bool includedFile)
   {
     nNotes++;
     ListUI <<"\n   * Note: "<< numOP2 <<" OP2-files were detected.\n"
-	   <<"           The FE part is assumed to be externally reduced.\n";
+           <<"           The FE part is assumed to be externally reduced.\n";
   }
 
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: starting bulk data parsing at line "
-	    << lineCounter+1 << std::endl;
+            << lineCounter+1 << std::endl;
 #endif
   return this->read(fs);
 }
@@ -331,7 +334,7 @@ bool FFlNastranReader::read (std::istream& is)
 
 #ifdef FFL_DEBUG
   std::cout <<"FFlNastranReader: processed "<< lineCounter <<" lines (done)."
-	    << std::endl;
+            << std::endl;
 #endif
   STOPP_TIMER("read")
   return sizeOK && stillOK && procOK;
@@ -653,7 +656,7 @@ bool FFlNastranReader::getFields (std::istream& is, BulkEntry& entry)
 #if FFL_DEBUG > 4
   if (!entry.cont.empty())
     std::cout <<"FFlNastranReader: continuation field=\""<< entry.cont
-	      <<"\""<< std::endl;
+              <<"\""<< std::endl;
 #endif
 
   return true;
@@ -1122,7 +1125,7 @@ void FFlNastranReader::processAssignFile (const std::string& line)
   if (k == std::string::npos || k < j+2) return;
 
   std::string op2file = line.substr(j+1,k-j-1);
-  FFaFilePath::makeItAbsolute(op2file,mainPath);
+  FFaFilePath::makeItAbsolute(op2file,FFlNastran::mainPath);
   myLink->addOP2file(FFaFilePath::checkName(op2file));
 
   nNotes++;
