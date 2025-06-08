@@ -22,9 +22,9 @@
 #include <sstream>
 
 namespace ASM {
-  double Ktra = 0.0;
-  double Krot = 0.0;
-  bool skipVTFmass = false;
+  bool skipVTFmass = false; //!< If \e true, skip mass point geometries in VTF
+  double Ktra = 0.0; //!< Translation stiffness for added springs in slave nodes
+  double Krot = 0.0; //!< Rotation stiffness for added sprins in slave nodes
 }
 
 
@@ -44,6 +44,10 @@ namespace ASM {
 #include "FFlFEParts/FFlPBEAMECCENT.H"
 #include "FFlFEParts/FFlPORIENT.H"
 #include <unordered_map>
+
+namespace FFlNastran {
+  extern std::string mainPath;
+}
 
 
 /*!
@@ -99,6 +103,19 @@ public:
 #endif
 
 std::vector<int> ASMu2DNastran::fixRBE3;
+
+
+ASMu2DNastran::ASMu2DNastran (unsigned char n, unsigned char n_f,
+                              const std::string& path, bool sets, char beams)
+  : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets)
+{
+  massMax = 1.0;
+  beamPatch = nullptr;
+  nGnod.fill(0);
+#ifdef HAS_FFLLIB
+  FFlNastran::mainPath = path;
+#endif
+}
 
 
 ASMu2DNastran::~ASMu2DNastran ()

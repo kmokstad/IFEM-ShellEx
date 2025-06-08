@@ -64,6 +64,18 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     const tinyxml2::XMLElement* child = elem->FirstChildElement("fixRBE3");
     if (child && child->FirstChild())
       utl::parseIntegers(ASMu2DNastran::fixRBE3,child->FirstChild()->Value());
+
+    std::string fName;
+    child = elem->FirstChildElement("patchfile");
+    if (child && child->FirstChild())
+      if (utl::getAttribute(child,"type",fName,true) && fName == "nastran")
+      {
+        // Extract the path of specified nastran file
+        fName = child->FirstChild()->Value();
+        size_t ipos = fName.find_last_of("/\\");
+        if (ipos < std::string::npos)
+          myPath = fName.substr(0,ipos);
+      }
   }
 
   if (!this->SIMElasticity<SIM2D>::parse(elem))
@@ -179,7 +191,7 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   ASMbase* pch = NULL;
   ASMu2DNastran* shell = NULL;
   if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
-    pch = shell = new ASMu2DNastran(nsd,nf.front(),readSets,useBeams);
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),myPath,readSets,useBeams);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 

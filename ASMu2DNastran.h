@@ -32,9 +32,8 @@ class ASMu2DNastran : public ASMu2DLag
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  ASMu2DNastran(unsigned char n, unsigned char n_f, bool sets, char beams)
-    : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets),
-      massMax(1.0), beamPatch(nullptr) { nGnod.fill(0); }
+  ASMu2DNastran(unsigned char n, unsigned char n_f,
+                const std::string& path, bool sets, char beams);
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief The destructor deletes the immersed/extra element blocks, if any.

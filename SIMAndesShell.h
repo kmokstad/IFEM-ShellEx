@@ -125,6 +125,7 @@ private:
 
   RealArray   myReact; //!< Nodal reaction forces
   std::string myRFset; //!< Node set for calculation of reaction forces
+  std::string myPath;  //!< Relative path of the patch file
 
   unsigned short int nss; //!< Number of consequtive solution states in core
 
