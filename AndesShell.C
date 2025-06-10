@@ -325,9 +325,10 @@ int AndesShell::getIntegrandType () const
 
 
 /*!
-  In case that element stiffness- and mass-matrices are cached, this method
-  will copy the element matrices for current element from the cache
-  and skip the property initialisation which then are not needed.
+  In the case that element stiffness- and mass-matrices are cached,
+  this method will copy the element matrices for current element from
+  the cache and skip the property initialisation, which then is not needed
+  (unless the element has gravity loads which require the shell thickness).
 */
 
 bool AndesShell::initElement (const std::vector<int>& MNPC,
@@ -355,8 +356,10 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 
   if (!this->initElement(MNPC,elmInt))
     return false;
-  else if (fe.Xn.cols() < 3 || (eKm+eM <= 0 && fe.Xn.cols() > 3))
-    return true;
+  else if (fe.Xn.cols() < 3)
+    return true; // No properties for 1-noded mass elements
+  else if (eKm+eM <= 0 && !this->havePressure())
+    return true; // Nothing to integrate for this shell element
 
   bool ok = true;
   if (!currentPatch)
@@ -647,9 +650,15 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 }
 
 
+/*!
+  If \a iEl is negative, this method returns \e true if gravity loads exists,
+  or any element have surface pressure loads. Otherwise, it returns \e true
+  only if the element \a iEl has surface pressure loads.
+*/
+
 bool AndesShell::havePressure (int iEl) const
 {
-  if (Rho > 0.0 && !gravity.isZero())
+  if (iEl < 0 && Rho > 0.0 && !gravity.isZero())
     return true;
 
   for (const std::pair<const int,RealFunc*>& press : presFld)
