@@ -355,6 +355,7 @@ int main (int argc, char** argv)
     writer = model->getHDF5writer(displ.front(),dumpNodeMap);
 
   Vector load;
+  RealArray Fex;
   switch (iop+model->opt.eig) {
   case 0:
   case 200:
@@ -362,7 +363,7 @@ int main (int argc, char** argv)
     model->initForSingleStep();
     model->setMode(SIM::STATIC);
     model->setQuadratureRule(2,true);
-    model->initSystem(model->opt.solver);
+    model->initSystem(model->opt.solver,1,1,3);
     if (!model->assembleSystem(Elastic::time))
     {
       if (model->opt.format < 0)
@@ -376,6 +377,12 @@ int main (int argc, char** argv)
 #ifdef INT_DEBUG
       model->getSAM()->printVector(std::cout,load,"\nLoad vector");
 #endif
+    }
+    if (model->extractScalars(Fex))
+    {
+      IFEM::cout <<"\nTotal external load: Sum(Fex) =";
+      for (double f : Fex) IFEM::cout <<" "<< utl::trunc(f);
+      IFEM::cout << std::endl;
     }
 
     // Solve the linear system of equations

@@ -260,11 +260,11 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
   {
     case SIM::STATIC:
     case SIM::MASS_ONLY:
-      result->resize(1,1);
+      result->resize(1,1,nsd);
       break;
 
     case SIM::DYNAMIC:
-      result->resize(3,eS);
+      result->resize(3,eS,nsd);
       break;
 
     case SIM::VIBRATION:
@@ -276,7 +276,7 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
       break;
 
     case SIM::RHS_ONLY:
-      result->resize(0,1);
+      result->resize(0,1,nsd);
       result->rhsOnly = true;
       result->withLHS = false;
       break;
@@ -288,7 +288,7 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
       return nullptr;
   }
 
-  result->redim(6*nen);
+  result->redim(npv*nen);
   return result;
 }
 
@@ -427,10 +427,16 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (p.isZero()) return true; // No pressure load
 
   // Integrate the external load vector
+  p *= fe.detJxW;
   Vector& Svec = static_cast<ElmMats&>(elmInt).b[eS-1];
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (unsigned short int i = 1; i <= 3; i++)
-      Svec(npv*(a-1)+i) += fe.N(a)*p(i)*fe.detJxW;
+      Svec(npv*(a-1)+i) += fe.N(a)*p[i-1];
+
+  // Integrate the total external load
+  RealArray& sumLoad = static_cast<ElmMats&>(elmInt).c;
+  for (size_t i = 0; i < sumLoad.size() && i < 3; i++)
+    sumLoad[i] += p[i];
 
   return true;
 }
@@ -460,6 +466,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   Vector& Svec = eS  > 0 ? static_cast<ElmMats&>(elmInt).b[eS-1]  : vDummy;
   Matrix& Kmat = eKm > 0 ? static_cast<ElmMats&>(elmInt).A[eKm-1] : mDummy;
   Matrix& Mmat = eM  > 0 ? static_cast<ElmMats&>(elmInt).A[eM-1 ] : mDummy;
+  RealArray& F = static_cast<ElmMats&>(elmInt).c;
   size_t nenod = fe.Xn.cols();
   if (currentPatch && nenod == 1) // 1-noded concentrated mass element
   {
@@ -469,7 +476,11 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
     if (eM > 0)
       currentPatch->getMassMatrix(fe.iel, Mmat);
     if (eS > 0)
+    {
       currentPatch->getLoadVector(fe.iel, gravity, Svec);
+      for (size_t i = 0; i < F.size() && i < Svec.size(); i++)
+        F[i] += Svec[i];
+    }
   }
   else if (currentPatch && nenod == 2) // 2-noded mass-less spring element
   {
@@ -520,6 +531,10 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
                  eKm > 0 ? Thick : 0.0, Emod, GorNu, eM > 0 ? Rho : 0.0,
                  Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
 #endif
+    if (eS > 0)
+      for (int a = 0; a < 3; a++)
+        for (size_t i = 0; i < F.size() && npv*a+i < Svec.size(); i++)
+          F[i] += Svec[npv*a+i];
   }
   else if (nenod == 4) // 4-noded shell element
   {
@@ -684,7 +699,7 @@ bool AndesShell::writeGlvT (VTF* vtf, int iStep,
 
 void AndesShell::primaryScalarFields (Matrix& field)
 {
-  if (field.rows() != 6) return;
+  if (field.rows() != npv) return;
 
   // Lambda function returning the magnitude of a displacement vector.
   std::function<double(const double*)> absDis = [](const double* u) -> double
@@ -695,7 +710,7 @@ void AndesShell::primaryScalarFields (Matrix& field)
   // Insert the absolute value as the 7th solution component
   field.expandRows(1);
   for (size_t c = 1; c <= field.cols(); c++)
-    field(7,c) = absDis(field.ptr(c-1));
+    field(npv+1,c) = absDis(field.ptr(c-1));
 }
 
 
