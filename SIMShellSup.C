@@ -93,6 +93,12 @@ bool SIMShellSup::parse (const tinyxml2::XMLElement* elem)
     else if (myProblem->parse(child))
       continue; // parsed <gravity>
 
+    else if (!strcasecmp(child->Value(),"nodeload") && child->FirstChild())
+    {
+      IFEM::cout <<"  Parsing <nodeload>"<< std::endl;
+
+      this->parseLoad(child);
+    }
     else if (supEl && !supEl->parse(child)) // parse the superelement <geometry>
     {
       delete supEl;
@@ -137,6 +143,20 @@ bool SIMShellSup::preprocessB ()
   IFEM::cout <<"\nSuperelement recovery setup done."<< std::endl;
   SIMbase::preserveNOrder = preserved;
   return ok;
+}
+
+
+bool SIMShellSup::renumberNodes (const std::map<int,int>& nodeMap)
+{
+  return (this->SIMsupel::renumberNodes(nodeMap) &&
+          this->renumberLoadedNodes(nodeMap));
+}
+
+
+bool SIMShellSup::assembleDiscreteTerms (const IntegrandBase* itg,
+                                         const TimeDomain& time)
+{
+  return this->assembleLoads(*myEqSys,time.t);
 }
 
 
@@ -191,16 +211,6 @@ ElementBlock* SIMShellSup::tesselatePatch (size_t pidx) const
   ElementBlock* supblk = new ElementBlock(*sub.blk);
   supblk->transform(mySups[pidx].MVP);
   return supblk;
-}
-
-
-IntegrandBase* SIMShellSup::getMyProblem () const
-{
-  for (const std::pair<const std::string,FEmodel>& sub : mySubSim)
-    if (sub.second.sim)
-      return const_cast<IntegrandBase*>(sub.second.sim->getProblem());
-
-  return myProblem;
 }
 
 
@@ -292,10 +302,10 @@ int SIMShellSup::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
 
   // Write result block identifications
 
+  const char* fieldNames[6] = { "u_x", "u_y", "u_z", "r_x", "r_y", "r_z" };
   bool ok = vID.empty() || vtf->writeDblk(vID,"Displacement",idBlock,iStep);
   for (size_t i = 0; i < sID.size() && !sID[i].empty() && ok; i++)
-    ok = vtf->writeSblk(sID[i], this->getMyProblem()->getField1Name(i).c_str(),
-                        idBlock++, iStep);
+    ok = vtf->writeSblk(sID[i], fieldNames[i], idBlock++, iStep);
 
   return ok ? idBlock : -4;
 }

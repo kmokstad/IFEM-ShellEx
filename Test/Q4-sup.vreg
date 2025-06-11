@@ -5,9 +5,9 @@ Step 1
     27 nodes
     16 elements
     Displacement: 'Displacement'
-    Scalar: 'primary solution 1'
-    Scalar: 'primary solution 2'
-    Scalar: 'primary solution 3'
-    Scalar: 'primary solution 4'
-    Scalar: 'primary solution 5'
-    Scalar: 'primary solution 6'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'r_x'
+    Scalar: 'r_y'
+    Scalar: 'r_z'

@@ -2,19 +2,18 @@
 
 <simulation>
 
-  <elasticity supId="Q4">
+  <elasticity supId="Q4andBeam">
     <geometry>
-      <patchfile type="Nastran">CQUAD04_.nas</patchfile>
+      <patchfile type="Nastran">Q4andBeam.nas</patchfile>
     </geometry>
-    <gravity y="-9.81"/>
   </elasticity>
 
-  <superelem id="Q4">
+  <superelem id="Q4andBeam">
     <geometry>
-      <patchfile>CQUAD04.dat</patchfile>
+      <patchfile>Q4andBeam.dat</patchfile>
       <topologysets>
         <set name="support" type="nodes">
-          <item patch="1">1</item>
+          <item patch="1">1 2</item>
         </set>
       </topologysets>
     </geometry>
@@ -24,7 +23,7 @@
   </superelem>
 
   <elasticity>
-    <nodeload node="2" type="expression" dof="1">1000*sin(t)</nodeload>
+    <nodeload node="3" dof="3">1.0e6</nodeload>
   </elasticity>
 
   <discretization type="lagrange">

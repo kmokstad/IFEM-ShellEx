@@ -15,13 +15,14 @@
 #define _SIM_SHELL_SUP_H
 
 #include "SIMsupel.h"
+#include "HasPointLoads.h"
 
 
 /*!
   \brief Solution driver for linear elastic superelement FEM analysis.
 */
 
-class SIMShellSup : public SIMsupel
+class SIMShellSup : public SIMsupel, private HasPointLoads
 {
 public:
   //! \brief The constructor creates a dummy integrand with gravity only.
@@ -37,8 +38,18 @@ protected:
   virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Performs some pre-processing tasks on the FE model.
+  //! \details This method is overridden to print out the problem definition.
+  virtual void preprocessA() { this->printProblem(); }
+  //! \brief Performs some pre-processing tasks on the FE model.
   //! \details This method is overridden to preprocess the FE substructures.
   virtual bool preprocessB();
+
+  //! \brief Renumbers the global node numbers of the springs and point loads.
+  virtual bool renumberNodes(const std::map<int,int>& nodeMap);
+
+  //! \brief Assembles the DOF springs and nodal point loads, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
+                                     const TimeDomain& time);
 
   using SIMsupel::recoverInternalDOFs;
   //! \brief Recovers the internal DOFs from static condensation.
@@ -50,9 +61,6 @@ protected:
 
   //! \brief Tesselates the superelement associated with specified patch.
   virtual ElementBlock* tesselatePatch(size_t pidx) const;
-
-  //! \brief Returns a pointer to the problem-specific data object.
-  IntegrandBase* getMyProblem() const;
 
   //! \brief Writes primary solution for a given time step to the VTF-file.
   //! \param[in] psol Primary solution vector

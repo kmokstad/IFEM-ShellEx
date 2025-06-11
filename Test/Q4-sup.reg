@@ -39,7 +39,10 @@ Parsing <superelem>
   Parsing <topologysets>
 	Topology sets: support (1,1,4D)
   Parsing <dirichlet>
-	Dirichlet code 1236: (fixed)
+	Dirichlet code 123456: (fixed)
+Parsing <elasticity>
+  Parsing <nodeload>
+	Node 2 dof 1 Load: (expression) 1000\*sin(t)
 Parsing <postprocessing>
   Parsing <primarySolOnly>
   Parsing <reactions>
@@ -48,13 +51,15 @@ Equation solver: 0
 Number of Gauss points: 1
 Lagrangian basis functions are used
 11. Shell superelement
+Problem definition:
+Linear superelement
 Resolving Dirichlet boundary conditions
-	Constraining P1 in direction(s) 1236
+	Constraining P1 in direction(s) 123456
  >>> SAM model summary <<<
 Number of elements    1
 Number of nodes       2
 Number of dofs        12
-Number of unknowns    4
+Number of unknowns    6
 Setting up for recovery of superelement "Q4"
 Resolving Dirichlet boundary conditions
  >>> SAM model summary <<<
@@ -67,11 +72,15 @@ Superelement recovery setup done.
 Processing integrand associated with code 0
 Assembling interior matrix terms for P1
 Done.
+Total external load: Sum(Fex) = 841.471 -1534.28 0
 Solving the equation system ...
-	Condition number: 10.7647
+	Condition number: 1791.19
  >>> Solution summary <<<
-L2-norm            : 7.41869e-06
-Max x-displacement : 1.8172e-05
+L2-norm            : 2.84878e-05
+Max X-displacement : 2.08317e-05
+Max Y-displacement : 5.46372e-05
+Max x-displacement : 7.34201e-05
+Max y-displacement : 3.04787e-05
    \* Reading stiffness matrix file: superelms/CQUAD04__S.fmx         144
    \* Reading mass matrix file: superelms/CQUAD04__M.fmx         144
    \* Reading gravity force vectors file: superelms/CQUAD04__G.fmx          36
