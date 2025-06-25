@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <elasticity supId="Q4">
+    <geometry>
+      <patchfile type="Nastran">CQUAD04_.nas</patchfile>
+    </geometry>
+    <gravity y="-9.81"/>
+  </elasticity>
+
+  <superelem id="Q4">
+    <geometry>
+      <patchfile>CQUAD04.dat</patchfile>
+      <topologysets>
+        <set name="support" type="nodes">
+          <item patch="1">1</item>
+        </set>
+      </topologysets>
+    </geometry>
+    <boundaryconditions>
+      <dirichlet set="support" comp="123456"/>
+    </boundaryconditions>
+  </superelem>
+
+  <elasticity>
+    <nodeload node="2" type="expression" dof="1">1000*sin(t)</nodeload>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>1</nGauss>
+  </discretization>
+
+  <postprocessing>
+    <primarySolOnly/>
+    <reactions/>
+  </postprocessing>
+
+</simulation>

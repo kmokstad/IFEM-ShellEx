@@ -1,0 +1,13 @@
+Q4-sup.xinp -dense
+
+Step 1
+  Element block 1
+    27 nodes
+    16 elements
+    Displacement: 'Displacement'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'r_x'
+    Scalar: 'r_y'
+    Scalar: 'r_z'
