@@ -30,7 +30,7 @@ void FFlRBAR::init()
   ElementTopSpec::instance()->setNodeDOFs(6);
   ElementTopSpec::instance()->setSlaveStatus(true); // Both nodes have slave DOFs
 
-  ElementTopSpec::instance()->addExplicitEdge(EdgeType(1,2));
+  ElementTopSpec::instance()->addExplicitEdge(1,2);
   ElementTopSpec::instance()->myExplEdgePattern = 0xf0f0;
 }
 

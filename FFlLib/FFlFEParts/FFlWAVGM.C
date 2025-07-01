@@ -42,7 +42,7 @@ FFlFEElementTopSpec* FFlWAVGM::getFEElementTopSpec() const
     myWAVGMElemTopSpec->setNodeCount(myNodes.size());
     myWAVGMElemTopSpec->myExplicitEdges.clear();
     for (size_t i = 2; i <= myNodes.size(); i++)
-      myWAVGMElemTopSpec->addExplicitEdge(EdgeType(1,i));
+      myWAVGMElemTopSpec->addExplicitEdge(1,i);
   }
 
   return myWAVGMElemTopSpec;

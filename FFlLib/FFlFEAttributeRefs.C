@@ -24,7 +24,7 @@ FFlFEAttributeRefs::FFlFEAttributeRefs(const FFlFEAttributeRefs& obj)
 {
   myAttributes.reserve(obj.myAttributes.size());
   for (const AttribData& aref : obj.myAttributes)
-    myAttributes.push_back(AttribData(aref.first,AttribRef(aref.second->getID())));
+    myAttributes.emplace_back(aref.first,AttribRef(aref.second->getID()));
 }
 
 
@@ -60,7 +60,7 @@ bool FFlFEAttributeRefs::setAttribute(FFlAttributeBase* attrObject)
   if (p.first == p.second ||
       this->getFEAttributeSpec()->multipleRefsAllowed(type))
   {
-    myAttributes.push_back(AttribData(typeID,AttribRef(attrObject)));
+    myAttributes.emplace_back(typeID,AttribRef(attrObject));
     std::sort(myAttributes.begin(), myAttributes.end(), FFlFEAttribTypeLess());
   }
 #ifdef FFL_DEBUG
@@ -93,7 +93,7 @@ bool FFlFEAttributeRefs::setAttribute(const std::string& type, int ID)
   if (p.first == p.second ||
       this->getFEAttributeSpec()->multipleRefsAllowed(type))
   {
-    myAttributes.push_back(AttribData(typeID,AttribRef(ID)));
+    myAttributes.emplace_back(typeID,AttribRef(ID));
     std::sort(myAttributes.begin(), myAttributes.end(), FFlFEAttribTypeLess());
   }
 #ifdef FFL_DEBUG

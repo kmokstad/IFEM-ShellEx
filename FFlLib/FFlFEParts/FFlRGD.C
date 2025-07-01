@@ -48,7 +48,7 @@ FFlFEElementTopSpec* FFlRGD::getFEElementTopSpec() const
     myRGDElemTopSpec->setNodeCount(myNodes.size());
     myRGDElemTopSpec->myExplicitEdges.clear();
     for (size_t i = 2; i <= myNodes.size(); i++)
-      myRGDElemTopSpec->addExplicitEdge(EdgeType(1,i));
+      myRGDElemTopSpec->addExplicitEdge(1,i);
   }
 
   return myRGDElemTopSpec;

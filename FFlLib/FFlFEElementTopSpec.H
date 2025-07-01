@@ -17,12 +17,12 @@
   { return FFaSingelton<FFlFEElementTopSpec,Class>::instance(); }
 
 
-typedef std::pair<int,int> EdgeType;
+using EdgeType = std::pair<int,int>;
 
 
 struct FaceType
 {
-  void addEdge(int i1, int i2) { myEdges.push_back(EdgeType(i1,i2)); }
+  void addEdge(int i1, int i2) { myEdges.emplace_back(i1,i2); }
   std::vector<EdgeType> myEdges;
 };
 
@@ -39,7 +39,7 @@ public:
 
   void addFace(const FaceType& f)         { myFaces.push_back(f); }
   void addExpandedFace(const FaceType& f) { myExpandedFaces.push_back(f); }
-  void addExplicitEdge(const EdgeType& e) { myExplicitEdges.push_back(e); }
+  void addExplicitEdge(int i1, int i2) { myExplicitEdges.emplace_back(i1,i2); }
 
   int getNodeCount() const           { return myNodeCount; }
   int getExpandedNodeCount() const   { return myExpandedNodeCount; }
