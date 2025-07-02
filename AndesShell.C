@@ -251,7 +251,9 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
   if (this->inActive(iEl))
     return result; // element is not in current material group
 
-  if (!isModal && m_mode == SIM::DYNAMIC)
+  if (isModal)
+    result = new ElmMats();
+  else if (this->getMode(true) == SIM::DYNAMIC)
     result = new NewmarkMats(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
   else
     result = new ElmMats();
@@ -276,7 +278,7 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
       break;
 
     case SIM::RHS_ONLY:
-      result->resize(0,1,nsd);
+      result->resize(nSV > nCS ? 3 : 0, nSV > nCS ? eS : 1, nsd);
       result->rhsOnly = true;
       result->withLHS = false;
       break;
@@ -318,7 +320,7 @@ int AndesShell::getIntegrandType () const
   // pressures (and/or gravity forces) exist, since the element matrices
   // are evaluated externally (from the finalizeElement() method).
   int itgType = eS > 0 && this->havePressure() ? STANDARD : NO_DERIVATIVES;
-  if (m_mode == SIM::DYNAMIC) itgType |= POINT_DEFORMATION;
+  if (this->getMode(true) == SIM::DYNAMIC) itgType |= POINT_DEFORMATION;
   if (thickLoss || trInside+trOutside > 0.0) itgType |= ELEMENT_CENTER;
   return itgType;
 }
