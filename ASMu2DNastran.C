@@ -106,8 +106,9 @@ std::vector<int> ASMu2DNastran::fixRBE3;
 
 
 ASMu2DNastran::ASMu2DNastran (unsigned char n, unsigned char n_f,
-                              const std::string& path, bool sets, char beams)
-  : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets)
+                              const std::string& path, bool sets,
+                              bool replaceRBE3, char beams)
+  : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets), noRBE3s(replaceRBE3)
 {
   massMax = 1.0;
   beamPatch = nullptr;
@@ -317,7 +318,15 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout << std::endl;
 #endif
       spiders.push_back(mnpc);
-      this->addFlexibleCouplings(*e,eid,mnpc);
+      if (noRBE3s)
+      {
+        // Replace the flexible RBE3 element into an equivalent RBE2
+        for (int& inod : mnpc) ++inod; // Need 1-based node indices
+        this->addRigidCouplings((*e)->getNodeID(1),coord[mnpc.front()-1],
+                                IntVec(mnpc.begin()+1,mnpc.end()));
+      }
+      else
+        this->addFlexibleCouplings(*e,eid,mnpc);
     }
     else if ((*e)->getTypeName() == "CMASS" && !mnpc.empty())
 

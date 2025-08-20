@@ -30,6 +30,7 @@
 
 char SIMAndesShell::useBeams = 1;
 bool SIMAndesShell::readSets = true;
+bool SIMAndesShell::replRBE3 = false;
 
 namespace Elastic { extern double time; }
 
@@ -191,7 +192,8 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   ASMbase* pch = NULL;
   ASMu2DNastran* shell = NULL;
   if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
-    pch = shell = new ASMu2DNastran(nsd,nf.front(),myPath,readSets,useBeams);
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),myPath,
+                                    readSets,replRBE3,useBeams);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 

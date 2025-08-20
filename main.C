@@ -71,6 +71,7 @@ namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
   \arg -noSets : Ignore Nastran SET definitions
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
+  \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state when evaluating the
@@ -132,6 +133,8 @@ int main (int argc, char** argv)
       SIMAndesShell::useBeams = 0;
     else if (!strcmp(argv[i],"-noEccs"))
       SIMAndesShell::useBeams = 2;
+    else if (!strcmp(argv[i],"-noRBE3"))
+      SIMAndesShell::replRBE3 = true;
     else if (!strcmp(argv[i],"-Kbush"))
     {
       if (i+1 < argc && argv[i+1][0] != '-')
@@ -250,7 +253,7 @@ int main (int argc, char** argv)
                "[-no-vtfmass]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
-               "[-split]"});
+               "[-noRBE3]","[-split]"});
     delete prof;
     return 0;
   }
