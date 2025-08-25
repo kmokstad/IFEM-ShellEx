@@ -33,7 +33,8 @@ class ASMu2DNastran : public ASMu2DLag
 public:
   //! \brief The constructor forwards to the parent class constructor.
   ASMu2DNastran(unsigned char n, unsigned char n_f,
-                const std::string& path, bool sets, char beams);
+                const std::string& path, bool sets,
+                bool replaceRBE3, char beams);
   //! \brief Disable default copy constructor.
   ASMu2DNastran(const ASMu2DNastran&) = delete;
   //! \brief The destructor deletes the immersed/extra element blocks, if any.
@@ -145,6 +146,7 @@ private:
 
   char useBeams; //!< If nonzero include beam elements as a separate patch
   bool readSets; //!< If \e true, read the pre-bulk Nastran SET definitions
+  bool noRBE3s;  //!< If \e true, convert all RBE3 elements to RBE2 elements
 
   double massMax; //!< The largets point mass in the model (for scaling)
   IntMat spiders; //!< Constraint element topologies

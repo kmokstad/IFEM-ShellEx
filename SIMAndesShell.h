@@ -96,6 +96,7 @@ protected:
 public:
   static char useBeams; //!< If non-zero, include beam elements, if any
   static bool readSets; //!< If \e true, also read Nastran SET definitions
+  static bool replRBE3; //!< If \e true, replace all RBE3 elements by RBE2s
 
 private:
   //! \brief Struct defining a DOF spring.

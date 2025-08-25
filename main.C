@@ -29,9 +29,10 @@
 #endif
 #include <array>
 #include <fstream>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
 
@@ -71,6 +72,7 @@ namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
   \arg -noSets : Ignore Nastran SET definitions
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
+  \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state when evaluating the
@@ -132,6 +134,8 @@ int main (int argc, char** argv)
       SIMAndesShell::useBeams = 0;
     else if (!strcmp(argv[i],"-noEccs"))
       SIMAndesShell::useBeams = 2;
+    else if (!strcmp(argv[i],"-noRBE3"))
+      SIMAndesShell::replRBE3 = true;
     else if (!strcmp(argv[i],"-Kbush"))
     {
       if (i+1 < argc && argv[i+1][0] != '-')
@@ -201,13 +205,18 @@ int main (int argc, char** argv)
   if (bdfile)
   {
     // Create a temporary input file referring to the Nastran bulk data file
-    static const char* tmpname = "/tmp/tmp.xinp";
+    static char tmpname[24] = "/tmp/tmp_XXXXXX.xinp";
+    int fd = mkstemps(tmpname,5);
     infile = const_cast<char*>(tmpname);
-    std::ofstream xinp(infile);
-    xinp <<"<simulation><geometry dim=\"3\">\n"
-         <<"  <patchfile type=\"Nastran\">"<< bdfile <<"</patchfile>\n"
-         <<"</geometry></simulation>\n";
-
+    std::string xinp = "<simulation><geometry dim=\"3\">\n"
+      "  <patchfile type=\"Nastran\">" + std::string(bdfile) +
+      "</patchfile>\n</geometry></simulation>\n";
+    if (write(fd,xinp.c_str(),xinp.size()) < 0)
+    {
+      std::cerr <<" *** Failed to write temporary file "<< tmpname << std::endl;
+      return false;
+    }
+    close(fd);
     if (IFEM::getOptions().format >= 0)
     {
       // Set default vtf file name
@@ -250,7 +259,7 @@ int main (int argc, char** argv)
                "[-no-vtfmass]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
-               "[-split]"});
+               "[-noRBE3]","[-split]"});
     delete prof;
     return 0;
   }
