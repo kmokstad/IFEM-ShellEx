@@ -29,9 +29,10 @@
 #endif
 #include <array>
 #include <fstream>
-#include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
 
@@ -204,13 +205,18 @@ int main (int argc, char** argv)
   if (bdfile)
   {
     // Create a temporary input file referring to the Nastran bulk data file
-    static const char* tmpname = "/tmp/tmp.xinp";
+    static char tmpname[24] = "/tmp/tmp_XXXXXX.xinp";
+    int fd = mkstemps(tmpname,5);
     infile = const_cast<char*>(tmpname);
-    std::ofstream xinp(infile);
-    xinp <<"<simulation><geometry dim=\"3\">\n"
-         <<"  <patchfile type=\"Nastran\">"<< bdfile <<"</patchfile>\n"
-         <<"</geometry></simulation>\n";
-
+    std::string xinp = "<simulation><geometry dim=\"3\">\n"
+      "  <patchfile type=\"Nastran\">" + std::string(bdfile) +
+      "</patchfile>\n</geometry></simulation>\n";
+    if (write(fd,xinp.c_str(),xinp.size()) < 0)
+    {
+      std::cerr <<" *** Failed to write temporary file "<< tmpname << std::endl;
+      return 1;
+    }
+    close(fd);
     if (IFEM::getOptions().format >= 0)
     {
       // Set default vtf file name
