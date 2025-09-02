@@ -35,26 +35,40 @@ bool SIMAndesShell::replRBE3 = false;
 namespace Elastic { extern double time; }
 
 
-SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
+SIMAndesShell::SIMAndesShell (short int n, bool m) : nss(n), modal(m)
 {
   nsd = 3;
   nf.front() = 6;
 }
 
 
-SIMAndesShell::~SIMAndesShell ()
+ElasticBase* SIMAndesShell::getIntegrand ()
 {
-  for (PointLoad& load : myLoads)
-    delete load.p;
+  // Dummy empty integrand class
+  class NoProblem : public IntegrandBase
+  {
+  public:
+    NoProblem() : IntegrandBase(0) {}
+  };
+
+  if (!myProblem)
+  {
+    if (nss >= 0)
+      myProblem = new AndesShell(nss,modal,useBeams);
+    else
+      myProblem = new NoProblem();
+  }
+
+  return dynamic_cast<ElasticBase*>(myProblem);
 }
 
 
-ElasticBase* SIMAndesShell::getIntegrand ()
+bool SIMAndesShell::printProblem () const
 {
-  if (!myProblem)
-    myProblem = new AndesShell(nss,modal,useBeams);
+  if (dynamic_cast<AndesShell*>(myProblem))
+    return this->SIMElasticity<SIM2D>::printProblem();
 
-  return dynamic_cast<ElasticBase*>(myProblem);
+  return true;
 }
 
 
@@ -153,27 +167,7 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     {
       IFEM::cout <<"  Parsing <nodeload>"<< std::endl;
 
-      int inod = 0, ldof = 0;
-      ScalarFunc* f = nullptr;
-      utl::getAttribute(child,"node",inod);
-      utl::getAttribute(child,"dof",ldof);
-
-      if (inod > 0 && ldof > 0 && ldof <= 6)
-      {
-        std::string type("constant");
-        utl::getAttribute(child,"type",type);
-
-        IFEM::cout <<"\tNode "<< inod <<" dof "<< ldof <<" Load: ";
-        if (type == "constant")
-        {
-          f = new ConstantFunc(atof(child->FirstChild()->Value()));
-          IFEM::cout << (*f)(0.0) << std::endl;
-        }
-        else
-          f = utl::parseTimeFunc(child->FirstChild()->Value(),type);
-
-        myLoads.emplace_back(inod,ldof,f);
-      }
+      this->parseLoad(child);
     }
     else if (!strcasecmp(child->Value(),"material") && elInt)
     {
@@ -300,11 +294,7 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
     if (spr.inod > 0)
       ok &= utl::renumber(spr.inod,nodeMap,true);
 
-  for (PointLoad& load : myLoads)
-    if (load.inod > 0)
-      ok &= utl::renumber(load.inod,nodeMap,true);
-
-  return ok;
+  return ok && this->renumberLoadedNodes(nodeMap);
 }
 
 
@@ -326,18 +316,7 @@ bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
     for (const DOFspring& spr : mySprings)
       ok &= K->add(spr.coeff,mySam->getEquation(spr.inod,spr.ldof));
 
-  const size_t nrhs = myEqSys->getNoRHS();
-  SystemVector* R = nrhs > 0 ? myEqSys->getVector(nrhs-1) : nullptr;
-  if (R) // Assemble external nodal point loads
-    for (const PointLoad& load : myLoads)
-    {
-      double P = (*load.p)(time.t);
-      int ldof = load.ldof;
-      myEqSys->addScalar(P,ldof-1);
-      ok &= mySam->assembleSystem(*R,P,{load.inod,ldof});
-    }
-
-  return ok;
+  return ok && this->assembleLoads(*myEqSys,time.t);
 }
 
 

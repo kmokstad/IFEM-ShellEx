@@ -10,12 +10,12 @@
 !> @brief Weighted Average Motion constraint handling.
 
 !!==============================================================================
-!> @brief Computes constraint equation coefficients for a WAVGM element.
+!> @brief Computes the constraint equation coefficients for a WAVGM element.
 !>
 !> @param[in] iel Element index
 !> @param[in] lDof Local index of dependent DOF to compute coefficients for
 !> @param[in] nM Number of independent nodes in current element
-!> @param[in] nW SiNumber of independent nodes in current element
+!> @param[in] nW Size of the @a weight array
 !> @param[in] indC Nodal component indices (common for all nodes)
 !> @param[in] tenc Table of nodal coordinates for current element
 !> @param[in] weight Independent DOF weights for current element
@@ -26,10 +26,13 @@
 !> @param[in] ipsw Print switch
 !> @param[in] lpu File unit number for res-file output
 !>
-!> @details This subroutine pre-processes a Weighted Average Motion (WAVGM)
-!> elements (also known as RBE3 in Nastran). The coefficients that couples
-!> a dependent DOF at the reference node of a Weighted AVerage Motion element
-!> to the independent nodal DOFs of the same element are computed.
+!> @details This subroutine pre-processes a Weighted AVeraGe Motion (WAVGM)
+!> element (also known as RBE3 in Nastran). The coefficients that couples
+!> a dependent DOF at the reference node of a WAVGM element to the
+!> independent nodal DOFs of the same element are computed.
+!>
+!> @note This is a slightly modified version of the subroutine with same name
+!> from the openfedem project. See https://github.com/openfedem/fedem-solvers.
 !>
 !> @callergraph
 !>
@@ -88,6 +91,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
         call DAXPY (nM,1.0_dp/sumWM,weight(iFrst),1,omega(lDof),nndof)
      else if (ipsw > 0) then
         write(lpu,600) iel,lDof,lDof,sumWM,epsDiv0_p
+        write(lpu,620) weight(iFrst:iLast)
      end if
 
   else if (indC(lDof) < 0) then
@@ -125,7 +129,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
            call DAXPY (nM,-1.0_dp/sumWM,work(1),1,omega(j),nndof)
         else if (ipsw > 0) then
            write(lpu,600) iel,lDof,j,sumWM,tolWM
-           write(lpu,620) work(1:nM) / sumWM
+           write(lpu,620) dX(j,2:1+nM)
+           write(lpu,620) work(1:nM)
         end if
      end if
      if (indC(k) /= 0) then
@@ -152,7 +157,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
            call DAXPY (nM,1.0_dp/sumWM,work(1),1,omega(k),nndof)
         else if (ipsw > 0) then
            write(lpu,600) iel,lDof,k,sumWM,tolWM
-           write(lpu,620) work(1:nM) / sumWM
+           write(lpu,620) dX(j,2:1+nM)
+           write(lpu,620) work(1:nM)
         end if
      end if
 
@@ -187,7 +193,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               call DAXPY (nM,dX(j,1)/sumWM,work(1),1,omega(i),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,i,sumWM,tolWM
-              write(lpu,620) work(1:nM) * dX(j,1)/sumWM
+              write(lpu,620) dX(i,2:1+nM)
+              write(lpu,620) work(1:nM) * dX(j,1)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,i,dX(j,1),tolX(j)
@@ -213,11 +220,13 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               sumWM = sumSqr(dX(i,2:1+nM),dX(j,2:1+nM)) * real(nM,dp)
               call DCOPY (nM,dX(i,2),size(dX,1),work(1),1)
            end if
+           tolWM = tolX(i)*tolX(i) + tolX(j)*tolX(j)
            if (sumWM > tolWM) then
               call DAXPY (nM,-dX(j,1)/sumWM,work(1),1,omega(j),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,j,sumWM,tolWM
-              write(lpu,620) work(1:nM) * dX(j,1)/sumWM
+              write(lpu,620) dX(i,2:1+nM)
+              write(lpu,620) work(1:nM) * dX(j,1)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,j,dX(j,1),tolX(j)
@@ -237,6 +246,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               call DAXPY (nM,-dX(j,1)/sumWM,weight(iFrst),1,omega(3+k),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,3+k,sumWM,epsDiv0_p
+              write(lpu,620) weight(iFrst:iLast)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,3+k,dX(j,1),tolX(j)
@@ -272,7 +282,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               call DAXPY (nM,dX(k,1)/sumWM,work(1),1,omega(i),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,i,sumWM,tolWM
-              write(lpu,620) work(1:nM) * dX(k,1)/sumWM
+              write(lpu,620) dX(k,2:1+nM)
+              write(lpu,620) work(1:nM) * dX(k,1)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,i,dX(k,1),tolX(k)
@@ -303,7 +314,8 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               call DAXPY (nM,-dX(k,1)/sumWM,work(1),1,omega(k),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,k,sumWM,tolWM
-              write(lpu,620) work(1:nM) * dX(k,1)/sumWM
+              write(lpu,620) dX(k,2:1+nM)
+              write(lpu,620) work(1:nM) * dX(k,1)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,k,dX(k,1),tolX(k)
@@ -323,6 +335,7 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
               call DAXPY (nM,dX(k,1)/sumWM,weight(iFrst),1,omega(3+j),nndof)
            else if (ipsw > 0) then
               write(lpu,600) iel,lDof,3+j,sumWM,epsDiv0_p
+              write(lpu,620) weight(iFrst:iLast)
            end if
         else if (ipsw > 0) then
            write(lpu,610) iel,lDof,3+j,dX(k,1),tolX(k)
@@ -349,14 +362,14 @@ subroutine wavgmConstrEqn (iel,lDof,nM,nW,indC,tenc,weight, &
 610 format('  ** Warning: WAVGM element',I10, &
          & ': Ignored coupling by dependent DOF',I2,' to independent DOFs',I2 &
          / 14X, 'due to small eccentricity',1PE13.5,'  tolerance =',E12.5 )
-620 format(14X,1P10E13.5/(14X,1P10E13.5))
+620 format(12X,1P10E13.5/(12X,1P10E13.5))
 690 format(' *** Error: Indices out of range:',3I6,/12X,'For WAVGM element',I10)
 
 contains
 
   !> @brief Computes the nodal coordinates relative to the centre of gravity.
-  !> @details If the weights (W) are present, a weighted CoG is used.
-  !> This subroutine also recomputes the geometric tolerances (tolX).
+  !> @details If the weights @a W are present, a weighted CoG is used.
+  !> This subroutine also recomputes the geometric tolerances, @a tolX.
   subroutine computePointCoords (W)
     real(dp), intent(in), optional :: W(:)
     integer  :: n

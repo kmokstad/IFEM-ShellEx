@@ -160,7 +160,11 @@ bool ASMu2DNastran::read (std::istream& is)
         sets << cline << '\n';
     }
 
-  if (!is) return false; // No bulk data file
+  if (!is)
+  {
+    std::cerr <<"\n *** Invalid Nastran bulk data file."<< std::endl;
+    return false;
+  }
 
 #ifdef HAS_FFLLIB
 
@@ -170,9 +174,11 @@ bool ASMu2DNastran::read (std::istream& is)
   {
     std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
-              <<" resolved completely.\n";
+              <<" resolved completely."<< std::endl;
     return false;
   }
+  else
+    while (is.ignore()); // To avoid trying to read another patch
 
   for (int eId : fixRBE3)
   {
@@ -298,7 +304,7 @@ bool ASMu2DNastran::read (std::istream& is)
     else if ((*e)->getTypeName() == "RGD" && mnpc.size() > 1)
     {
 #if INT_DEBUG > 5
-      std::cout <<"Rigid element "<< eid <<": master = "<< MLGN[mnpc.front()]
+      std::cout <<"\nRigid element "<< eid <<": master = "<< MLGN[mnpc.front()]
                 <<" slaves =";
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
       std::cout << std::endl;
@@ -311,10 +317,12 @@ bool ASMu2DNastran::read (std::istream& is)
     else if ((*e)->getTypeName() == "WAVGM" && mnpc.size() > 1)
     {
 #if INT_DEBUG > 5
-      std::cout <<"Weighted average motion element "<< eid
+      std::cout <<"\nWeighted average motion element "<< eid
                 <<": reference node = "<< MLGN[mnpc.front()]
-                <<"\n\tmasters =";
-      for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
+                <<"\n     masters =";
+      for (size_t i = 1; i < mnpc.size(); i++)
+        std::cout << (i > 1 && i%10 == 1 ? "\n               " : " ")
+                  << MLGN[mnpc[i]];
       std::cout << std::endl;
 #endif
       spiders.push_back(mnpc);
@@ -804,12 +812,14 @@ void ASMu2DNastran::addFlexibleCoupling (int eId, int lDof, const int* indC,
       for (int mDof = 1; mDof <= 6; mDof++, omega++)
         if (fabs(*omega) > Zero)
           cons->addMaster(MLGN[mnpc[iM]],mDof,*omega);
-#if INT_DEBUG > 1
-        else
+        else if (ips > 0)
           std::cout <<"  ** Ignoring small coupling coefficient "<< *omega
                     <<" to local dof "<< mDof
                     <<" of master node "<< MLGN[mnpc[iM]]
                     <<" in RBE3 element "<< eId << std::endl;
+
+#if INT_DEBUG > 1
+  std::cout <<"Added constraint: "<< *cons << std::endl;
 #endif
 #endif
 }

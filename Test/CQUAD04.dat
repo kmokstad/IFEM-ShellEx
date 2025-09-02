@@ -1,0 +1,20 @@
+#  Test of superelement from FEDEM in IFEM-ShellEx.
+#  ################################################
+#  Notice the file suffixes _S.fmx, _M.fmx, etc., are _not_ specified.
+#  The fmx-matrices are produced by executing the FEDEM FE model Reducer as follows:
+#      $ fedem_reducer -linkfile CQUAD04_.nas
+#
+#  Stiffness matrix:
+Kx  12 12 superelms/CQUAD04_
+#  Mass matrix:
+Mx  12 12 superelms/CQUAD04_
+#  Gravity force vectors:
+gx  12  3 superelms/CQUAD04_
+#  Displacement recovery matrix:
+Bx 126 12 superelms/CQUAD04_
+#  SAM data for substructure recovery:
+Sx superelms/CQUAD04_
+#  Global coordinates of the supernodes:
+G 2
+0.0 0.0 -1.0
+0.0 0.0  0.0

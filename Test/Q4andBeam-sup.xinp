@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <elasticity supId="Q4andBeam">
+    <geometry>
+      <patchfile type="Nastran">Q4andBeam.nas</patchfile>
+    </geometry>
+  </elasticity>
+
+  <superelem id="Q4andBeam">
+    <geometry>
+      <patchfile>Q4andBeam.dat</patchfile>
+      <topologysets>
+        <set name="support" type="nodes">
+          <item patch="1">1 2</item>
+        </set>
+      </topologysets>
+    </geometry>
+    <boundaryconditions>
+      <dirichlet set="support" comp="123456"/>
+    </boundaryconditions>
+  </superelem>
+
+  <elasticity>
+    <nodeload node="3" dof="3">1.0e6</nodeload>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>1</nGauss>
+  </discretization>
+
+  <postprocessing>
+    <primarySolOnly/>
+    <reactions/>
+  </postprocessing>
+
+</simulation>

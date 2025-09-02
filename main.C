@@ -13,6 +13,7 @@
 
 #include "IFEM.h"
 #include "SIMenums.h"
+#include "SIMShellSup.h"
 #include "SIMShellModal.h"
 #include "SIMAndesSplit.h"
 #include "ElasticityUtils.h"
@@ -79,6 +80,7 @@ namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
        state-dependent property functions
   \arg -no-vtfmass : Skip the sphere geometries for 1-noded mass elements
   \arg -Kbush : Spring stiffness(es) connecting RBE3 reference nodes to ground
+  \arg -sup : Perform superelement analysis (linear static)
 */
 
 int main (int argc, char** argv)
@@ -259,7 +261,7 @@ int main (int argc, char** argv)
                "[-no-vtfmass]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
-               "[-noRBE3]","[-split]"});
+               "[-noRBE3]","[-split]","[-sup]"});
     delete prof;
     return 0;
   }
@@ -284,8 +286,8 @@ int main (int argc, char** argv)
     IFEM::cout <<"\nSpecified boundary conditions are ignored";
   if (fixDup)
     IFEM::cout <<"\nCo-located nodes will be merged,"
-               <<" using comparison tolerance "<< Vec3::comparisonTolerance
-               << std::endl;
+               <<" using comparison tolerance "<< Vec3::comparisonTolerance;
+  IFEM::cout << std::endl;
 
 #ifdef HAS_FFLLIB
   FFl::initAllElements();
@@ -296,13 +298,16 @@ int main (int argc, char** argv)
   // Create the simulation model
   std::vector<Mode> modes;
   DataExporter* writer = nullptr;
-  SIMAndesShell* model = nullptr;
+  SIMAndesShell* shell = nullptr;
+  SIMoutput*     model = nullptr;
   if (modal)
-    model = new SIMShellModal(modes);
+    model = shell = new SIMShellModal(modes);
   else if (splitM)
-    model = new SIMAndesSplit(nstates);
+    model = shell = new SIMAndesSplit(nstates);
+  else if (args.dim == 4)
+    model = new SIMShellSup("Shell superelement",fixDup);
   else
-    model = new SIMAndesShell(nstates);
+    model = shell = new SIMAndesShell(nstates);
 
   // Lambda function for cleaning the heap-allocated objects on termination.
   // To ensure that their destructors are invoked also on simulation failure.
@@ -360,8 +365,8 @@ int main (int argc, char** argv)
   }
 
   // Open HDF5 result database, if requested
-  if (model->opt.dumpHDF5(infile))
-    writer = model->getHDF5writer(displ.front(),dumpNodeMap);
+  if (shell && shell->opt.dumpHDF5(infile))
+    writer = shell->getHDF5writer(displ.front(),dumpNodeMap);
 
   Vector load;
   RealArray Fex;
@@ -471,7 +476,7 @@ int main (int argc, char** argv)
 
   if (model->opt.format >= 0)
   {
-    int geoBlk = 0, nBlock = 0;
+    int geoBlk = 0, nBlock = 0, idBlock = 1;
     size_t iStep = 1, nStep = 0;
     double time = 0.0;
     Vector data;
@@ -480,31 +485,33 @@ int main (int argc, char** argv)
     if (!model->writeGlvG(geoBlk,infile))
       return terminate(12);
 
-    // Write sensor locations, if any
-    if (nodalR != 'm' && !model->writeGlvLoc(locfiles,nodalR,geoBlk))
-      return terminate(12);
+    if (shell)
+    {
+      // Write sensor locations, if any
+      if (nodalR != 'm' && !shell->writeGlvLoc(locfiles,nodalR,geoBlk))
+        return terminate(12);
 
-    // Write surface pressures, if any
-    if (!model->writeGlvT(iStep,geoBlk,nBlock))
-      return terminate(13);
+      // Write surface pressures, if any
+      if (!shell->writeGlvT(iStep,geoBlk,nBlock))
+        return terminate(13);
 
-    // Write Dirichlet boundary conditions
-    if (!model->writeGlvBC(nBlock))
-      return terminate(13);
+      // Write Dirichlet boundary conditions
+      if (!shell->writeGlvBC(nBlock))
+        return terminate(13);
 
-    // Write global node and element numbers as scalar fields
-    int idBlock = 7;
-    if (!model->writeGlvNo(nBlock,idBlock,18))
-      return terminate(14);
+      idBlock = 7; // Write global node and element numbers as scalar fields
+      if (!shell->writeGlvNo(nBlock,idBlock,18))
+        return terminate(14);
 
-    // Write shell thickness as scalar field
-    model->getShellThicknesses(data);
-    if (!model->writeGlvE(data,iStep,nBlock,"Shell thickness",idBlock++,true))
-      return terminate(15);
+      // Write shell thickness as scalar field
+      shell->getShellThicknesses(data);
+      if (!shell->writeGlvE(data,iStep,nBlock,"Shell thickness",idBlock++,true))
+        return terminate(15);
 
-    // Write load vector to VTF-file
-    if (vizRHS && !model->writeGlvV(load,"Load vector",iStep,nBlock,1))
-      return terminate(20);
+      // Write load vector to VTF-file
+      if (vizRHS && !shell->writeGlvV(load,"Load vector",iStep,nBlock,1))
+        return terminate(20);
+    }
 
     // Write solution fields to VTF-file
     model->setMode(SIM::RECOVERY);

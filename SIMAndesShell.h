@@ -14,8 +14,9 @@
 #ifndef _SIM_ANDES_SHELL_H
 #define _SIM_ANDES_SHELL_H
 
-#include "SIMElasticity.h"
 #include "SIM2D.h"
+#include "SIMElasticity.h"
+#include "HasPointLoads.h"
 
 class DataExporter;
 
@@ -24,15 +25,19 @@ class DataExporter;
   \brief Driver class for FE analysis using the ANDES shell elements.
 */
 
-class SIMAndesShell : public SIMElasticity<SIM2D>
+class SIMAndesShell : public SIMElasticity<SIM2D>, private HasPointLoads
 {
 public:
   //! \brief Default constructor.
   //! \param[in] n Number of consecutive solutions in core (0 = linear analysis)
   //! \param[in] m If \e true, a modal linear dynamics simulation is performed
-  explicit SIMAndesShell(unsigned short int n = 0, bool m = false);
-  //! \brief The destructor deletes the nodal point load functions.
-  virtual ~SIMAndesShell();
+  explicit SIMAndesShell(short int n = 0, bool m = false);
+
+  //! \brief Prints out problem-specific data to the log stream.
+  virtual bool printProblem() const;
+
+  //! \brief Returns the name of this simulator.
+  virtual std::string getName() const { return "AndesShell"; }
 
   //! \brief Enables the element matrix cache for reaction force calculation.
   void initForSingleStep() { if (!myRFset.empty()) this->initLHSbuffers(); }
@@ -110,25 +115,13 @@ private:
       : inod(n), ldof(d), coeff(c) {}
   };
 
-  //! \brief Struct defining a nodal point load.
-  struct PointLoad
-  {
-    int         inod; //!< Node index
-    int         ldof; //!< Local DOF number
-    ScalarFunc* p;    //!< Load magnitude
-    //! \brief Default constructor.
-    explicit PointLoad(int n = 0, int d = 0, ScalarFunc* f = nullptr)
-      : inod(n), ldof(d), p(f) {}
-  };
-
   std::vector<DOFspring> mySprings; //!< Global DOF springs
-  std::vector<PointLoad> myLoads;   //!< Nodal point loads
 
   RealArray   myReact; //!< Nodal reaction forces
   std::string myRFset; //!< Node set for calculation of reaction forces
   std::string myPath;  //!< Relative path of the patch file
 
-  unsigned short int nss; //!< Number of consequtive solution states in core
+  short int nss; //!< Number of consequtive solution states in core
 
   bool modal; //!< Modal dynamics simulation flag
 };

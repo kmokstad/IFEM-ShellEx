@@ -1,0 +1,91 @@
+Q4andBeam-sup.xinp -dense
+
+Input file: Q4andBeam-sup.xinp
+Evaluation time for property functions: 1
+1. Shell superelement
+Parsing input file Q4andBeam-sup.xinp
+Parsing <discretization>
+Parsing <elasticity>
+  Parsing FE model for superelement "Q4andBeam"
+  Parsing <patchfile>
+	Reading data file Q4andBeam.nas
+Total number of nodes:          8
+Number of shell elements:       2
+Number of beam elements:        2
+Number of constraint elements:  1
+Number of other elements:       1
+Model extension (diameter):     3.20156
+	Created beam patch 1 with 3 nodes
+Pre-defined node sets:          1
+	"ASET"	2 nodes
+	Created shell patch 2 with 3 elements
+  Parsing <patchfile>
+  FE model "Q4andBeam" loaded.
+Parsing <superelem>
+  Parsing <patchfile>
+	Reading data file Q4andBeam.dat
+  Test of superelement from FEDEM in IFEM-ShellEx.
+  ################################################
+  Notice the file suffix, _S.fmx, _M.fmx, etc., is _not_ specified.
+  The fmx-matrices are produced by executing the FEDEM FE model Reducer as follows:
+      $ fedem_reducer -linkfile Q4andBeam.nas -extNodes 7
+  Stiffness matrix:
+  Mass matrix:
+  Gravity force vectors:
+  Displacement recovery matrix:
+  SAM data for substructure recovery:
+  Global coordinates of the supernodes:
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: support (1,1,4D)
+  Parsing <dirichlet>
+	Dirichlet code 123456: (fixed)
+Parsing <elasticity>
+  Parsing <nodeload>
+	Node 3 dof 3 Load: 1e+06
+Parsing <postprocessing>
+  Parsing <primarySolOnly>
+  Parsing <reactions>
+Parsing input file succeeded.
+Equation solver: 0
+Number of Gauss points: 1
+Lagrangian basis functions are used
+11. Shell superelement
+Problem definition:
+Linear superelement
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 123456
+ >>> SAM model summary <<<
+Number of elements    1
+Number of nodes       3
+Number of dofs        18
+Number of unknowns    6
+Setting up for recovery of superelement "Q4andBeam"
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
+Number of elements    5
+Number of nodes       8
+Number of dofs        48
+Detected 1 elements out of order, reordering...
+Number of constraints 6
+Number of unknowns    42
+Superelement recovery setup done.
+Processing integrand associated with code 0
+Assembling interior matrix terms for P1
+Done.
+Total external load: Sum(Fex) = 0 0 1e+06
+Solving the equation system ...
+	Condition number: 3067.94
+ >>> Solution summary <<<
+L2-norm            : 0.167182
+Max X-displacement : 0.010265
+Max Y-displacement : 0.00232858
+Max Z-displacement : 0.449137
+Max x-displacement : 0.0273557
+Max y-displacement : 0.547576
+Max z-displacement : 0.025921
+   \* Reading stiffness matrix file: superelms/Q4andBeam_S.fmx         324
+   \* Reading mass matrix file: superelms/Q4andBeam_M.fmx         324
+   \* Reading gravity force vectors file: superelms/Q4andBeam_G.fmx          54
+   \* Reading disk matrix file: superelms/Q4andBeam_B.fmx         450
+   \* Reading SAM data file: superelms/Q4andBeam_SAM.fsm
