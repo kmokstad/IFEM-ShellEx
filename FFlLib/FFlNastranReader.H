@@ -138,6 +138,7 @@ private:
 
 protected:
   static int nWarnings, nNotes; // Accumulates the number of warnings and notes
+  static int nWnotImpl;         // Number of not-implemented warnings
 
   mutable std::pair<int,std::string> lastComment;
 

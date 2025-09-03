@@ -69,6 +69,8 @@
 namespace FF_NAMESPACE {
 #endif
 
+int FFlNastranReader::nWnotImpl = 0;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -196,6 +198,7 @@ bool FFlNastranReader::processThisEntry (const std::string& name,
   if (name == "SPC")    return process_SPC    (entry);
   if (name == "SPC1")   return process_SPC1   (entry);
   if (name == "SET1")   return process_SET1   (entry);
+  if (name == "ELIST")  return process_SET1   (entry); // NB: ELIST --> SET1
   if (name == "GRDSET") return process_GRDSET (entry);
   if (name == "BEAMOR") return process_BEAMOR (entry);
   if (name == "BAROR")  return process_BAROR  (entry);
@@ -469,10 +472,13 @@ bool FFlNastranReader::process_CBAR (std::vector<std::string>& entry)
   if (haveOffset && entry[7].substr(1,2) != "GG")
   {
     nWarnings++;
-    ListUI <<"\n  ** Warning: CBAR element "<< EID
-           <<" has offset vector flag \""<< entry[7] <<"\"."
-           <<"\n              This is not implemented yet, \""
-           << entry[7].front() <<"GG\" is used.\n";
+    if (++nWnotImpl <= 10)
+      ListUI <<"\n  ** Warning: CBAR element "<< EID
+             <<" has offset vector flag \""<< entry[7] <<"\"."
+             <<"\n              This is not implemented yet, \""
+             << entry[7].front() <<"GG\" is used.\n";
+    else if (nWnotImpl == 11)
+      ListUI <<"\n     Further warnings of this kind are suppressed.\n";
   }
 
   bo->X = X;
@@ -568,10 +574,13 @@ bool FFlNastranReader::process_CBEAM (std::vector<std::string>& entry)
   if (haveOffset && entry[7].substr(1,2) != "GG")
   {
     nWarnings++;
-    ListUI <<"\n  ** Warning: CBEAM element "<< EID
-           <<" has offset vector flag \""<< entry[7] <<"\"."
-           <<"\n              This is not implemented yet, \""
-           << entry[7].front() <<"GG\" is used.\n";
+    if (++nWnotImpl <= 10)
+      ListUI <<"\n  ** Warning: CBEAM element "<< EID
+             <<" has offset vector flag \""<< entry[7] <<"\"."
+             <<"\n              This is not implemented yet, \""
+             << entry[7].front() <<"GG\" is used.\n";
+    else if (nWnotImpl == 11)
+      ListUI <<"\n     Further warnings of this kind are suppressed.\n";
   }
 
   bo->X = X;
@@ -3859,17 +3868,11 @@ bool FFlNastranReader::process_SET1 (std::vector<std::string>& entry)
         IDs.push_back(ID2);
     }
 
-  int oldNotes = nNotes;
   if (SID > 0 && !IDs.empty())
   {
     lastGroup = new FFlGroup(SID,"Nastran SET");
     for (int eID : IDs)
-      if (myLink->getElement(eID))
-        lastGroup->addElement(eID);
-      else if (nNotes++ < oldNotes+10)
-        ListUI <<"\n   * Note: Ignoring non-existing element "<< eID
-               <<" in Nastran SET "<< SID;
-    if (nNotes > oldNotes) ListUI <<"\n";
+      lastGroup->addElement(eID);
     lastGroup->sortElements();
     myLink->addGroup(lastGroup);
   }

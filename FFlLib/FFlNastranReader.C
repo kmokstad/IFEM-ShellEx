@@ -845,6 +845,8 @@ bool FFlNastranReader::processThisEntry (BulkEntry& entry)
 #endif
   bool ok = this->processThisEntry (entry.name,entry.fields);
   if (sizeOK) entry.fields.clear();
+  this->nameFromLastComment(lastGroup,true);
+  lastGroup = NULL;
   lastComment = { 0, "" };
   STOPP_TIMER("processThisEntry")
   return ok;
