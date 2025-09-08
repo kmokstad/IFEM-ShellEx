@@ -22,11 +22,14 @@
 #include <sstream>
 
 namespace ASM {
+  char useBeam = 1; //!< If nonzero, include beam elements as a separate patch
+  bool replRBE3 = false; //!< If \e true, convert RBE3 elements to RBE2 elements
+  bool skipMass = false; //!< If \e true, ignore the one-noded mass elements
   bool skipVTFmass = false; //!< If \e true, skip mass point geometries in VTF
+  bool readSets = true; //!< If \e true, read pre-bulk Nastran SET definitions
   double Ktra = 0.0; //!< Translation stiffness for added springs in slave nodes
   double Krot = 0.0; //!< Rotation stiffness for added sprins in slave nodes
 }
-
 
 #ifdef HAS_FFLLIB
 #include "FFlLinkHandler.H"
@@ -62,8 +65,6 @@ public:
   //! \brief The constructor forwards to the parent class constructor.
   MyNastranReader(FFlLinkHandler& fePart, int lCount)
     : FFlNastranReader(&fePart,lCount), nPreBulk(lCount) {}
-  //! \brief Empty destructor.
-  virtual ~MyNastranReader() {}
 
   //! \brief Reads the FE model and resolves all topological references.
   bool readAndResolve(std::istream& is, std::istream& iset)
@@ -79,16 +80,19 @@ public:
     if (!myLink->hasGeometry())
       return false;
 
-    // Remove all solid elements (not yet supported)
+    // Remove all solid elements (not yet supported),
+    // and (optionally) all the mass and beam elements
     ElementsVec toBeErased;
-    ElementsCIter eit;
-    for (eit = myLink->elementsBegin(); eit != myLink->elementsEnd(); ++eit)
-      if ((*eit)->getCathegory() == FFlTypeInfoSpec::SOLID_ELM)
-        toBeErased.push_back(*eit);
+    ElementsCIter it;
+    for (it = myLink->elementsBegin(); it != myLink->elementsEnd(); ++it)
+      if ((*it)->getCathegory() == FFlTypeInfoSpec::SOLID_ELM ||
+          (ASM::skipMass && (*it)->getTypeName() == "CMASS") ||
+          (!ASM::useBeam && (*it)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM))
+        toBeErased.push_back(*it);
     if (!toBeErased.empty())
     {
       IFEM::cout <<"  ** Erasing "<< toBeErased.size()
-                 <<" solid elements from the model."<< std::endl;
+                 <<" elements from the model."<< std::endl;
       myLink->removeElements(toBeErased);
     }
 
@@ -106,9 +110,8 @@ std::vector<int> ASMu2DNastran::fixRBE3;
 
 
 ASMu2DNastran::ASMu2DNastran (unsigned char n, unsigned char n_f,
-                              const std::string& path, bool sets,
-                              bool replaceRBE3, char beams)
-  : ASMu2DLag(n,n_f,'N'), useBeams(beams), readSets(sets), noRBE3s(replaceRBE3)
+                              const std::string& path)
+  : ASMu2DLag(n,n_f,'N')
 {
   massMax = 1.0;
   beamPatch = nullptr;
@@ -156,7 +159,7 @@ bool ASMu2DNastran::read (std::istream& is)
       ++lCount;
       // Copy element SET definitions to a second stream,
       // since they have to be parsed after the FE model is loaded
-      if (readSets && (!strncmp(cline,"SET ",4) || sets.tellp() > 0))
+      if (ASM::readSets && (!strncmp(cline,"SET ",4) || sets.tellp() > 0))
         sets << cline << '\n';
     }
 
@@ -278,7 +281,7 @@ bool ASMu2DNastran::read (std::istream& is)
       for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
       this->addBeamElement(*e,eid,mnpc,beamMNPC,beamElms,beamNodes,
-                           nErr, useBeams == 1);
+                           nErr, ASM::useBeam == 1);
     }
     else if ((*e)->getCathegory() == FFlTypeInfoSpec::SHELL_ELM)
     {
@@ -318,7 +321,7 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout << std::endl;
 #endif
       spiders.push_back(mnpc);
-      if (noRBE3s)
+      if (ASM::replRBE3)
       {
         // Replace the flexible RBE3 element into an equivalent RBE2
         for (int& inod : mnpc) ++inod; // Need 1-based node indices
@@ -374,7 +377,7 @@ bool ASMu2DNastran::read (std::istream& is)
     }
   }
 
-  if (nBel > 0 && nErr == 0 && useBeams)
+  if (nBel > 0 && nErr == 0)
   {
     // Create a separate patch for the beam elements
     Vec3Vec bXYZ;

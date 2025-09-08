@@ -34,7 +34,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
+namespace ASM {
+  extern char useBeam;
+  extern bool replRBE3, skipMass, skipVTFmass, readSets;
+  extern double Ktra, Krot;
+}
 
 
 /*!
@@ -70,6 +74,7 @@ namespace ASM { extern double Ktra, Krot; extern bool skipVTFmass; }
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -hdf5 : Write primary and secondary solution to HDF5 file
   \arg -noSets : Ignore Nastran SET definitions
+  \arg -noMasses : Ignore point mass elements
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
   \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
@@ -129,13 +134,15 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-vizRHS"))
       vizRHS = true;
     else if (!strcmp(argv[i],"-noSets"))
-      SIMAndesShell::readSets = false;
+      ASM::readSets = false;
+    else if (!strcmp(argv[i],"-noMasses"))
+      ASM::skipMass = true;
     else if (!strcmp(argv[i],"-noBeams"))
-      SIMAndesShell::useBeams = 0;
+      ASM::useBeam = 0;
     else if (!strcmp(argv[i],"-noEccs"))
-      SIMAndesShell::useBeams = 2;
+      ASM::useBeam = 2;
     else if (!strcmp(argv[i],"-noRBE3"))
-      SIMAndesShell::replRBE3 = true;
+      ASM::replRBE3 = true;
     else if (!strcmp(argv[i],"-Kbush"))
     {
       if (i+1 < argc && argv[i+1][0] != '-')
@@ -258,8 +265,8 @@ int main (int argc, char** argv)
                "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS] "
                "[-no-vtfmass]]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
-               "[-refsol <files>]","[-noBeams]","[-noEccs]","[-noSets]",
-               "[-noRBE3]","[-split]"});
+               "[-refsol <files>]","[-noMasses]","[-noBeams]","[-noEccs]",
+               "[-noSets]","[-noRBE3]","[-split]"});
     delete prof;
     return 0;
   }

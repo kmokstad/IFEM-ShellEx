@@ -27,11 +27,7 @@
 #include "tinyxml2.h"
 #include <fstream>
 
-
-char SIMAndesShell::useBeams = 1;
-bool SIMAndesShell::readSets = true;
-bool SIMAndesShell::replRBE3 = false;
-
+namespace ASM { extern char useBeam; }
 namespace Elastic { extern double time; }
 
 
@@ -52,7 +48,7 @@ SIMAndesShell::~SIMAndesShell ()
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nss,modal,useBeams);
+    myProblem = new AndesShell(nss,modal,ASM::useBeam);
 
   return dynamic_cast<ElasticBase*>(myProblem);
 }
@@ -192,8 +188,7 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
   ASMbase* pch = NULL;
   ASMu2DNastran* shell = NULL;
   if (nf.size() == 2 && nf[1] == 'n') // Nastran bulk data file
-    pch = shell = new ASMu2DNastran(nsd,nf.front(),myPath,
-                                    readSets,replRBE3,useBeams);
+    pch = shell = new ASMu2DNastran(nsd,nf.front(),myPath);
   else if (!(pch = ASM2D::create(opt.discretization,nsd,nf)))
     return pch;
 
@@ -214,11 +209,11 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
       const_cast<SIMAndesShell*>(this)->myModel.push_back(bpch);
     }
     else
-      useBeams = 0;
+      ASM::useBeam = 0;
   }
 
   pch->idx = myModel.size();
-  if (shell && useBeams && pch->getNoElms() > 0)
+  if (shell && ASM::useBeam && pch->getNoElms() > 0)
     IFEM::cout <<"\tCreated shell patch "<< pch->idx+1
                <<" with "<< pch->getNoElms() <<" elements"<< std::endl;
   else
