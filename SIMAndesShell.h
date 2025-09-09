@@ -71,6 +71,18 @@ public:
   bool writeGlvLoc(std::vector<std::string>& locfiles,
                    bool nodal, int& nBlock) const;
 
+  //! \brief Writes current model geometry to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  //!
+  //! \details This method is overridden to also write out the sea surface.
+  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool = true);
+  //! \brief Writes sea surface elevation to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] iStep Load/time step identifier
+  //! \param[in] time Current time
+  virtual bool writeGlvA(int& nBlock, int iStep, double time, int) const;
+
 protected:
   using SIMElasticity<SIM2D>::parse;
   //! \brief Parses a data section from an XML element.
@@ -126,6 +138,13 @@ private:
   unsigned short int nss; //!< Number of consequtive solution states in core
 
   bool modal; //!< Modal dynamics simulation flag
+
+  Vec3      seaX0;       //!< Origin of sea surface visualization
+  double    seaLx;       //!< Length of sea surface visualization
+  double    seaLy;       //!< Width of sea surface visualization
+  double    seaGridSize; //!< Size of sea surface segments
+  RealFunc* seasurf;     //!< Sea surface elevation function
+  int       seaBlock;    //!< Geometry block ID for sea surface
 };
 
 #endif

@@ -22,6 +22,7 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "ElementBlock.h"
+#include "Vec3Oper.h"
 #include "VTF.h"
 #include "IFEM.h"
 #include "tinyxml2.h"
@@ -35,6 +36,8 @@ SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
 {
   nsd = 3;
   nf.front() = 6;
+  seaLx = seaLy = seaGridSize = 0.0;
+  seaBlock = 0;
 }
 
 
@@ -83,10 +86,27 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     elInt = this->getIntegrand();
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
+  const tinyxml2::XMLElement* grandchild = nullptr;
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"postprocessing"))
     {
-      if (myProblem && !strcasecmp(child->Value(),"vonMises_only"))
+      if (!strcasecmp(child->Value(),"seasurface") &&
+          (grandchild = child->FirstChildElement("zeta")) &&
+          grandchild->FirstChild())
+      {
+        std::string seaType("expression");
+        utl::getAttribute(grandchild,"type",seaType);
+        utl::getAttribute(child,"X0",seaX0);
+        utl::getAttribute(child,"Lx",seaLx);
+        utl::getAttribute(child,"Ly",seaLy);
+        utl::getAttribute(child,"gridsize",seaGridSize);
+        IFEM::cout <<"\tSea surface ["<< seaX0
+                   <<"] to ["<< seaX0 + Vec3(seaLx,seaLy,0.0)
+                   <<"], gridSize="<< seaGridSize <<" ("<< seaType <<")";
+        seasurf = utl::parseRealFunc(grandchild->FirstChild()->Value(),seaType);
+        IFEM::cout << std::endl;
+      }
+      else if (!strcasecmp(child->Value(),"vonMises_only") && myProblem)
         static_cast<AndesShell*>(myProblem)->vonMisesOnly();
       else if (!strcasecmp(child->Value(),"reactions"))
         if (!utl::getAttribute(child,"set",myRFset))
@@ -422,5 +442,61 @@ bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
       return false;
   }
 
+  return true;
+}
+
+
+bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
+{
+  if (!this->SIMElasticity<SIM2D>::writeGlvG(nBlock,inpFile,doClear))
+    return false;
+
+  if (seaGridSize < 1.0e-8 || seaLx < seaGridSize || seaLy < seaGridSize)
+    return true; // No sea surface visuzlization
+
+  const size_t nx = seaLx / seaGridSize;
+  const size_t ny = seaLy / seaGridSize;
+  const double dx = seaLx / nx;
+  const double dy = seaLy / ny;
+
+  ElementBlock* seaSurf = new ElementBlock(4);
+  seaSurf->resize(nx+1,ny+1);
+
+  size_t i, j, n = 0;
+  for (j = 0; j <= ny; j++)
+    for (i = 0; i <= nx; i++)
+      seaSurf->setCoor(n++, seaX0.x+i*dx, seaX0.y+j*dy, seaX0.z);
+
+  for (j = n = 0; j < ny; j++)
+    for (i = 0; i < nx; i++)
+    {
+      seaSurf->setNode(n++, j*(nx+1)+i);
+      seaSurf->setNode(n++, j*(nx+1)+i+1);
+      seaSurf->setNode(n++, (j+1)*(nx+1)+i+1);
+      seaSurf->setNode(n++, (j+1)*(nx+1)+i);
+    }
+
+  seaBlock = ++nBlock;
+  return this->getVTF()->writeGrid(seaSurf,"Sea surface",seaBlock);
+}
+
+
+bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
+{
+  VTF* vtf = this->getVTF();
+  const ElementBlock* sea = vtf ? vtf->getBlock(seaBlock) : nullptr;
+  if (!sea) return false;
+
+  // Evaluate the sea surface elevation at all grid points
+  size_t npt = sea->getNoNodes();
+  Matrix zeta(3,npt);
+  for (size_t i = 0; i < npt; i++)
+    zeta(3,i+1) = (*seasurf)(Vec4(sea->getCoord(i),time));
+
+  // Output as vector field
+  if (!vtf->writeVres(zeta,++nBlock,seaBlock))
+    return false;
+
+  const_cast<SIMAndesShell*>(this)->addDisBlk[seaBlock] = nBlock;
   return true;
 }
