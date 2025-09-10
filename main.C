@@ -317,12 +317,14 @@ int main (int argc, char** argv)
   {
     if (status > 10 && !dynSol)
       utl::profiler->stop("Postprocessing");
+    utl::profiler->start("Clean up");
 #ifdef HAS_FFLLIB
     if (relFFl)
       FFl::releaseAllElements();
 #endif
     delete model;
     delete writer;
+    utl::profiler->stop("Clean up");
     delete prof;
     return status;
   };

@@ -18,6 +18,7 @@
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "Vec3Oper.h"
+#include "Profiler.h"
 #include "IFEM.h"
 #include <sstream>
 
@@ -66,9 +67,11 @@ public:
   MyNastranReader(FFlLinkHandler& fePart, int lCount)
     : FFlNastranReader(&fePart,lCount), nPreBulk(lCount) {}
 
-  //! \brief Reads the FE model and resolves all topological references.
-  bool readAndResolve(std::istream& is, std::istream& iset)
+  //! \brief Reads the FE model from the Nastran file stream.
+  bool readFE(std::istream& is, std::istream& iset)
   {
+    PROFILE("Nastran file parser");
+
     if (!this->resolve(this->read(is)))
       myLink->deleteGeometry(); // Parsing failure, delete all FE data
     else if (nWarnings+nNotes > 0)
@@ -98,10 +101,7 @@ public:
 
     // Now parse the element set definitions, if any
     lastComment = { 0, "" };
-    if (iset && !this->processAllSets(iset,nPreBulk))
-      return false;
-
-    return myLink->resolve();
+    return iset ? this->processAllSets(iset,nPreBulk) : true;
   }
 };
 #endif
@@ -166,10 +166,15 @@ bool ASMu2DNastran::read (std::istream& is)
   if (!is) return false; // No bulk data file
 
 #ifdef HAS_FFLLIB
-
+  bool ok = true;
   FFlLinkHandler  fem;
   MyNastranReader reader(fem,lCount);
-  if (!reader.readAndResolve(is,sets))
+  if ((ok = reader.readFE(is,sets)))
+  {
+    PROFILE("Resolve cross references");
+    ok = fem.resolve();
+  }
+  if (!ok)
   {
     std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
@@ -220,6 +225,8 @@ bool ASMu2DNastran::read (std::istream& is)
   }
   IFEM::cout <<"Model extension (diameter):     "
              << ASMbase::modelSize << std::endl;
+
+  PROFILE("Convert to IFEM");
 
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
