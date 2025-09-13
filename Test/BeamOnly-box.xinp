@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">BeamOnly-box.nas</patchfile>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="ASET" comp="123456"/>
+  </boundaryconditions>
+
+  <elasticity>
+    <gravity z="1000"/>
+    <nodeload node="7" dof="3" type="expression">500000.0*sin(t)</nodeload>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>1</nGauss>
+  </discretization>
+
+  <newmarksolver alpha2="0.001">
+    <timestepping>
+      <step start="0.0" end="1.0">0.05</step>
+    </timestepping>
+  </newmarksolver>
+
+</simulation>

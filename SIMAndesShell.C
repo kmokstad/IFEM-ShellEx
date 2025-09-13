@@ -14,6 +14,7 @@
 #include "SIMAndesShell.h"
 #include "ASMu2DNastran.h"
 #include "AndesShell.h"
+#include "ElasticBeam.h"
 #include "AlgEqSystem.h"
 #include "SystemMatrix.h"
 #include "SAM.h"
@@ -30,6 +31,8 @@
 
 namespace ASM { extern char useBeam; }
 namespace Elastic { extern double time; }
+
+using Parent = SIMElasticity<SIM2D>; //!< Convenience type alias
 
 
 SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
@@ -78,7 +81,7 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
       }
   }
 
-  if (!this->SIMElasticity<SIM2D>::parse(elem))
+  if (!this->Parent::parse(elem))
     return false;
 
   ElasticBase* elInt = nullptr;
@@ -309,7 +312,7 @@ bool SIMAndesShell::getElementGroup (int iset, std::string& name,
 
 bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 {
-  bool ok = this->SIMElasticity<SIM2D>::renumberNodes(nodeMap);
+  bool ok = this->Parent::renumberNodes(nodeMap);
 
   for (DOFspring& spr : mySprings)
     if (spr.inod > 0)
@@ -320,6 +323,21 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
       ok &= utl::renumber(load.inod,nodeMap,true);
 
   return ok;
+}
+
+
+/*!
+  This method is overridden in case a beam patch exists.
+*/
+
+bool SIMAndesShell::extractPatchSolution (IntegrandBase* itg,
+                                          const Vectors& sol,
+                                          size_t pindx) const
+{
+  if (itg == myProblem && dynamic_cast<ASMuBeam*>(this->getPatch(pindx+1)))
+    itg = static_cast<AndesShell*>(myProblem)->hasBeamProblem();
+
+  return this->Parent::extractPatchSolution(itg,sol,pindx);
 }
 
 
@@ -391,7 +409,7 @@ const RealArray* SIMAndesShell::getReactionForces() const
   if (!myRFset.empty())
     return myReact.empty() ? nullptr : &myReact;
 
-  return this->SIMElasticity<SIM2D>::getReactionForces();
+  return this->Parent::getReactionForces();
 }
 
 
@@ -448,7 +466,7 @@ bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
 
 bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
-  if (!this->SIMElasticity<SIM2D>::writeGlvG(nBlock,inpFile,doClear))
+  if (!this->Parent::writeGlvG(nBlock,inpFile,doClear))
     return false;
 
   if (seaGridSize < 1.0e-8 || seaLx < seaGridSize || seaLy < seaGridSize)

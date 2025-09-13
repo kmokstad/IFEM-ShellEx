@@ -48,6 +48,9 @@ public:
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
 
+  //! \brief Returns the integrand of the beam part, if any.
+  ElasticBeam* hasBeamProblem() const { return beamProblem; }
+
   //! \brief Checks if the point \a Xc is inside the thickness loss area or not.
   bool isInLossArea(const Vec3& Xc) const;
 

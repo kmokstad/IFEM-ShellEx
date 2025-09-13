@@ -45,6 +45,7 @@ Processing integrand associated with code 0
 Assembling interior matrix terms for P1
 Assembling interior matrix terms for P2
 Done.
+Total external load: Sum(Fex) = 0 0 500000
 Solving the equation system ...
 	Condition number: 1672.94
  >>> Solution summary <<<
