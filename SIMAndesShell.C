@@ -501,6 +501,8 @@ bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 
 bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
 {
+  if (seaBlock < 1) return true; // no sea surface visualization
+
   VTF* vtf = this->getVTF();
   const ElementBlock* sea = vtf ? vtf->getBlock(seaBlock) : nullptr;
   if (!sea) return false;
