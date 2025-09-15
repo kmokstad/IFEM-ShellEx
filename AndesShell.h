@@ -63,12 +63,12 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
-  //! \brief Initializes and toggles the use of left-hand-side matrix buffers.
-  //! \param[in] nEl Number of elements in the model/toggle.
-  //! If larger than 1, element matrix buffers are allocated to given size.
-  //! If equal to 1, element matrices are recomputed.
-  //! If equal to 0, reuse buffered element matrices.
-  virtual void initLHSbuffers(size_t nEl);
+  //! \brief Initializes the use of left-hand-side matrix buffers.
+  //! \param[in] nEl Total number of elements in the model.
+  virtual void initMatrixBuffers(size_t nEl, size_t);
+  //! \brief Toggles the use of left-hand-side matrix buffers.
+  //! \param[in] newLHS If 0, reuse buffered matrices, otherwise recompute
+  virtual void initLHSbuffers(size_t newLHS);
 
   //! \brief Initialization of integrand with patch-specific data.
   virtual void initForPatch(const ASMbase* pch);

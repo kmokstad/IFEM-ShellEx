@@ -196,18 +196,20 @@ void AndesShell::setMode (SIM::SolutionMode mode)
 }
 
 
-void AndesShell::initLHSbuffers (size_t nEl)
+void AndesShell::initLHSbuffers (size_t newLHS)
 {
-  if (nEl > 1)
-  {
-    myKmats.resize(nEl);
-    myMmats.resize(nEl);
-  }
-  else if (nEl == 0 && !myKmats.empty())
+  if (!newLHS && !myKmats.empty())
   {
     if (eKm > 0) eKm = -eKm;
     if (eM  > 0) eM  = -eM;
   }
+}
+
+
+void AndesShell::initMatrixBuffers (size_t nEl, size_t)
+{
+  myKmats.resize(nEl);
+  myMmats.resize(nEl);
 }
 
 
@@ -347,14 +349,10 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
     return beamProblem->initElement(MNPC,fe,Vec3(),0,elmInt);
   }
 
-  if (fe.iel > 0)
-  {
-    size_t iel = fe.iel - 1;
-    if (iel < myKmats.size() && eKm < 0)
-      static_cast<ElmMats&>(elmInt).A[-eKm-1] = myKmats[iel];
-    if (iel < myMmats.size() && eM  < 0)
-      static_cast<ElmMats&>(elmInt).A[-eM-1]  = myMmats[iel];
-  }
+  if (fe.idx < myKmats.size() && eKm < 0)
+    static_cast<ElmMats&>(elmInt).A[-eKm-1] = myKmats[fe.idx];
+  if (fe.idx < myMmats.size() && eM  < 0)
+    static_cast<ElmMats&>(elmInt).A[-eM-1]  = myMmats[fe.idx];
 
   if (!this->initElement(MNPC,elmInt))
     return false;
@@ -578,17 +576,15 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   if (currentPatch && groupName)
     const_cast<ASMu2DNastran*>(currentPatch)->addToElemSet(groupName,fe.iel);
 
-  if (fe.iel > 0 && iERR >= 0)
+  if (iERR >= 0)
   {
-    size_t iel = fe.iel - 1;
-    if (iel < myKmats.size() && Kmat.size() > 1) myKmats[iel] = Kmat;
-    if (iel < myMmats.size() && Mmat.size() > 1) myMmats[iel] = Mmat;
+    if (fe.idx < myKmats.size() && Kmat.size() > 1) myKmats[fe.idx] = Kmat;
+    if (fe.idx < myMmats.size() && Mmat.size() > 1) myMmats[fe.idx] = Mmat;
   }
 
   if (iS > 0 && !elmInt.vec.empty() && nenod > 1 && iERR >= 0)
   {
-    size_t iel = fe.iel - 1;
-    Matrix& Sm = fe.iel > 0 && iel < myKmats.size() ? myKmats[iel] : Kmat;
+    Matrix& Sm = fe.idx < myKmats.size() ? myKmats[fe.idx] : Kmat;
     Vector& Sv = static_cast<ElmMats&>(elmInt).b[iS-1];
     if (!Sm.multiply(elmInt.vec.front(),Sv,false,-1))
       iERR = -97;
