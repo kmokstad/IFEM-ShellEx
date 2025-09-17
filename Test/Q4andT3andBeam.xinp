@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Simple test of FE analysis of a combined shell and beam model !-->
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">Q4andT3andBeam.nas</patchfile>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="ASET" comp="123456"/>
+  </boundaryconditions>
+
+  <elasticity>
+    <nodeload node="7" dof="3" type="expression">1.0e6*sin(PI*t)*t</nodeload>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
+
+  <newmarksolver alpha2="0.001">
+    <timestepping>
+      <step start="0.0" end="1.0">0.05</step>
+    </timestepping>
+  </newmarksolver>
+
+</simulation>

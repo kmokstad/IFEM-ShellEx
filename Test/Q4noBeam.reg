@@ -1,0 +1,50 @@
+Q4andT3andBeam.xinp -noBeams -time 0.5
+
+Input file: Q4andT3andBeam.xinp
+Evaluation time for property functions: 0.5
+Parsing input file Q4andT3andBeam.xinp
+Parsing <discretization>
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file Q4andT3andBeam.nas
+Total number of nodes:          7
+Number of shell elements:       3
+Number of constraint elements:  0
+Number of other elements:       0
+Model extension (diameter):     3.16228
+Pre-defined node sets:          1
+	"ASET"	2 nodes
+	Reading patch 1
+  Parsing <patchfile>
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 123456: (fixed)
+Parsing <elasticity>
+  Parsing <nodeload>
+	Node 7 dof 3 Load: (expression) 1.0e6\*sin(PI\*t)\*t
+Parsing <newmarksolver>
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 2
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Resolving Dirichlet boundary conditions
+	Constraining P1 in direction(s) 123456
+ >>> SAM model summary <<<
+Number of elements    3
+Number of nodes       7
+Number of dofs        42
+Detected 2 holes in the element numbers, reordering...
+Number of unknowns    30
+Processing integrand associated with code 0
+Assembling interior matrix terms for P1
+Done.
+Total external load: Sum(Fex) = 0 0 500000
+Solving the equation system ...
+	Condition number: 2957.38
+ >>> Solution summary <<<
+L2-norm            : 0.00796815
+Max Z-displacement : 0.0336449
+Max x-displacement : 0.00122345
+Max y-displacement : 0.0183177
