@@ -109,8 +109,31 @@ AndesShell::~AndesShell ()
 }
 
 
-Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem)
+void AndesShell::printLog () const
 {
+  IFEM::cout <<"Formulation: ANDES shell";
+  if (beamProblem)
+  {
+    IFEM::cout <<" with beam elements\n";
+    beamProblem->printLog();
+  }
+  else
+    IFEM::cout << std::endl;
+}
+
+
+bool AndesShell::parse (const tinyxml2::XMLElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"lumpedBeamMass"))
+  {
+    char version = 1;
+    utl::getAttribute(elem,"version",version);
+    beamProblem->useLumpedMass(version);
+  }
+  else if (strcasecmp(elem->Value(),"material"))
+    return this->ElasticBase::parse(elem);
+
+  IFEM::cout <<"  Parsing <material>"<< std::endl;
   if (utl::getAttribute(elem,"override",ovrMat) && ovrMat)
   {
     IFEM::cout <<"\tPatch-level material properties are overridden:";
@@ -151,16 +174,7 @@ Material* AndesShell::parseMatProp (const tinyxml2::XMLElement* elem)
                <<"  Xlower = "<< Xlow <<"  Xupper = "<< Xupp << std::endl;
   }
 
-  return nullptr;
-}
-
-
-void AndesShell::printLog () const
-{
-  IFEM::cout <<"Formulation: ANDES shell";
-  if (beamProblem)
-    IFEM::cout <<" with beam elements";
-  IFEM::cout << std::endl;
+  return true;
 }
 
 

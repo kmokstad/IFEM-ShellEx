@@ -41,12 +41,11 @@ public:
   //! \brief The destructor writes out the ignored bad elements.
   virtual ~AndesShell();
 
-  using ElasticBase::parseMatProp;
-  //! \brief Parses material properties from an XML-element.
-  virtual Material* parseMatProp(const tinyxml2::XMLElement* elem);
-
   //! \brief Prints out the problem definition to the log stream.
   virtual void printLog() const;
+
+  //! \brief Parses a data section from an XML-element.
+  virtual bool parse(const tinyxml2::XMLElement* elem);
 
   //! \brief Returns the integrand of the beam part, if any.
   ElasticBeam* hasBeamProblem() const { return beamProblem; }
