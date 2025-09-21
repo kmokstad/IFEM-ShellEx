@@ -14,6 +14,7 @@
 #define FFA_MATH_H
 
 #include <cmath>
+#include <cstddef>
 
 #if _MSC_VER > 1300 && _MSC_VER < 1500
 #define hypot _hypot
@@ -34,14 +35,19 @@
 #define RAD(x) (x)*M_PI/180.0
 #endif
 
+#ifdef FFA_NO_ROUND
+//! \brief Disable all rounding.
+inline double round (double value, int) { return value; }
+#else
 //! \brief Rounds off \a value down to \a precision significant digits.
 extern double round (double value, int precision);
+#endif
 
 #ifdef FFA_DEBUG
-extern double atan3 (double y, double x, const char* func = 0);
+extern double atan3 (double y, double x, const char* func = NULL);
 #else
 //! \brief Checks for singular rotations before using atan2 library function.
-inline double atan3 (double y, double x, const char* = 0)
+inline double atan3 (double y, double x, const char* = NULL)
 {
   return fabs(y) > EPS_ZERO || fabs(x) > EPS_ZERO ? atan2(y,x) : 0.0;
 }

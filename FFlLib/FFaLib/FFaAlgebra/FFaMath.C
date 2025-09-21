@@ -28,17 +28,23 @@ double atan3 (double y, double x, const char* func)
 #endif
 
 
+#ifndef FFA_NO_ROUND
 double round (double value, int precision)
 {
   if (value == 0.0) return 0.0; // Avoid log10(0)
-  double absva = fabs(value);
-  int exponent = (int)log10(absva) - (absva < 1.0 ? precision : precision-1);
-  double denom = pow(10.0,exponent);
+  double aval  = std::fabs(value);
+  int exponent = (int)std::log10(aval) - (aval < 1.0 ? precision : precision-1);
+  double denom = std::pow(10.0,exponent);
+#ifdef FFA_USE_ROUND
+  return std::round(value/denom)*denom;
+#else
   double delta = value > 0.0 ? 0.5*denom : -0.5*denom;
   double remnd = fmod(value+delta,denom);
   // fmod seems to return <denom> (or close to) if <value> is already rounded
   return fabs(remnd) < 0.99*denom ? value+delta - remnd : value+delta;
+#endif
 }
+#endif
 
 
 /*!
