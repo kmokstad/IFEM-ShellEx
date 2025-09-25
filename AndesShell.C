@@ -115,6 +115,14 @@ void AndesShell::printLog () const
   if (beamProblem)
   {
     IFEM::cout <<" with beam elements\n";
+    double E, G, Rho;
+    if (beamPatch->getProps(beamPatch->getElmID(1),E,G,Rho,
+                            const_cast<AndesShell*>(this)->myBeamProps))
+    {
+      ElasticBeam* beam = const_cast<AndesShell*>(this)->beamProblem;
+      beam->setStiffness(E,G);
+      beam->setMass(Rho);
+    }
     beamProblem->printLog();
   }
   else
@@ -124,12 +132,21 @@ void AndesShell::printLog () const
 
 bool AndesShell::parse (const tinyxml2::XMLElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"lumpedBeamMass"))
+  if (!strcasecmp(elem->Parent()->Value(),"postprocessing"))
+  {
+    if (!strcasecmp(elem->Value(),"vonMises_only"))
+      n2v = 2; // only output von Mises as secondary variables
+  }
+  else if (!strcasecmp(elem->Value(),"lumpedBeamMass") && beamProblem)
   {
     char version = 1;
     utl::getAttribute(elem,"version",version);
     beamProblem->useLumpedMass(version);
+    if (version)
+      IFEM::cout <<"\tUsing lumped mass matrix for beams, version "
+                 << static_cast<int>(version) << std::endl;
   }
+
   else if (strcasecmp(elem->Value(),"material"))
     return this->ElasticBase::parse(elem);
 

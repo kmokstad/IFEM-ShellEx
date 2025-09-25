@@ -146,9 +146,6 @@ public:
   //! \brief Computes some derived primary solution quantities.
   virtual void primaryScalarFields(Matrix& field);
 
-  //! \brief Specifies the recovery of von Mises stresses only.
-  void vonMisesOnly() { n2v = 2; }
-
   //! \brief Returns \e true if no elements failed during assembly.
   bool allElementsOK() const { return failedElements.empty(); }
 

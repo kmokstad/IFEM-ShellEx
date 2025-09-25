@@ -51,6 +51,21 @@ SIMAndesShell::~SIMAndesShell ()
 }
 
 
+bool SIMAndesShell::printProblem () const
+{
+  for (const ASMbase* pch : myModel)
+    if (dynamic_cast<const ASMu1DLag*>(pch))
+    {
+      // To enable correct print of beam element properties (for first element)
+      if (ElasticBase* p = const_cast<SIMAndesShell*>(this)->getIntegrand(); p)
+        p->initForPatch(pch);
+      break;
+    }
+
+  return this->Parent::printProblem();
+}
+
+
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
@@ -105,11 +120,13 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         seasurf = utl::parseRealFunc(grandchild->FirstChild()->Value(),seaType);
         IFEM::cout << std::endl;
       }
-      else if (!strcasecmp(child->Value(),"vonMises_only") && myProblem)
-        static_cast<AndesShell*>(myProblem)->vonMisesOnly();
       else if (!strcasecmp(child->Value(),"reactions"))
+      {
         if (!utl::getAttribute(child,"set",myRFset))
           myRFset = "(all)";
+      }
+      else if (ElasticBase* problem = this->getIntegrand(); problem)
+        problem->parse(child);
     }
     else if (strcasecmp(elem->Value(),"elasticity"))
       continue; // The remaining should be within the elasticity context
