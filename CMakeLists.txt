@@ -1,97 +1,140 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.22)
 
-project(ShellEx)
+option(IFEM_USE_ANDES "Compile with ANDES shell element?" OFF)
+option(IFEM_USE_FFLLIB "Compile with FFlLib?" OFF)
+option(FFL_USE_MEMPOOL "Compile FFlLib with memory pool management?" OFF)
+
+project(ShellEx LANGUAGES C CXX)
+
 message(STATUS "Configuring project ${PROJECT_NAME}")
 
-if(NOT IFEM_CONFIGURED)
-  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../../cmake/Modules)
-  find_package(IFEM REQUIRED)
-  include_directories(${IFEM_INCLUDE_DIRS})
-  add_definitions(${IFEM_DEFINITIONS})
-  string(APPEND CMAKE_CXX_FLAGS " ${IFEM_CXX_FLAGS}")
+if(NOT TARGET IFEM)
+  if(IFEM_AS_SUBMODULE)
+    add_subdirectory(../../.. IFEM)
+    set(IFEM_PATH ${PROJECT_SOURCE_DIR}/../../..)
+  else()
+    get_filename_component(BUILD_DIR ${PROJECT_BINARY_DIR} NAME)
+    set(IFEM_DIR ${PROJECT_SOURCE_DIR}/../../../${BUILD_DIR})
+    find_package(IFEM REQUIRED)
+  endif()
 endif()
-include_directories(${IFEM_INCLUDES})
-
-get_filename_component(PARENT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
-if(IS_DIRECTORY ${PARENT_SOURCE_DIR}/Linear)
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PARENT_SOURCE_DIR}
-                      ${PARENT_SOURCE_DIR}/Linear ${PARENT_SOURCE_DIR}/Beam)
-else()
-  message(FATAL_ERROR "Need IFEM-Elasticity as parent directory.")
-endif()
-
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 if(NOT TARGET Elasticity)
   add_subdirectory(.. Elasticity)
 endif()
 
 # ANDES shell elements (3rd-party Fortran-90 code)
-OPTION(IFEM_USE_ANDES "Compile with ANDES shell element?" OFF)
-IF(IFEM_USE_ANDES)
-  MESSAGE(STATUS "Compiling with ANDES shell element support")
-  ENABLE_LANGUAGE(Fortran)
-  FILE(GLOB ANDES_SOURCES ANDES/*.f90 ANDES/*.f FFlLib/FFaLib/FFaAlgebra/*.f90)
-  STRING(APPEND CMAKE_Fortran_FLAGS " -cpp -frecursive -fwhole-file")
-  STRING(APPEND CMAKE_CXX_FLAGS " -DHAS_ANDES")
-ENDIF(IFEM_USE_ANDES)
+if(IFEM_USE_ANDES)
+  message(STATUS "Compiling with ANDES shell element support")
+  enable_language(Fortran)
+endif()
 
-OPTION(IFEM_USE_FFLLIB "Compile with FFlLib?" OFF)
-OPTION(FFL_USE_MEMPOOL "Compile FFlLib with memory pool management?" OFF)
-IF(IFEM_USE_FFLLIB)
-  MESSAGE(STATUS "Compiling with use of FFlLib")
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/FFlLib)
-  STRING(APPEND CMAKE_CXX_FLAGS " -DHAS_FFLLIB -DFFL_REFCOUNT")
-  IF(FFL_USE_MEMPOOL)
-    STRING(APPEND CMAKE_CXX_FLAGS " -DFT_USE_MEMPOOL")
-  ENDIF(FFL_USE_MEMPOOL)
-  IF(IFEM_USE_ANDES)
-    STRING(APPEND CMAKE_Fortran_FLAGS " -DHAS_FFLLIB")
-  ENDIF(IFEM_USE_ANDES)
-  ADD_SUBDIRECTORY(FFlLib)
-ENDIF(IFEM_USE_FFLLIB)
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-FILE(GLOB ShellEx_SOURCES *.C ../Beam/ElasticBeam.C ../Beam/BeamProperty.C ../Linear/*Driver.C)
-FILE(GLOB ShellEx_HEADERS *.h ../Beam/ElasticBeam.h ../Beam/BeamProperty.h)
-ADD_LIBRARY(ShellEx ${ShellEx_SOURCES} ${ANDES_SOURCES})
-TARGET_LINK_LIBRARIES(ShellEx Elasticity ${IFEM_LIBRARIES})
-IF(TARGET FFlLib)
-  TARGET_LINK_LIBRARIES(ShellEx FFlLib)
-ENDIF(TARGET FFlLib)
+if(IFEM_USE_FFLLIB)
+  message(STATUS "Compiling with use of FFlLib")
+  add_subdirectory(FFlLib)
+endif()
+
+ifem_add_library(
+  NAME
+    ShellEx
+  SOURCES
+    AndesShell.C
+    ASMu2DNastran.C
+    SIMAndesShell.C
+    SIMAndesSplit.C
+    SIMShellModal.C
+    ../Beam/ElasticBeam.C
+    ../Beam/BeamProperty.C
+    ../Linear/DynamicDriver.C
+    ../Linear/ModalDriver.C
+    ../Linear/MultiLoadCaseDriver.C
+  HEADERS
+    AndesShell.h
+    ASMu2DNastran.h
+    SIMAndesShell.h
+    SIMAndesSplit.h
+    SIMShellModal.h
+  LIBRARIES
+    Elasticity
+)
+
+target_include_directories(
+    ShellEx
+    PUBLIC
+      ${PROJECT_SOURCE_DIR}/../Beam
+      ${PROJECT_SOURCE_DIR}/../Linear
+)
+
+if(IFEM_USE_ANDES)
+  target_sources(ShellEx PRIVATE
+    ANDES/andes3ShellModule.f90
+    ANDES/andes4ShellModule.f90
+    ANDES/IFEM_wrapper.f90
+    ANDES/kindModule.f90
+    ANDES/manipMatrixModule.f90
+    ANDES/pmatStiff.f90
+    ANDES/strainAndStressUtils.f90
+    ANDES/wavgmConstrEqn.f90
+    ANDES/qbek35.f
+    ANDES/qmrf35.f
+    ANDES/teba35.f
+    ANDES/tmrf35.f
+    FFlLib/FFaLib/FFaAlgebra/FFaTensorTransformsInterface.f90
+  )
+  target_compile_options(ShellEx PUBLIC $<$<COMPILE_LANGUAGE:Fortran>:-cpp -frecursive -fwhole-file>)
+  target_compile_definitions(ShellEx PUBLIC HAS_ANDES=1)
+endif()
+
+if(TARGET FFlLib)
+  target_link_libraries(ShellEx PUBLIC FFlLib)
+endif()
 
 # Building executable
-add_executable(ShellSim main.C)
-target_link_libraries(ShellSim ShellEx)
-
-# Installation
-install(TARGETS ShellSim DESTINATION bin COMPONENT bin)
-
-# For generating the doxy
-set(EXTRA_DOXY_PATHS "${PROJECT_SOURCE_DIR} \\
-                      ${PROJECT_BINARY_DIR} \\
-                      ${PARENT_SOURCE_DIR} \\
-                      ${PARENT_SOURCE_DIR}/Beam \\
-                      ${PARENT_SOURCE_DIR}/Linear")
-add_doc_target(ShellSim ShellSim)
+ifem_add_application(
+  NAME
+    ShellSim
+  SOURCES
+    main.C
+  LIBRARIES
+    ShellEx
+)
 
 # Regression tests
 enable_testing()
-include(IFEMTesting)
 
-if(IFEM_USE_ANDES AND TARGET FFlLib)
-  file(GLOB SHELL_TESTFILES RELATIVE ${PROJECT_SOURCE_DIR}/Test
-                                     ${PROJECT_SOURCE_DIR}/Test/*.reg)
-endif()
+ifem_add_regression_test(
+  TARGET
+    ShellSim
+  CONDITIONS
+    IFEM_USE_ANDES
+    IFEM_USE_FFLLIB
+  TEST_FILES
+    BeamOnly-dyn.reg
+    BeamOnly.reg
+    Fine-dyn.reg
+    Fine-mlc.reg
+    Fine-partial.reg
+    Fine.reg
+    L-beam10.reg
+    LoadTest.reg
+    Q4andBeam.reg
+    Q4-dynp.reg
+    Q4-dyn.reg
+    Q4-generated.reg
+    Q4noBeam.reg
+    Q4.reg
+    T3.reg
+)
 
-if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
-  foreach(TESTFILE ${SHELL_TESTFILES})
-    ifem_add_test(${TESTFILE} ShellSim)
-  endforeach()
-endif()
-
-list(APPEND TEST_APPS ShellSim)
 if(IFEM_COMMON_APP_BUILD)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 else(IFEM_COMMON_APP_BUILD)
-  add_check_target()
+  ifem_add_check_target()
 endif()
+
+# For generating the doxy
+ifem_add_doc_target(TARGET ShellSim)
+
+# Installation
+include(GNUInstallDirs)
+install(TARGETS ShellSim DESTINATION ${CMAKE_INSTALL_BINDIR})
