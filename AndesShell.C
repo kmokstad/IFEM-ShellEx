@@ -49,7 +49,7 @@ extern "C" {
 
 AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
 {
-  nsd =  3; // Number of spatial dimenstions
+  nsd =  3; // Number of spatial dimensions
   npv =  6; // Number of primary unknowns per node
   n2v = 18; // Number of secondary variables for output
   nCS = ns; // Number of consecutive solution states in core
@@ -324,6 +324,50 @@ LocalIntegral* AndesShell::getLocalIntegral (size_t nen, size_t iEl, bool) const
   }
 
   result->redim(npv*nen);
+  return result;
+}
+
+
+ElmMats* AndesShell::getDofMatrices () const
+{
+  ElmMats* result = nullptr;
+
+  if (isModal)
+    return result;
+  else if (this->getMode(true) == SIM::DYNAMIC)
+    result = new NewmarkMats(0.0,0.0,intPrm[2],intPrm[3]);
+  else
+    result = new ElmMats();
+
+  switch (m_mode)
+  {
+    case SIM::STATIC:
+      result->resize(1,1);
+      break;
+
+    case SIM::DYNAMIC:
+      result->resize(3,1);
+      break;
+
+    case SIM::VIBRATION:
+    case SIM::STIFF_ONLY:
+      result->resize(1,0);
+      break;
+
+    case SIM::RHS_ONLY:
+      result->resize(nSV > nCS ? 3 : 0, 1);
+      result->rhsOnly = true;
+      result->withLHS = false;
+      break;
+
+    default:
+      delete result;
+      return nullptr;
+  }
+
+  result->redim(1);
+  if (result->A.size() > 1)
+    result->A[1].clear(); // No mass matrix
   return result;
 }
 

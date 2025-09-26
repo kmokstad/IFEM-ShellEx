@@ -21,6 +21,7 @@
 class ASMu2DNastran;
 class ASMuBeam;
 class ElasticBeam;
+class ElmMats;
 class ScalarFunc;
 class RealFunc;
 
@@ -90,6 +91,9 @@ public:
   //! \param[in] nen Number of nodes on element
   //! \param[in] iEl Global element number (1-based)
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl, bool) const;
+
+  //! \brief Returns a single-DOF ElmMats object depending on the solution mode.
+  ElmMats* getDofMatrices() const;
 
   //! \brief Defines the global integral for calculating reaction forces only.
   virtual void setSecondaryInt(GlobalIntegral* gq);
