@@ -16,6 +16,7 @@
 #include "AndesShell.h"
 #include "ElasticBeam.h"
 #include "AlgEqSystem.h"
+#include "ElmMats.h"
 #include "SystemMatrix.h"
 #include "SAM.h"
 #include "DataExporter.h"
@@ -29,7 +30,7 @@
 #include "tinyxml2.h"
 #include <fstream>
 
-namespace ASM { extern char useBeam; }
+namespace ASM { extern char useBeam; extern IntVec fixRBE3; }
 namespace Elastic { extern double time; }
 
 using Parent = SIMElasticity<SIM2D>; //!< Convenience type alias
@@ -81,7 +82,7 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
   {
     const tinyxml2::XMLElement* child = elem->FirstChildElement("fixRBE3");
     if (child && child->FirstChild())
-      utl::parseIntegers(ASMu2DNastran::fixRBE3,child->FirstChild()->Value());
+      utl::parseIntegers(ASM::fixRBE3,child->FirstChild()->Value());
 
     std::string fName;
     child = elem->FirstChildElement("patchfile");
@@ -354,29 +355,72 @@ bool SIMAndesShell::extractPatchSolution (IntegrandBase* itg,
   and return \e false in that case such that the simulation will be aborted.
 */
 
-bool SIMAndesShell::assembleDiscreteTerms (const IntegrandBase* itg,
-                                           const TimeDomain& time)
+bool SIMAndesShell::assembleDiscreteItems (const IntegrandBase* itg,
+                                           const TimeDomain& time,
+                                           const Vectors& sol)
 {
-  bool ok = static_cast<AndesShell*>(myProblem)->allElementsOK();
+  AndesShell* shellp = static_cast<AndesShell*>(myProblem);
+  bool ok = shellp->allElementsOK();
   if (itg != myProblem || !myEqSys)
     return ok;
 
-  SystemMatrix* K = myEqSys->getMatrix();
-  if (K) // Assemble discrete DOF springs
-    for (const DOFspring& spr : mySprings)
-      ok &= K->add(spr.coeff,mySam->getEquation(spr.inod,spr.ldof));
+  if (!mySprings.empty())
+    if (ElmMats* sprMat = shellp->getDofMatrices(); sprMat)
+    {
+      // Assemble discrete DOF spring stiffnesses and associated internal forces
+      SystemMatrix* K = (sprMat->A.empty() ? nullptr : myEqSys->getMatrix());
+      SystemVector* S = (sprMat->b.empty() || sol.front().zero(1e-15) ?
+                         nullptr : myEqSys->getVector());
+      sprMat->setStepSize(time.dt,time.it);
+      for (const DOFspring& spr : mySprings)
+      {
+        if (K)
+          sprMat->A.back().fill(spr.coeff);
+        if (S)
+        {
+          double v = mySam->getDofVal(sol.front(),spr.inod,spr.ldof);
+          sprMat->b.back().fill(-spr.coeff*v);
+        }
+#if INT_DEBUG > 1
+        std::cout <<"\nSpring at DOF "<< spr.inod <<","<< spr.ldof
+                  <<": "<< spr.coeff;
+        if (S)
+          std::cout <<" force = "<< -sprMat->b.back()(1);
+#endif
+        if (K)
+          ok &= K->add(sprMat->getNewtonMatrix()(1,1),
+                       mySam->getEquation(spr.inod,spr.ldof));
+        if (S)
+          ok &= mySam->assembleSystem(*S,sprMat->getRHSVector()(1),
+                                      {spr.inod,spr.ldof});
+      }
+    }
 
-  const size_t nrhs = myEqSys->getNoRHS();
-  SystemVector* R = nrhs > 0 ? myEqSys->getVector(nrhs-1) : nullptr;
-  if (R) // Assemble external nodal point loads
+  if (!myLoads.empty())
+  {
+    // Assemble external nodal point loads
+    const size_t nrhs = myEqSys->getNoRHS();
+    SystemVector* R = nrhs > 0 ? myEqSys->getVector(nrhs-1) : nullptr;
     for (const PointLoad& load : myLoads)
     {
       double P = (*load.p)(time.t);
       int ldof = load.ldof;
-      myEqSys->addScalar(P,ldof-1);
-      ok &= mySam->assembleSystem(*R,P,{load.inod,ldof});
+      if (R)
+      {
+        myEqSys->addScalar(P,ldof-1);
+        ok &= mySam->assembleSystem(*R,P,{load.inod,ldof});
+      }
+#if INT_DEBUG > 1
+      std::cout <<"\nExternal load at DOF "<< load.inod <<","<< load.ldof
+                <<": "<< P;
+#endif
     }
+  }
 
+#if INT_DEBUG > 1
+  if (!mySprings.empty() || !myLoads.empty())
+    std::cout << std::endl;
+#endif
   return ok;
 }
 

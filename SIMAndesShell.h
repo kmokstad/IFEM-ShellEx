@@ -109,8 +109,9 @@ protected:
                                     const Vectors& sol, size_t pindx) const;
 
   //! \brief Assembles the DOF springs and nodal point loads, if any.
-  virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
-                                     const TimeDomain& time);
+  virtual bool assembleDiscreteItems(const IntegrandBase* itg,
+                                     const TimeDomain& time,
+                                     const Vectors& sol);
 
 private:
   //! \brief Struct defining a DOF spring.

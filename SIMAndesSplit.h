@@ -40,8 +40,9 @@ public:
 
 protected:
   //! \brief Assembles the nodal point loads, if any.
-  virtual bool assembleDiscreteTerms(const IntegrandBase* itg,
-                                     const TimeDomain& time);
+  virtual bool assembleDiscreteItems(const IntegrandBase* itg,
+                                     const TimeDomain& time,
+                                     const Vectors& sol);
 
   //! \brief Preprocessing performed after the system assembly initialization.
   virtual bool preprocessB();

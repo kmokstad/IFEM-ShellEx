@@ -98,12 +98,13 @@ bool SIMAndesSplit::assembleSystem (const TimeDomain& time,
 }
 
 
-bool SIMAndesSplit::assembleDiscreteTerms (const IntegrandBase* itg,
-                                           const TimeDomain& time)
+bool SIMAndesSplit::assembleDiscreteItems (const IntegrandBase* itg,
+                                           const TimeDomain& time,
+                                           const Vectors& sol)
 {
   // This assumes we have point load(s) only on the first material region
   if (myEqSys == myRegions.front().myEqSys || !myRegions.front().myEqSys)
-    return this->SIMAndesShell::assembleDiscreteTerms(itg,time);
+    return this->SIMAndesShell::assembleDiscreteItems(itg,time,sol);
 
   return true;
 }

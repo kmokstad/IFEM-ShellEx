@@ -150,9 +150,6 @@ private:
   std::array<size_t,2> nGnod; //!< Total number of additional geometry nodes
 
   ASMu1DLag* beamPatch; //!< Separate patch for beam elements
-
-public:
-  static std::vector<int> fixRBE3; //!< List of RBE3 elements to be constrained
 };
 
 

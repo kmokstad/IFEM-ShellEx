@@ -30,6 +30,7 @@ namespace ASM {
   bool readSets = true; //!< If \e true, read pre-bulk Nastran SET definitions
   double Ktra = 0.0; //!< Translation stiffness for added springs in slave nodes
   double Krot = 0.0; //!< Rotation stiffness for added sprins in slave nodes
+  IntVec fixRBE3; //!< List of RBE3 elements to be constrained
 }
 
 #ifdef HAS_FFLLIB
@@ -106,8 +107,6 @@ public:
 };
 #endif
 
-std::vector<int> ASMu2DNastran::fixRBE3;
-
 
 ASMu2DNastran::ASMu2DNastran (unsigned char n, unsigned char n_f,
                               const std::string& path)
@@ -182,7 +181,7 @@ bool ASMu2DNastran::read (std::istream& is)
     return false;
   }
 
-  for (int eId : fixRBE3)
+  for (int eId : ASM::fixRBE3)
   {
     FFlElementBase* elm = fem.getElement(eId);
     FFlNode* refNode = elm ? elm->getNode(1) : nullptr;
@@ -1083,7 +1082,7 @@ bool ASMuBeam::getProps (int eId, double& E, double& G,
 /*!
   This method overrides the parent class method to account for possible
   element-level \a Zaxis properties, and a rotation angle between the
-  principal axes of intertia for the beam cross section relative to
+  principal axes of inertia for the beam cross section relative to
   the local element axes.
 */
 
@@ -1125,7 +1124,8 @@ bool ASMuBeam::initLocalElementAxes (const Vec3& Zaxis)
       std::cout <<"  with Z-axis = "<< it->second.Zaxis;
     if (fabs(phi) > 1.0e-6)
       std::cout <<"  and phi = "<< phi;
-    std::cout <<":\n"<< Tlg;
+    std::cout <<":\n";
+    Tlg.print(std::cout,15);
 #endif
   }
 
