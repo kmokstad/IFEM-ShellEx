@@ -77,9 +77,10 @@ public:
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
+  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
   //!
   //! \details This method is overridden to also write out the sea surface.
-  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool = true);
+  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
   //! \brief Writes sea surface elevation to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
@@ -112,6 +113,10 @@ protected:
   virtual bool assembleDiscreteItems(const IntegrandBase* itg,
                                      const TimeDomain& time,
                                      const Vectors& sol);
+
+  //! \brief Writes out the pressure field as additional function to VTF-file.
+  virtual bool writeAddFuncs(int& nBlock, int& idBlock, const Vector& psol,
+                             int iStep, double time);
 
 private:
   //! \brief Struct defining a DOF spring.

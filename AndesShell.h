@@ -81,6 +81,9 @@ public:
   bool setPressure(RealFunc* pf, int code,
                    const std::string& sName = "", const ASMbase* pch = nullptr);
 
+  //! \brief Returns the pressure field defined on specified patch.
+  RealFunc* getPressure(const ASMbase* pch) const;
+
   using ElasticBase::initIntegration;
   //! \brief Initializes the integrand with the number of integration points.
   //! \param[in] nGp Total number of interior integration points

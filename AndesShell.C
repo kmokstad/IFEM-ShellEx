@@ -267,6 +267,16 @@ bool AndesShell::setPressure (RealFunc* pf, int code,
 }
 
 
+RealFunc* AndesShell::getPressure (const ASMbase* pch) const
+{
+  for (const std::pair<const int,RealFunc*>& pf : presFld)
+    if (pf.first < 0 || !(pch && pch->getElementSet(pf.first).empty()))
+      return pf.second;
+
+  return nullptr;
+}
+
+
 void AndesShell::initIntegration (size_t nGp, size_t)
 {
   presVal.clear();

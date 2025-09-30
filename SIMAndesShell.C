@@ -273,16 +273,15 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
   elmThick.reserve(this->getNoElms(false,true));
 
   int missing = 0;
-  const ASMu2DNastran* shell;
   for (const ASMbase* pch : myModel)
-    if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)))
+    if (const ASMu2DNastran* shl = dynamic_cast<const ASMu2DNastran*>(pch); shl)
     {
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
         if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
         {
           elmThick.push_back(0.0);
           int ielNo = pch->getElmID(iel);
-          if (ielNo > 0 && !shell->getThickness(ielNo,elmThick.back()))
+          if (ielNo > 0 && !shl->getThickness(ielNo,elmThick.back()))
             ++missing;
         }
     }
@@ -301,10 +300,9 @@ bool SIMAndesShell::getElementGroup (int iset, std::string& name,
   elGroup.clear();
   elGroup.reserve(this->getNoElms(false,true));
 
-  const ASMu2DLag* shell;
   for (const ASMbase* pch : myModel)
-    if ((shell = dynamic_cast<const ASMu2DLag*>(pch)) &&
-        shell->getElementSet(iset,name))
+    if (const ASMu2DLag* shell = dynamic_cast<const ASMu2DLag*>(pch);
+        shell && shell->getElementSet(iset,name))
     {
       for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
         if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
@@ -485,8 +483,6 @@ DataExporter* SIMAndesShell::getHDF5writer (const Vector& psol,
 bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
                                  bool nodalR, int& nBlock) const
 {
-  ElementBlock* sensor;
-  const ASMu2DNastran* shell;
   for (const std::string& fName : locfiles)
   {
     ElementBlock* sensorBlock = new ElementBlock(8);
@@ -497,12 +493,12 @@ bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
       int idx = 0;
       locs >> idx;
       for (const ASMbase* pch : myModel)
-        if ((shell = dynamic_cast<const ASMu2DNastran*>(pch)) &&
-            (sensor = shell->sensorGeometry(idx,nodalR)))
-        {
-          sensorBlock->merge(*sensor,false);
-          break;
-        }
+        if (const ASMu2DNastran* p = dynamic_cast<const ASMu2DNastran*>(pch); p)
+          if (ElementBlock* sensor = p->sensorGeometry(idx,nodalR); sensor)
+          {
+            sensorBlock->merge(*sensor,false);
+            break;
+          }
     }
 
     if (sensorBlock->getNoElms() < 1)
@@ -570,4 +566,25 @@ bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
 
   const_cast<SIMAndesShell*>(this)->addDisBlk[seaBlock] = nBlock;
   return true;
+}
+
+
+bool SIMAndesShell::writeAddFuncs (int& nBlock, int& idBlock,
+                                   const Vector& psol,
+                                   int iStep, double time)
+{
+  // Find the shell surface pressure function, if any
+  const RealFunc* pressure = nullptr;
+  const ASMu2DNastran* shl = nullptr;
+  for (const ASMbase* pch : myModel)
+    if ((shl = dynamic_cast<const ASMu2DNastran*>(pch)))
+      if ((pressure = static_cast<AndesShell*>(myProblem)->getPressure(pch)))
+        break;
+
+  if (pressure) // Write pressure function as a scalar field
+    if (!this->writeGlvF(*pressure, "Pressure", iStep, nBlock,
+                         &psol, idBlock++, time, shl))
+      return false;
+
+  return this->Parent::writeAddFuncs(nBlock,idBlock,psol,iStep,time);
 }
