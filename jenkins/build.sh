@@ -34,7 +34,7 @@ clone_ifem
 source $WORKSPACE/deps/IFEM/jenkins/build-ifem-module.sh
 
 parseRevisions
-printHeader IFEM-BeamGeometry
+printHeader IFEM-ShellEx
 
 build_module_and_upstreams IFEM-ShellEx
 
