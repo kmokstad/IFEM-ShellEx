@@ -147,7 +147,7 @@ bool ASMu2DNastran::read (std::istream& is)
   int iErr = 0;
 
   // Fast-forward until "BEGIN BULK"
-  int lCount = 0;
+  [[maybe_unused]] int lCount = 0;
   char cline[256];
   std::stringstream sets;
   while (is.getline(cline,255))
