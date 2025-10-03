@@ -147,7 +147,7 @@ bool ASMu2DNastran::read (std::istream& is)
   int iErr = 0;
 
   // Fast-forward until "BEGIN BULK"
-  [[maybe_unused]] int lCount = 0;
+  int lCount = 0;
   char cline[256];
   std::stringstream sets;
   while (is.getline(cline,255))
@@ -164,16 +164,21 @@ bool ASMu2DNastran::read (std::istream& is)
 
   if (!is) return false; // No bulk data file
 
+  if (lCount > 0)
+    IFEM::cout <<"\tNastran bulk data starting at line "
+               << lCount+1 << std::endl;
+
 #ifdef HAS_FFLLIB
-  bool ok = true;
-  FFlLinkHandler  fem;
-  MyNastranReader reader(fem,lCount);
-  if ((ok = reader.readFE(is,sets)))
+  bool ok = false;
+  FFlLinkHandler fem;
+  if (MyNastranReader reader(fem,lCount); reader.readFE(is,sets))
   {
     PROFILE("Resolve cross references");
     ok = fem.resolve();
   }
-  if (!ok)
+  if (ok)
+    IFEM::cout <<"\nParsing Nastran bulk data file succceeded."<< std::endl;
+  else
   {
     std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
               <<"     The FE model is probably not consistent and has not been"
