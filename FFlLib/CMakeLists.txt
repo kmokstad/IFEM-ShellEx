@@ -166,7 +166,7 @@ else()
 endif()
 
 if(FFL_DEBUG GREATER 0)
-  target_compile_options(FFlLib PRIVATE $<$<CONFIG:Debug>:FFA_DEBUG=1 FFL_DEBUG=${FFL_DEBUG}>)
+  target_compile_definitions(FFlLib PRIVATE $<$<CONFIG:Debug>:FFA_DEBUG=1 FFL_DEBUG=${FFL_DEBUG}>)
 endif()
 
 if("${FFA_USE_ROUND}" MATCHES "NEW")
