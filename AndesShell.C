@@ -229,10 +229,12 @@ void AndesShell::setMode (SIM::SolutionMode mode)
 
 void AndesShell::initLHSbuffers (size_t newLHS)
 {
-  if (!newLHS && !myKmats.empty())
+  if (!newLHS)
   {
-    if (eKm > 0) eKm = -eKm;
-    if (eM  > 0) eM  = -eM;
+    if (eKm > 0 && !myKmats.empty() && !myKmats.front().empty())
+      eKm = -eKm;
+    if (eM  > 0 && !myMmats.empty() && !myMmats.front().empty())
+      eM  = -eM;
   }
 }
 
