@@ -126,6 +126,30 @@ ifem_add_regression_test(
     T3.reg
 )
 
+ifem_add_regression_test(
+  TARGET
+    ShellSim
+  CONDITIONS
+    IFEM_USE_ANDES
+    IFEM_USE_FFLLIB
+    SPR_FOUND
+  TEST_FILES
+    Fine-dump.reg
+    Fine-load.reg
+)
+
+if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
+  if(IFEM_USE_ANDES AND IFEM_USE_FFLLIB AND SPR_FOUND)
+    set_tests_properties(ShellSim+Fine-load.reg
+                         PROPERTIES DEPENDS
+                         ShellSim+Fine-dump.reg)
+    set_tests_properties(ShellSim+Fine-dump.reg
+                         PROPERTIES FIXTURES_SETUP Dump)
+    set_tests_properties(ShellSim+Fine-load.reg
+                         PROPERTIES FIXTURES_REQUIRED Dump)
+  endif()
+endif()
+
 if(IFEM_COMMON_APP_BUILD)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 else(IFEM_COMMON_APP_BUILD)
