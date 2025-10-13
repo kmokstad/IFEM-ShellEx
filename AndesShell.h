@@ -159,6 +159,10 @@ public:
   //! \brief Assigns parameter values to the pressure functions.
   virtual void setParam(const std::string& name, const Vec3& value);
 
+  //! \brief Assumes the system is always symmetric positive-definite.
+  virtual LinAlg::LinearSystemType getLinearSystemType() const
+  { return LinAlg::SPD; }
+
 protected:
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
