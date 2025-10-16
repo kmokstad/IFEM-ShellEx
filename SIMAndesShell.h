@@ -114,6 +114,9 @@ protected:
                                      const TimeDomain& time,
                                      const Vectors& sol);
 
+  //! \brief Preprocessing performed after the system assembly initialization.
+  virtual bool preprocessB();
+
   //! \brief Writes out the pressure field as additional function to VTF-file.
   virtual bool writeAddFuncs(int& nBlock, int& idBlock, const Vector& psol,
                              int iStep, double time);

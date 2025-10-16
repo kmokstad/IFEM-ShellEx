@@ -496,13 +496,13 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (havePressure)
     p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
 
-  if (fe.G.cols() >= 2 && this->havePressure(fe.iel))
+  if (fe.G.cols() >= 2 && this->havePressure(fe.iel,fe.idx))
   {
     // Shell normal vector
     n.cross(fe.G.getColumn(1),fe.G.getColumn(2));
     n.normalize();
     // Evaluate the pressure at this point
-    this->addPressure(p,X,n,fe.iel);
+    this->addPressure(p,X,n,fe.iel,fe.idx);
     havePressure = true;
   }
 
@@ -592,7 +592,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       for (size_t i = 1; i <= nenod; i++)
         Press.fillColumn(i,p.ptr());
     }
-    if (eS > 0 && this->havePressure(fe.iel))
+    if (eS > 0 && this->havePressure(fe.iel,fe.idx))
     {
       // Find the shell normal vector
       std::array<Vec3,3> X = { fe.Xn.ptr(0), fe.Xn.ptr(1), fe.Xn.ptr(2) };
@@ -602,7 +602,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
       for (size_t i = 1; i <= 3; i++)
       {
         Vec3 p;
-        this->addPressure(p,Vec4(X[i-1],time.t),n,fe.iel);
+        this->addPressure(p,Vec4(X[i-1],time.t),n,fe.iel,fe.idx);
         for (size_t j = 1; j <= 3; j++)
           Press(j,i) += p(j);
       }
@@ -741,7 +741,7 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
   only if the element \a iEl has surface pressure loads.
 */
 
-bool AndesShell::havePressure (int iEl) const
+bool AndesShell::havePressure (int iEl, size_t idx) const
 {
   if (iEl < 0 && Rho > 0.0 && !gravity.isZero())
     return true;
@@ -749,18 +749,18 @@ bool AndesShell::havePressure (int iEl) const
   for (const std::pair<const int,RealFunc*>& press : presFld)
     if (press.first < 0 || iEl < 0)
       return true;
-    else if (currentPatch && currentPatch->isInElementSet(press.first,-iEl))
+    else if (currentPatch && currentPatch->checkPressSet(iEl,idx,press.first))
       return true;
 
   return currentPatch ? currentPatch->haveLoads() : false;
 }
 
 
-void AndesShell::addPressure (Vec3& p, const Vec3& X,
-                              const Vec3& n, int iEl) const
+void AndesShell::addPressure (Vec3& p, const Vec3& X, const Vec3& n,
+                              int iEl, size_t idx) const
 {
   for (const std::pair<const int,RealFunc*>& press : presFld)
-    if (press.first < 0 || currentPatch->isInElementSet(press.first,-iEl))
+    if (press.first < 0 || currentPatch->checkPressSet(iEl,idx,press.first))
       p += (*press.second)(X)*n;
 }
 

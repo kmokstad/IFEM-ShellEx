@@ -51,12 +51,12 @@ bool SIMAndesSplit::preprocessB ()
   int count = 0;
   const char* newline = "\n                           ";
   IFEM::cout <<"\nElements in second region:";
-  for (int e :  myRegions.back().myElements)
+  for (int e : myRegions.back().myElements)
     std::cout << (++count == 1 || (count-1)%10 ? " " : newline) << e;
 #endif
   IFEM::cout << std::endl;
 
-  return true;
+  return this->SIMAndesShell::preprocessB();
 }
 
 
@@ -141,11 +141,8 @@ bool SIMAndesSplit::solveSystem (Vector& solution, int printSol, double* rCond,
     const int* meqn = this->getSAM()->getMEQN();
     const int nDofs = this->getSAM()->getNoDOFs();
     for (int ieq : singularDofs)
-    {
-      int iDof = std::find(meqn,meqn+nDofs,ieq) - meqn;
-      if (iDof >= 0 && iDof < nDofs)
-        solution[iDof] = 0.0;
-    }
+      if (int id = std::find(meqn,meqn+nDofs,ieq) - meqn; id >= 0 && id< nDofs)
+        solution[id] = 0.0;
   }
 
   return ok;

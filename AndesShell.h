@@ -171,14 +171,18 @@ protected:
   virtual bool evalSol2(Vector& s, const Vectors& eV,
                         const FiniteElement& fe, const Vec3&) const;
 
-  //! \brief Returns whether global element \a iEl has pressure loads or not.
-  bool havePressure(int iEl = -1) const;
+  //! \brief Returns whether specified element has pressure loads or not.
+  //! \param[in] iEl Global element number (1-based)
+  //! \param[in] idx Global element index (0-based) of the element
+  bool havePressure(int iEl = -1, size_t idx = 0) const;
   //! \brief Evaluates the surface pressure function(s) at specified point.
   //! \param p Updated surface pressue value at evaluation point
   //! \param[in] X Cartesian coordinates of evaluation point
   //! \param[in] n Shell surface normal vector at evaluation point
   //! \param[in] iEl Global element number (1-based) containing evaluation point
-  void addPressure(Vec3& p, const Vec3& X, const Vec3& n, int iEl) const;
+  //! \param[in] idx GLobal element index (0-based) of the element
+  void addPressure(Vec3& p, const Vec3& X, const Vec3& n,
+                   int iEl, size_t idx) const;
 
 private:
   double Thck0; //!< Initial (uniform) shell thickness

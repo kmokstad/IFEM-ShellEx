@@ -265,6 +265,16 @@ ASMbase* SIMAndesShell::readPatch (std::istream& isp, int, const CharVec&,
 }
 
 
+bool SIMAndesShell::preprocessB ()
+{
+  for (ASMbase* pch : myModel)
+    if (ASMu2DNastran* shl = dynamic_cast<ASMu2DNastran*>(pch); shl)
+      shl->initPressureCache();
+
+  return true;
+}
+
+
 void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
   // Include also the collapsed and non-shell elements,

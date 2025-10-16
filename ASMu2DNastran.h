@@ -55,6 +55,15 @@ public:
   //! \brief Evaluates the surface pressure at current integration point.
   bool addPressureAt(Vec3& p, int eId, const RealArray& N) const;
 
+  //! \brief Initializes the \ref elmPres member.
+  bool initPressureCache();
+
+  //! \brief Checks if an element is associated with a given element set or not.
+  //! \param[in] iEl Global external element number (1-based)
+  //! \param[in] idx GLobal element index (0-based)
+  //! \param[in] iSet Element set index (1-based) for a pressure load
+  bool checkPressSet(int iEl, size_t idx, int iSet) const;
+
   //! \brief Returns an additional geometry to visualize (point masses, etc.).
   virtual ElementBlock* immersedGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize (constraints, etc.).
@@ -144,6 +153,8 @@ private:
 
   double massMax; //!< The largets point mass in the model (for scaling)
   IntMat spiders; //!< Constraint element topologies
+
+  std::vector<unsigned char> elmPres; //!< Element pressure index cache
 
   using ElementBlockID = std::pair<int,ElementBlock*>; //!< Convenience type
   std::vector<ElementBlockID> myBlocks; //!< Geometries for masses and spiders

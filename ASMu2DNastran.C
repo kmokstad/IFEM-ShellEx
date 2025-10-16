@@ -782,6 +782,61 @@ bool ASMu2DNastran::addPressureAt (Vec3& p, int eId, const RealArray& N) const
 }
 
 
+bool ASMu2DNastran::initPressureCache ()
+{
+  bool ok = true;
+  size_t nPressElms = 0;
+  elmPres.resize(nel,0);
+  for (int iSet = 1; true; iSet++)
+    if (const IntVec& eSet = this->getElementSet(iSet); eSet.empty())
+      break;
+    else for (int iel : eSet)
+      if (iel > 0 && iel <= static_cast<int>(nel))
+      {
+        if (!elmPres[iel-1])
+        {
+          ++nPressElms;
+          elmPres[iel-1] = iSet;
+        }
+        else
+        {
+          ok = false;
+          IFEM::cout <<"  ** Element "<< iel <<" ("<< MLGE[iel-1]
+                     <<") is present in more than one element set.\n    "
+                     <<" Can't use element index cache for pressure lookup."
+                     << std::endl;
+        }
+      }
+
+  if (!ok || !nPressElms)
+    elmPres.clear();
+  else
+    IFEM::cout <<"\nTotal element set size: "<< nPressElms << std::endl;
+
+  return ok;
+}
+
+
+/*!
+  This method is used to speed up the check for whether an element is associated
+  with the specified element set for pressure load or not. For very large models
+  the ASMu2DLag::isInElementSet() method is too slow as it involves a search in
+  a vector of element numbers. Instead, the index cache \ref elmPres is used,
+  which for a given element index tells which element set (if any) it is
+  associated with. The limitation is that each element can only be associated
+  with one such set. If that does not hold, the slow search has to be used.
+*/
+
+bool ASMu2DNastran::checkPressSet (int iEl, size_t idx, int iSet) const
+{
+  if (idx >= firstEl && idx < firstEl+elmPres.size())
+    return static_cast<int>(elmPres[idx-firstEl]) == iSet;
+
+  // No element pressure index cache, fall-back for slow search
+  return this->isInElementSet(iSet,-iEl);
+}
+
+
 #ifdef HAS_ANDES
 extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
                                 const int& nM, const int& nW, const int* indC,
