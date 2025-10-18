@@ -695,9 +695,8 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
 #endif
 
 
-bool ASMu2DNastran::getProps (int eId, size_t igel,
-                              double& E, double& nu, double& rho,
-                              double& t) const
+bool ASMu2DNastran::getMassProp (int eId, size_t igel,
+                                 double& rho, double& t) const
 {
   size_t iprop = igel < firstEl+elmProp.size() ? elmProp[igel-firstEl] : 0;
   if (iprop > myProps.size())
@@ -706,10 +705,25 @@ bool ASMu2DNastran::getProps (int eId, size_t igel,
     return false;
   }
 
-  E   = myProps[iprop].Emod;
-  nu  = myProps[iprop].Rny;
   rho = myProps[iprop].Rho;
   t   = myProps[iprop].Thick;
+
+  return true;
+}
+
+
+bool ASMu2DNastran::getStiffProp (int eId, size_t igel,
+                                  double& E, double& nu) const
+{
+  size_t iprop = igel < firstEl+elmProp.size() ? elmProp[igel-firstEl] : 0;
+  if (iprop > myProps.size())
+  {
+    std::cerr <<" *** No properties for shell element "<< eId << std::endl;
+    return false;
+  }
+
+  E  = myProps[iprop].Emod;
+  nu = myProps[iprop].Rny;
 
   return true;
 }

@@ -26,6 +26,9 @@
 #include "tinyxml2.h"
 #include <fstream>
 #include <functional>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 #ifdef HAS_ANDES
@@ -57,10 +60,18 @@ AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
 
   // Default material properties
   Emod  = 2.1e11;
-  GorNu = 0.3;
-  Thick = Thck0 = 0.1;
+  Nu    = 0.3;
+  Thck0 = 0.1;
   Rho   = 7.85e3;
   ovrMat = false;
+
+#ifdef USE_OPENMP
+  const size_t nthreads = omp_get_max_threads();
+#else
+  const size_t nthreads = 1;
+#endif
+  rhoPt.resize(nthreads,Rho);
+  thkPt.resize(nthreads,Thck0);
 
   trInside = trOutside = 0.0;
   thickLoss = nullptr;
@@ -115,13 +126,13 @@ void AndesShell::printLog () const
   if (beamProblem)
   {
     IFEM::cout <<" with beam elements\n";
-    double E, G, Rho;
-    if (beamPatch->getProps(beamPatch->getElmID(1),E,G,Rho,
+    double E, G, rho;
+    if (beamPatch->getProps(beamPatch->getElmID(1),E,G,rho,
                             const_cast<AndesShell*>(this)->myBeamProps))
     {
       ElasticBeam* beam = const_cast<AndesShell*>(this)->beamProblem;
       beam->setStiffness(E,G);
-      beam->setMass(Rho);
+      beam->setMass(rho);
     }
     beamProblem->printLog();
   }
@@ -156,8 +167,8 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
     IFEM::cout <<"\tPatch-level material properties are overridden:";
     if (utl::getAttribute(elem,"E",Emod))
       IFEM::cout <<" E="<< Emod;
-    if (utl::getAttribute(elem,"nu",GorNu))
-      IFEM::cout <<" nu="<< GorNu;
+    if (utl::getAttribute(elem,"nu",Nu))
+      IFEM::cout <<" nu="<< Nu;
     if (utl::getAttribute(elem,"rho",Rho))
       IFEM::cout <<" rho="<< Rho;
     IFEM::cout << std::endl;
@@ -167,7 +178,7 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
   const char* value = child ? utl::getValue(child,"thickness") : nullptr;
   if (value)
   {
-    Thck0 = Thick = atof(value);
+    Thck0 = atof(value);
     IFEM::cout <<"\tConstant thickness: "<< Thck0 << std::endl;
   }
 
@@ -182,6 +193,7 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
     {
       IFEM::cout <<"\tThickness loss function: ";
       thickLoss = utl::parseTimeFunc(ctrInside.c_str(),"expression");
+      trInside = 1.0;
     }
     else if ((trInside = atoi(ctrInside.c_str())) < 0.0)
       trInside = 0.0;
@@ -428,11 +440,12 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
 {
   if (beamPatch)
   {
-    if (!beamPatch->getProps(fe.iel,Emod,GorNu,Rho,myBeamProps))
+    double E, G, rho;
+    if (!beamPatch->getProps(fe.iel,E,G,rho,myBeamProps))
       return false;
 
-    beamProblem->setStiffness(Emod,GorNu);
-    beamProblem->setMass(Rho);
+    beamProblem->setStiffness(E,G);
+    beamProblem->setMass(rho);
     return beamProblem->initElement(MNPC,fe,Vec3(),0,elmInt);
   }
 
@@ -448,25 +461,43 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
   else if (eKm+eM <= 0 && !this->havePressure())
     return true; // Nothing to integrate for this shell element
 
-  bool ok = true;
-  if (!currentPatch)
-    Thick = Thck0;
-  else if (ovrMat) // Override the patch-level material properties
+#ifdef USE_OPENMP
+  const size_t ithread = omp_in_parallel() ? omp_get_thread_num() : 0;
+#else
+  const size_t ithread = 0;
+#endif
+  // Initialize the mass density and shell thickness for this element
+  std::tie(rhoPt[ithread],thkPt[ithread]) = this->getMassProp(fe.iel,fe.idx,Xc);
+#if INT_DEBUG > 3
+  std::cout <<"AndesShell::initElement("<< fe.idx <<", "<< fe.iel
+            <<"): "<< rhoPt[ithread] <<" "<< thkPt[ithread] << std::endl;
+#endif
+  return thkPt[ithread] >= 0.0;
+}
+
+
+std::pair<double,double> AndesShell::getMassProp (int iEl, size_t idx,
+                                                  const Vec3& X) const
+{
+  double rho = Rho;
+  double thk = Thck0;
+  if (currentPatch)
   {
-    double dum1, dum2, dum3;
-    ok = currentPatch->getProps(fe.iel,fe.idx,dum1,dum2,dum3,Thick);
+    if (!currentPatch->getMassProp(iEl,idx,rho,thk))
+      return { -1.0, -1.0 };
+    else if (ovrMat)
+      rho = Rho; // Override the patch-level material properties
   }
-  else // Use the patch-level material properties
-    ok = currentPatch->getProps(fe.iel,fe.idx,Emod,GorNu,Rho,Thick);
 
   // Scale the thickness depending on location inside or outside given box
-  const Vec4* Xt = dynamic_cast<const Vec4*>(&Xc);
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  double thickRi = trInside;
   if (Xt && thickLoss)
-    trInside = std::min(std::max((*thickLoss)(Xt->t),0.0),1.0);
-  if (trInside+trOutside > 0.0)
-    Thick *= 1.0 - (Xc.inside(Xlow,Xupp) ? trInside : trOutside);
+    thickRi = std::min(std::max((*thickLoss)(Xt->t),0.0),1.0);
+  if (thickRi+trOutside > 0.0)
+    thk *= 1.0 - (X.inside(Xlow,Xupp) ? thickRi : trOutside);
 
-  return ok;
+  return { rho, thk };
 }
 
 
@@ -491,10 +522,16 @@ bool AndesShell::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 
   if (eS <= 0) return true; // No external load vector
 
+#ifdef USE_OPENMP
+  const double rhoThk = rhoPt[omp_get_thread_num()]*thkPt[omp_get_thread_num()];
+#else
+  const double rhoThk = rhoPt.front()*thkPt.front();
+#endif
+
   Vec3 p, n;
-  bool havePressure = Rho > 0.0 && !gravity.isZero();
+  bool havePressure = rhoThk > 0.0 && !gravity.isZero();
   if (havePressure)
-    p = gravity*(Rho*Thick); // Equivalent pressure load due to gravity
+    p = gravity*rhoThk; // Equivalent pressure load due to gravity
 
   if (fe.G.cols() >= 2 && this->havePressure(fe.iel,fe.idx))
   {
@@ -550,6 +587,23 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   if (beamPatch) // 2-noded beam element
     return beamProblem->finalizeElement(elmInt,fe,time);
 
+  double E = Emod, nu = Nu, rho = Rho, thk = Thck0;
+  const size_t nenod = fe.Xn.cols();
+
+  if (nenod >= 3)
+  {
+    if (!ovrMat && !currentPatch->getStiffProp(fe.iel,fe.idx,E,nu))
+      return false;
+
+#ifdef USE_OPENMP
+    rho = rhoPt[omp_get_thread_num()];
+    thk = thkPt[omp_get_thread_num()];
+#else
+    rho = rhoPt.front();
+    thk = thkPt.front();
+#endif
+  }
+
   int iERR = -99;
   Vector vDummy(1);
   Matrix mDummy(1,1);
@@ -557,7 +611,6 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   Matrix& Kmat = eKm > 0 ? static_cast<ElmMats&>(elmInt).A[eKm-1] : mDummy;
   Matrix& Mmat = eM  > 0 ? static_cast<ElmMats&>(elmInt).A[eM-1 ] : mDummy;
   RealArray& F = static_cast<ElmMats&>(elmInt).c;
-  size_t nenod = fe.Xn.cols();
   if (currentPatch && nenod == 1) // 1-noded concentrated mass element
   {
     iERR = 0;
@@ -585,10 +638,10 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
   else if (nenod == 3) // 3-noded shell element
   {
     Matrix Press(3,nenod);
-    if (eS > 0 && Rho > 0.0 && !gravity.isZero())
+    if (eS > 0 && rho > 0.0 && !gravity.isZero())
     {
       // Equivalent pressure load due to gravity
-      Vec3 p = gravity*(Rho*Thick);
+      Vec3 p = gravity*(rho*thk);
       for (size_t i = 1; i <= nenod; i++)
         Press.fillColumn(i,p.ptr());
     }
@@ -618,7 +671,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 3-noded ANDES element
     ifem_andes3_(fe.iel, fe.Xn.ptr(),
-                 eKm > 0 ? Thick : 0.0, Emod, GorNu, eM > 0 ? Rho : 0.0,
+                 eKm > 0 ? thk : 0.0, E, nu, eM > 0 ? rho : 0.0,
                  Press.ptr(), Kmat.ptr(), Mmat.ptr(), Svec.ptr(), iERR);
 #endif
     if (eS > 0)
@@ -631,7 +684,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 #ifdef HAS_ANDES
     // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_andes4_(fe.iel, fe.Xn.ptr(),
-                 eKm > 0 ? Thick : 0.0, Emod, GorNu, eM > 0 ? Rho : 0.0,
+                 eKm > 0 ? thk : 0.0, E, nu, eM > 0 ? rho : 0.0,
                  Kmat.ptr(), Mmat.ptr(), iERR);
 #endif
   }
@@ -682,7 +735,7 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 
 
 bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
-                           const FiniteElement& fe, const Vec3&) const
+                           const FiniteElement& fe, const Vec3& X) const
 {
   int iERR = 0;
   size_t nenod = fe.Xn.cols();
@@ -693,9 +746,16 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
   else if (nenod == 4) // 4-noded shell element
   {
     s.resize(n2v > 12 ? n2v : 12, 0.0);
+    if (!currentPatch)
+      return false; // logic error, shouldn't happen
 #ifdef HAS_ANDES
+    double E = Emod, nu = Nu;
+    double thk = this->getMassProp(fe.iel,fe.idx,X).second;
+    if (!currentPatch->getStiffProp(fe.iel,fe.idx,E,nu) || thk < 0.0)
+      return false;
+
     // Invoke Fortran wrapper for the 4-noded ANDES element
-    ifem_strs24_(fe.iel, fe.Xn.ptr(), Thick, Emod, GorNu,
+    ifem_strs24_(fe.iel, fe.Xn.ptr(), thk, E, nu,
                  eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
 #endif
   }

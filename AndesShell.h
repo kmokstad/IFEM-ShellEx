@@ -168,8 +168,17 @@ protected:
   //! \param[out] s The solution field values at current point
   //! \param[in] eV Element-level primary solution vectors
   //! \param[in] fe Finite element data at current point
+  //! \param[in] X Cartesian coordinates of evaluation point
   virtual bool evalSol2(Vector& s, const Vectors& eV,
-                        const FiniteElement& fe, const Vec3&) const;
+                        const FiniteElement& fe, const Vec3& X) const;
+
+  //! \brief Returns the mass properties for an element.
+  //! \param[in] X Cartesian coordinates of evaluation point
+  //! \param[in] iEl Global element number (1-based)
+  //! \param[in] idx Global element index (0-based) of the element
+  //! \return Mass density and shell thickness, both negative on error
+  std::pair<double,double> getMassProp(int iEl, size_t idx,
+                                       const Vec3& X) const;
 
   //! \brief Returns whether specified element has pressure loads or not.
   //! \param[in] iEl Global element number (1-based)
@@ -185,11 +194,13 @@ protected:
                    int iEl, size_t idx) const;
 
 private:
+  std::vector<double> rhoPt; //!< Current mass density
+  std::vector<double> thkPt; //!< Current shell thickness
+
   double Thck0; //!< Initial (uniform) shell thickness
-  double Thick; //!< Current shell thickness
-  double Emod;  //!< Current Young's modules
-  double GorNu; //!< Current Poisson's ratio or shear modulus (G)
-  double Rho;   //!< Current mass density
+  double Emod;  //!< Constant Young's modules
+  double Nu;    //!< Constant Poisson's ratio
+  double Rho;   //!< Constant mass density
   bool ovrMat;  //!< If \e true, patch-level material properties are overridden
 
   double trInside;  //!< Thickness loss level inside given box domain

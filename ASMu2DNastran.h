@@ -43,9 +43,10 @@ public:
 
   //! \brief Retrieves the shell thickness for element \a iel (0-based index).
   bool getThickness(size_t iel, double& t) const;
-  //! \brief Retrieves the properties for element with external ID \a eId.
-  bool getProps(int eId, size_t igel,
-                double& E, double& nu, double& rho, double& t) const;
+  //! \brief Retrieves mass properties for element with external ID \a eId.
+  bool getMassProp(int eId, size_t igel, double& rho, double& t) const;
+  //! \brief Retrieves stiffness properties for element with external ID \a eId.
+  bool getStiffProp(int eId, size_t igel, double& E, double& nu) const;
   //! \brief Retrieves the stiffness matrix for element with external ID \a eId.
   bool getStiffnessMatrix(int eId, Matrix& K) const;
   //! \brief Retrieves the mass matrix for element with external ID \a eId.
