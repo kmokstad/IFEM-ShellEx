@@ -185,11 +185,13 @@ protected:
                    int iEl, size_t idx) const;
 
 private:
+  std::vector<double> rhoPt; //!< Current mass density
+  std::vector<double> thkPt; //!< Current shell thickness
+
   double Thck0; //!< Initial (uniform) shell thickness
-  double Thick; //!< Current shell thickness
-  double Emod;  //!< Current Young's modules
-  double GorNu; //!< Current Poisson's ratio or shear modulus (G)
-  double Rho;   //!< Current mass density
+  double Emod;  //!< Constant Young's modules
+  double Nu;    //!< Constant Poisson's ratio
+  double Rho;   //!< Constant mass density
   bool ovrMat;  //!< If \e true, patch-level material properties are overridden
 
   double trInside;  //!< Thickness loss level inside given box domain
