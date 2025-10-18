@@ -41,10 +41,11 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
 
-  //! \brief Retrieves the shell thickness for element with external ID \a eId.
-  bool getThickness(int eId, double& t) const;
+  //! \brief Retrieves the shell thickness for element \a iel (0-based index).
+  bool getThickness(size_t iel, double& t) const;
   //! \brief Retrieves the properties for element with external ID \a eId.
-  bool getProps(int eId, double& E, double& nu, double& rho, double& t) const;
+  bool getProps(int eId, size_t igel,
+                double& E, double& nu, double& rho, double& t) const;
   //! \brief Retrieves the stiffness matrix for element with external ID \a eId.
   bool getStiffnessMatrix(int eId, Matrix& K) const;
   //! \brief Retrieves the mass matrix for element with external ID \a eId.
@@ -125,10 +126,18 @@ public:
   //! \brief Data type for shell element properties.
   struct ShellProps
   {
+    int    id1   = -1;     //!< Material property ID
+    int    id2   = -1;     //!< Shell thickness property ID
     double Thick = 0.1;    //!< Shell thickness
     double Emod  = 2.1e11; //!< Young's modulus
     double Rny   = 0.3;    //!< Poisson's ratio
     double Rho   = 7850.0; //!< Mass density
+
+    //! \brief Equality operator.
+    bool operator==(const ShellProps& b)
+    {
+      return id1 == b.id1 && id2 == b.id2;
+    }
   };
 
   //! \brief Data type for beam element properties.
@@ -145,7 +154,7 @@ public:
   };
 
 private:
-  std::map<int,ShellProps> myProps;  //!< Shell element property container
+  std::vector<ShellProps>  myProps;  //!< Shell element property container
   std::map<int,BeamProps>  myBprops; //!< Beam element property container
   std::map<int,Matrix>     myStiff;  //!< Mass-less spring elements
   std::map<int,Matrix>     myMass;   //!< Concentrated mass elements
@@ -154,6 +163,7 @@ private:
   double massMax; //!< The largets point mass in the model (for scaling)
   IntMat spiders; //!< Constraint element topologies
 
+  std::vector<unsigned char> elmProp; //!< Element property index cache
   std::vector<unsigned char> elmPres; //!< Element pressure index cache
 
   using ElementBlockID = std::pair<int,ElementBlock*>; //!< Convenience type

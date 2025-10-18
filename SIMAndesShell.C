@@ -290,8 +290,7 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
         if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
         {
           elmThick.push_back(0.0);
-          int ielNo = pch->getElmID(iel);
-          if (ielNo > 0 && !shl->getThickness(ielNo,elmThick.back()))
+          if (!shl->getThickness(iel-1,elmThick.back()))
             ++missing;
         }
     }

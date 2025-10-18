@@ -139,6 +139,8 @@ bool ASMu2DNastran::read (std::istream& is)
   myStiff.clear();
   myMass.clear();
   myLoads.clear();
+  elmProp.clear();
+  elmPres.clear();
   IntVec beamElms;
   IntVec beamNodes;
   IntMat beamMNPC;
@@ -235,6 +237,7 @@ bool ASMu2DNastran::read (std::istream& is)
   myMLGN.reserve(nnod);
   myMLGE.reserve(nel);
   myCoord.reserve(nnod);
+  elmProp.reserve(nel);
   beamNodes.reserve(nBel);
   beamElms.reserve(nBel);
   beamMNPC.reserve(nBel);
@@ -521,10 +524,11 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
   myMNPC.push_back(mnpc);
 
   // Extract material properties
-  ShellProps& sprop = myProps[eId];
+  ShellProps sprop;
   FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
   if (mat)
   {
+    sprop.id1  = mat->getID();
     sprop.Emod = mat->youngsModule.getValue();
     sprop.Rny  = mat->poissonsRatio.getValue();
     sprop.Rho  = mat->materialDensity.getValue();
@@ -536,15 +540,32 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
   // Extract shell thickness
   FFlPTHICK* thk = GET_ATTRIBUTE(elm,PTHICK);
   if (thk)
+  {
+    sprop.id2   = thk->getID();
     sprop.Thick = thk->thickness.getValue();
+  }
   else
     IFEM::cout <<"  ** No shell thickness attached to element "<< eId
                <<", using default value "<< sprop.Thick << std::endl;
 
+  std::vector<ShellProps>::const_iterator it;
+  if ((it = std::find(myProps.begin(),myProps.end(),sprop)) == myProps.end())
+  {
+    elmProp.push_back(myProps.size());
+    myProps.emplace_back(sprop);
 #if INT_DEBUG > 10
-  std::cout <<" t="<< sprop.Thick <<" E="<< sprop.Emod <<" nu="<< sprop.Rny
-            <<" rho="<< sprop.Rho << std::endl;
+    std::cout <<" mid="<< sprop.id1 <<" tid="<< sprop.id2
+              <<" E="<< sprop.Emod  <<" nu="<< sprop.Rny <<" rho="<< sprop.Rho
+              <<" t="<< sprop.Thick << std::endl;
 #endif
+  }
+  else
+  {
+    elmProp.push_back(it - myProps.begin());
+#if INT_DEBUG > 10
+    std::cout <<" mid="<< sprop.id1 <<" tid="<< sprop.id2 << std::endl;
+#endif
+  }
 }
 
 
@@ -568,6 +589,7 @@ void ASMu2DNastran::addMassElement (FFlElementBase* elm, int eId, int inod)
   if (myMass.empty() || *m > massMax)
     massMax = *m;
 
+  elmProp.push_back(0);
   myMLGE.push_back(eId);
   myMNPC.push_back({inod});
   Matrix& M = myMass[eId];
@@ -596,6 +618,7 @@ void ASMu2DNastran::addSpringElement (FFlElementBase* elm, int eId,
             <<": nodes = "<< MLGN[mnpc.front()] <<" "<< MLGN[mnpc.back()];
 #endif
 
+  elmProp.push_back(0);
   myMLGE.push_back(eId);
   myMNPC.push_back(mnpc);
   Matrix& K = myStiff[eId];
@@ -672,41 +695,44 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
 #endif
 
 
-bool ASMu2DNastran::getProps (int eId, double& E, double& nu,
-                              double& rho, double& t) const
+bool ASMu2DNastran::getProps (int eId, size_t igel,
+                              double& E, double& nu, double& rho,
+                              double& t) const
 {
-  std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
-  if (it == myProps.end())
+  size_t iprop = igel < firstEl+elmProp.size() ? elmProp[igel-firstEl] : 0;
+  if (iprop > myProps.size())
   {
     std::cerr <<" *** No properties for shell element "<< eId << std::endl;
     return false;
   }
 
-  E   = it->second.Emod;
-  nu  = it->second.Rny;
-  rho = it->second.Rho;
-  t   = it->second.Thick;
+  E   = myProps[iprop].Emod;
+  nu  = myProps[iprop].Rny;
+  rho = myProps[iprop].Rho;
+  t   = myProps[iprop].Thick;
 
   return true;
 }
 
 
-bool ASMu2DNastran::getThickness (int eId, double& t) const
+bool ASMu2DNastran::getThickness (size_t iel, double& t) const
 {
+  int eId = this->getElmID(iel);
+  if (eId < 1) return false;
+
   if (myStiff.find(eId) != myStiff.end())
     t = 0.0; // Silently ignore spring elements
   else if (myMass.find(eId) != myMass.end())
     t = 0.0; // Silently ignore mass elements
   else
   {
-    std::map<int,ShellProps>::const_iterator it = myProps.find(eId);
-    if (it != myProps.end())
-      t = it->second.Thick;
-    else
+    size_t iprop = iel < elmProp.size() ? elmProp[iel] : 0;
+    if (iprop > myProps.size())
     {
       std::cerr <<" *** No properties for shell element "<< eId << std::endl;
       return false;
     }
+    t = myProps[iprop].Thick;
   }
 
   return true;

@@ -454,10 +454,10 @@ bool AndesShell::initElement (const std::vector<int>& MNPC,
   else if (ovrMat) // Override the patch-level material properties
   {
     double dum1, dum2, dum3;
-    ok = currentPatch->getProps(fe.iel,dum1,dum2,dum3,Thick);
+    ok = currentPatch->getProps(fe.iel,fe.idx,dum1,dum2,dum3,Thick);
   }
   else // Use the patch-level material properties
-    ok = currentPatch->getProps(fe.iel,Emod,GorNu,Rho,Thick);
+    ok = currentPatch->getProps(fe.iel,fe.idx,Emod,GorNu,Rho,Thick);
 
   // Scale the thickness depending on location inside or outside given box
   const Vec4* Xt = dynamic_cast<const Vec4*>(&Xc);
