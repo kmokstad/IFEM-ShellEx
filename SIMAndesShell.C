@@ -94,6 +94,9 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         size_t ipos = fName.find_last_of("/\\");
         if (ipos < std::string::npos)
           myPath = fName.substr(0,ipos);
+        // Check if the 1-noded mass elements should be placed
+        // in a separate group for multi-threaded assembly
+        utl::getAttribute(child,"separatePointMasses",lagMTOK);
       }
   }
 
@@ -592,7 +595,7 @@ bool SIMAndesShell::writeAddFuncs (int& nBlock, int& idBlock,
 
   if (pressure) // Write pressure function as a scalar field
     if (!this->writeGlvF(*pressure, "Pressure", iStep, nBlock,
-                         &psol, idBlock++, time, shl))
+                         psol.empty() ? nullptr : &psol, idBlock++, time, shl))
       return false;
 
   return this->Parent::writeAddFuncs(nBlock,idBlock,psol,iStep,time);
