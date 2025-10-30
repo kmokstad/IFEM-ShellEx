@@ -73,17 +73,24 @@ public:
   //! \brief Returns an additional geometry to visualize a sensor location.
   ElementBlock* sensorGeometry(int idx, bool nodal) const;
 
+  using ASMu2DLag::evalSolution;
   //! \brief Evaluates the secondary solution field at all nodal points.
   //! \param[out] sField Solution field
   //! \param[in] integr Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
                             const int*, char) const;
-  //! \brief Evaluates the secondary solution field at all element centers.
+  //! \brief Evaluates the secondary solution field at the element centers.
   //! \param[out] sField Solution field
   //! \param[in] integr Object with problem-specific data and methods
-  //! \param[in] atElmCenters If \e false, evaluate at nodal points instead
+  //! \param[in] atElmCenters If \e false, evaluate at all nodal points instead
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
                             const RealArray*, bool atElmCenters) const;
+  //! \brief Evaluates the secondary solution field at the element centers.
+  //! \param[out] sField Solution field
+  //! \param[in] integr Object with problem-specific data and methods
+  //! \param[in] elements List of elements to evaluate at (all if empty)
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
+                            const IntVec& elements) const;
 
   //! \brief Evaluates the primary solution at immersed geometry points.
   //! \param[out] field Solution field values at immersed geometry points
@@ -122,6 +129,14 @@ protected:
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
                            const RealArray& weights, double* work,
                            const IntVec& mnpc, const Matrix& Xnod);
+
+  //! \brief Evaluates the secondary solution field at element centers.
+  //! \param[out] sField Solution field
+  //! \param[in] integr Object with problem-specific data and methods
+  //! \param[in] atNodes If \e true, evaluate at all nodal points instead
+  //! \param[in] elements List of elements to evaluate at (all if empty)
+  bool evalSecSolution(Matrix& sField, const IntegrandBase& integr,
+                       bool atNodes, const IntVec& elements = {}) const;
 
 public:
   //! \brief Data type for shell element properties.
