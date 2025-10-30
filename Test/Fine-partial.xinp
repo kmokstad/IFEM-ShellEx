@@ -37,4 +37,11 @@
     <step start="0.0" end="1.0">0.1</step>
   </timestepping>
 
+  <postprocessing>
+    <resultpoints printmapping="true" vtfsize="0.0002">
+      <elements patch="1">10 20 30</elements>
+    </resultpoints>
+    <vonMises_only/>
+  </postprocessing>
+
 </simulation>

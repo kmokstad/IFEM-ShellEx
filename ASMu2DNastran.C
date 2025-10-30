@@ -1021,45 +1021,63 @@ ElementBlock* ASMu2DNastran::sensorGeometry (int idx, bool nodal) const
 }
 
 
-/*!
-  This method overrides the parent class method to always evaluate the secondary
-  solution at the nodal points of the patch.
-*/
-
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const int*, char) const
 {
-  return this->evalSolution(sField,integr,nullptr,false);
+  return this->evalSecSolution(sField,integr,true);
+}
+
+
+bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
+                                  const RealArray*, bool atElmCenters) const
+{
+  return this->evalSecSolution(sField,integr,!atElmCenters);
+}
+
+
+bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
+                                  const IntVec& elements) const
+{
+  return this->evalSecSolution(sField,integr,false,elements);
 }
 
 
 /*!
-  This method overrides the parent class method to always evaluate the secondary
-  solution at the element nodes and then perform nodal averaging to obtain the
-  unique nodal values, or perform direct evaluation at the element centers.
+  This method evaluates the secondary solution at either the element nodes
+  and then performs nodal averaging to obtain the unique nodal values,
+  or perform direct evaluation at the element centers.
   It is assumed that all calculations are performed by the
   IntegrandBase::evalSol() call, therefore no basis function evaluations here.
 */
 
-bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
-                                  const RealArray*, bool atElmCenters) const
+bool ASMu2DNastran::evalSecSolution (Matrix& sField,
+                                     const IntegrandBase& integr, bool atNodes,
+                                     const IntVec& elements) const
 {
   sField.clear();
 
   FiniteElement fe;
   Vector        solPt;
-  Vectors       globSolPt(atElmCenters ? 0 : nnod);
-  IntVec        checkPt(atElmCenters ? 0 : nnod,0);
+  Vectors       globSolPt(atNodes ? nnod : 0);
+  IntVec        checkPt(atNodes ? nnod : 0,0);
+
+  // Number of evaluation points
+  size_t npt = atNodes ? nnod : (elements.empty() ? nel : elements.size());
+  size_t ipt = 0;
 
   // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 1; iel <= nel; iel++)
     if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
     {
+      if (!atNodes && !elements.empty() &&
+          std::find(elements.begin(),elements.end(),iel) == elements.end())
+        continue;
+
       if (!this->getElementCoordinates(fe.Xn,iel))
         return false;
 
       const IntVec& mnpc = MNPC[iel-1];
-      const size_t nenod = atElmCenters ? 1 : mnpc.size();
+      const size_t nenod = atNodes ? mnpc.size() : 1;
       for (size_t loc = 0; loc < nenod; loc++)
       {
         if (nenod == 3)
@@ -1084,10 +1102,10 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
           break; // a valid element with no secondary solution
 
         if (sField.empty())
-          sField.resize(solPt.size(), atElmCenters ? nel : nnod, true);
+          sField.resize(solPt.size(),npt,true);
 
-        if (atElmCenters)
-          sField.fillColumn(iel,solPt);
+        if (!atNodes)
+          sField.fillColumn(++ipt,solPt);
         else if (++checkPt[mnpc[loc]] == 1)
           globSolPt[mnpc[loc]] = solPt;
         else
