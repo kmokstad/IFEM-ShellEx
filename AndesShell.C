@@ -147,8 +147,10 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
   {
     if (!strcasecmp(elem->Value(),"vonMises_only"))
       n2v = 2; // only output von Mises as secondary variables
+    return true; // nothing else here in <postprocessing> context
   }
-  else if (!strcasecmp(elem->Value(),"lumpedBeamMass") && beamProblem)
+
+  if (!strcasecmp(elem->Value(),"lumpedBeamMass") && beamProblem)
   {
     char version = 1;
     utl::getAttribute(elem,"version",version);
@@ -156,11 +158,13 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
     if (version)
       IFEM::cout <<"\tUsing lumped mass matrix for beams, version "
                  << static_cast<int>(version) << std::endl;
+    return true;
   }
 
-  else if (strcasecmp(elem->Value(),"material"))
+  if (strcasecmp(elem->Value(),"material"))
     return this->ElasticBase::parse(elem);
 
+  // The remaining is for <material> context only
   IFEM::cout <<"  Parsing <material>"<< std::endl;
   if (utl::getAttribute(elem,"override",ovrMat) && ovrMat)
   {
@@ -175,12 +179,12 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
   }
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement("thickness");
-  const char* value = child ? utl::getValue(child,"thickness") : nullptr;
-  if (value)
-  {
-    Thck0 = atof(value);
-    IFEM::cout <<"\tConstant thickness: "<< Thck0 << std::endl;
-  }
+  if (child)
+    if (const char* value = utl::getValue(child,"thickness"); value)
+    {
+      Thck0 = atof(value);
+      IFEM::cout <<"\tConstant thickness: "<< Thck0 << std::endl;
+    }
 
   child = elem->FirstChildElement("thickloss");
   if (child && child->FirstChild())
