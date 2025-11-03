@@ -43,6 +43,7 @@ ifem_add_library(
     SIMAndesShell.C
     SIMAndesSplit.C
     SIMShellModal.C
+    WaveFunc.C
     ../Beam/ElasticBeam.C
     ../Beam/BeamProperty.C
     ../Linear/DynamicDriver.C
@@ -54,6 +55,7 @@ ifem_add_library(
     SIMAndesShell.h
     SIMAndesSplit.h
     SIMShellModal.h
+    WaveFunc.h
   LIBRARIES
     Elasticity
 )

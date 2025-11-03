@@ -22,6 +22,7 @@
 #include "DataExporter.h"
 #include "HDF5Writer.h"
 #include "Functions.h"
+#include "WaveFunc.h"
 #include "Utilities.h"
 #include "ElementBlock.h"
 #include "Vec3Oper.h"
@@ -42,6 +43,7 @@ SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
   nf.front() = 6;
   seaLx = seaLy = seaGridSize = 0.0;
   seaBlock = 0;
+  seasurf = nullptr;
 }
 
 
@@ -104,24 +106,26 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     return false;
 
   const tinyxml2::XMLElement* child = elem->FirstChildElement();
-  const tinyxml2::XMLElement* grandchild = nullptr;
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"postprocessing"))
     {
-      if (!strcasecmp(child->Value(),"seasurface") &&
-          (grandchild = child->FirstChildElement("zeta")) &&
-          grandchild->FirstChild())
+      if (!strcasecmp(child->Value(),"seasurface"))
       {
-        std::string seaType("expression");
-        utl::getAttribute(grandchild,"type",seaType);
         utl::getAttribute(child,"X0",seaX0);
         utl::getAttribute(child,"Lx",seaLx);
         utl::getAttribute(child,"Ly",seaLy);
         utl::getAttribute(child,"gridsize",seaGridSize);
         IFEM::cout <<"\tSea surface ["<< seaX0
                    <<"] to ["<< seaX0 + Vec3(seaLx,seaLy,0.0)
-                   <<"], gridSize="<< seaGridSize <<" ("<< seaType <<")";
-        seasurf = utl::parseRealFunc(grandchild->FirstChild()->Value(),seaType);
+                   <<"], gridSize="<< seaGridSize;
+        const tinyxml2::XMLElement* zeta = child->FirstChildElement("zeta");
+        if (zeta && zeta->FirstChild() && !seasurf)
+        {
+          std::string type("expression");
+          utl::getAttribute(zeta,"type",type);
+          IFEM::cout <<" ("<< type <<")";
+          seasurf = utl::parseRealFunc(zeta->FirstChild()->Value(),type);
+        }
         IFEM::cout << std::endl;
       }
       else if (!strcasecmp(child->Value(),"reactions"))
@@ -135,7 +139,32 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     else if (strcasecmp(elem->Value(),"elasticity"))
       continue; // The remaining should be within the elasticity context
 
-    else if (!strcasecmp(child->Value(),"pressure") && child->FirstChild())
+    else if (!strcasecmp(child->Value(),"seasurface") && !seasurf &&
+             child->FirstChild())
+    {
+      IFEM::cout <<"  Parsing <seasurface>"<< std::endl;
+
+      std::string type("expression");
+      utl::getAttribute(child,"type",type,true);
+      IFEM::cout <<"\tSea surface function ("<< type <<")";
+      if (type == "spectrum")
+      {
+        double g = this->getIntegrand()->getGravity().length();
+        double angle = 0.0, rampT = 0.0;
+        utl::getAttribute(child,"angle",angle);
+        utl::getAttribute(child,"ramp",rampT);
+        IFEM::cout <<": file = "<< child->FirstChild()->Value()
+                   <<", wave angle = "<< angle;
+        if (rampT > 0.0)
+          IFEM::cout <<", ramp up time = "<< rampT;
+        seasurf = new WaveSpectrum(child->FirstChild()->Value(),angle,g,rampT);
+      }
+      else
+        seasurf = utl::parseRealFunc(child->FirstChild()->Value(),type);
+      IFEM::cout << std::endl;
+    }
+
+    else if (!strcasecmp(child->Value(),"pressure"))
     {
       IFEM::cout <<"  Parsing <pressure>"<< std::endl;
 
@@ -148,7 +177,19 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         utl::getAttribute(child,"type",type,true);
         IFEM::cout <<"\tPressure code "<< code;
         if (!type.empty()) IFEM::cout <<" ("<< type <<")";
-        myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
+        if (type == "hydrostatic" && seasurf)
+        {
+          double g = this->getIntegrand()->getGravity().length();
+          double z0 = 0.0, rhow = 1000.0;
+          utl::getAttribute(child,"waterline",z0);
+          utl::getAttribute(child,"waterdensity",rhow);
+          IFEM::cout <<": z0 = "<< z0 <<" rhow = "<< rhow;
+          myScalars[code] = new HydroStaticPressure(*seasurf,z0,g,rhow);
+        }
+        else if (child->FirstChild())
+          myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),
+                                               type);
+
         this->setPropertyType(code,Property::BODYLOAD);
         IFEM::cout << std::endl;
         AndesShell* shellp = dynamic_cast<AndesShell*>(this->getIntegrand());
@@ -560,7 +601,7 @@ bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 
 bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
 {
-  if (seaBlock < 1) return true; // no sea surface visualization
+  if (seaBlock < 1 || !seasurf) return true; // no sea surface visualization
 
   VTF* vtf = this->getVTF();
   const ElementBlock* sea = vtf ? vtf->getBlock(seaBlock) : nullptr;
