@@ -319,6 +319,16 @@ bool SIMAndesShell::preprocessB ()
 }
 
 
+bool SIMAndesShell::dumpShellMesh (const char* fname) const
+{
+  for (const ASMbase* pch : myModel)
+    if (const ASMu2DNastran* shl = dynamic_cast<const ASMu2DNastran*>(pch); shl)
+      return shl->writeXML(fname);
+
+  return false; // No shell element patch
+}
+
+
 void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
   // Include also the collapsed and non-shell elements,
