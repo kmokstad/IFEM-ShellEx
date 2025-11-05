@@ -74,6 +74,11 @@ public:
   bool writeGlvLoc(std::vector<std::string>& locfiles,
                    bool nodal, int& nBlock) const;
 
+  //! \brief Writes shell normal vectors to the VTF-file.
+  //! \param geoBlk Running geometry block counter
+  //! \param nBlock Running result block counter
+  bool writeGlvNormal(int& geoBlk, int& nBlock) const;
+
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from

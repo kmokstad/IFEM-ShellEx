@@ -493,6 +493,10 @@ int main (int argc, char** argv)
     if (nodalR != 'm' && !model->writeGlvLoc(locfiles,nodalR,geoBlk))
       return terminate(12);
 
+    // Write surface normal vectors (but only if no surface pressure output)
+    if (!model->writeGlvNormal(geoBlk,nBlock))
+      return terminate(12);
+
     // Write surface pressures, if any
     if (!model->writeGlvT(iStep,geoBlk,nBlock))
       return terminate(13);

@@ -877,6 +877,23 @@ bool ASMu2DNastran::checkPressSet (int iEl, size_t idx, int iSet) const
 }
 
 
+bool ASMu2DNastran::getShellNormals (std::vector<Vec3Pair>& normals) const
+{
+  normals.reserve(nel);
+  for (size_t iel = 0; iel < nel; iel++)
+    if (const IntVec& mnpc = MNPC[iel]; mnpc.size() == 3 || mnpc.size() == 4)
+    {
+      const size_t n1 = mnpc.size() - 3;
+      const size_t n3 = mnpc.size() == 4 ? 3 : 1;
+      Vec3 V3(coord[mnpc[n3]]-coord[mnpc[0]], coord[mnpc[2]]-coord[mnpc[n1]]);
+      V3.normalize();
+      normals.emplace_back(this->getElementCenter(1+iel),V3);
+    }
+
+  return !normals.empty();
+}
+
+
 #ifdef HAS_ANDES
 extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
                                 const int& nM, const int& nW, const int* indC,

@@ -564,6 +564,26 @@ bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
 }
 
 
+bool SIMAndesShell::writeGlvNormal (int& geoBlk, int& nBlock) const
+{
+  VTF* vtf = this->getVTF();
+  if (!vtf || myProblem->hasTractionValues()) return true;
+
+  for (const ASMbase* pch : myModel)
+    if (const ASMu2DNastran* shl = dynamic_cast<const ASMu2DNastran*>(pch); shl)
+      if (std::vector<Vec3Pair> normals; shl->getShellNormals(normals))
+      {
+        if (msgLevel > 1)
+          IFEM::cout <<"Writing shell normal vectors"<< std::endl;
+
+        // Write shell normals as discrete point vectors to the VTF-file
+        return vtf->writeVectors(normals,geoBlk,++nBlock,"Normal vectors",1);
+      }
+
+  return true; // No shell elements
+}
+
+
 bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
   if (!this->Parent::writeGlvG(nBlock,inpFile,doClear))

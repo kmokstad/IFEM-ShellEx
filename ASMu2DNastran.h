@@ -66,6 +66,10 @@ public:
   //! \param[in] iSet Element set index (1-based) for a pressure load
   bool checkPressSet(int iEl, size_t idx, int iSet) const;
 
+  //! \brief Calculates the shell normal vectors and the element centers
+  //! \param[out] normals Vector of element-center normal-vector pairs
+  bool getShellNormals(std::vector<Vec3Pair>& normals) const;
+
   //! \brief Returns an additional geometry to visualize (point masses, etc.).
   virtual ElementBlock* immersedGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize (constraints, etc.).
