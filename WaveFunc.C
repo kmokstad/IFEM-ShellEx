@@ -34,9 +34,8 @@ WaveSpectrum::WaveSpectrum (const char* file, double angle, double g, double t0)
   {
     if (temp[0] == '#') continue;
     std::stringstream str(temp);
-    int i;
     Component wc;
-    str >> i >> wc.A >> wc.omega >> wc.eps;
+    str >> wc.id >> wc.Ampl >> wc.omega >> wc.eps;
     wave.emplace_back(wc);
   }
 
@@ -82,7 +81,7 @@ double WaveSpectrum::evaluate (const Vec3& X) const
 
   double res = 0.0;
   for (const Component& w : wave)
-    res += w.A*sin(w.omega*t - w.omega*XoG + w.eps);
+    res += w.Ampl*sin(w.omega*t - w.omega*XoG + w.eps);
 
   if (time > 0.0 && t < time)
     res *= t/time;
@@ -118,6 +117,12 @@ void HydroStaticPressure::setParam (const std::string& name, double value)
 }
 
 
+/*!
+  The pressure is assumed in the direction of the outward-directed
+  normal vector of the shell surface at the evaluation point.
+  Therefore, it will always have a non-positive value.
+*/
+
 double HydroStaticPressure::evaluate (const Vec3& X) const
 {
 #ifdef USE_OPENMP
@@ -126,5 +131,5 @@ double HydroStaticPressure::evaluate (const Vec3& X) const
   const size_t i = 0;
 #endif
   const double depth = X.z + dZ[i] - (w_line + zeta(X));
-  return depth < 0.0 ? -rhow*grav*depth : 0.0;
+  return depth < 0.0 ? rhow*grav*depth : 0.0;
 }

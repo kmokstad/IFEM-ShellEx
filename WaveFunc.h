@@ -26,7 +26,8 @@ class WaveSpectrum : public RealFunc
   //! \brief A struct describing a single wave component of a spectrum.
   struct Component
   {
-    double A = 0.0;     //!< Amplitude
+    int    id = 0;      //!< Component id
+    double Ampl = 0.0;  //!< Amplitude
     double omega = 0.0; //!< Angular frequency
     double eps = 0.0;   //!< phase shift
   };
@@ -54,7 +55,7 @@ public:
   void setParam(const std::string& name, double value) override;
 
 protected:
-  //! \brief Evaluates the function.
+  //! \brief Evaluates the sea elevation function.
   double evaluate(const Vec3& X) const override;
 };
 
@@ -89,7 +90,7 @@ public:
   void setParam(const std::string& name, double value) override;
 
 protected:
-  //! \brief Evaluates the function.
+  //! \brief Evaluates the hydrostatic pressure function.
   double evaluate(const Vec3& X) const override;
 };
 
