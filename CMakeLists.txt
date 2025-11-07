@@ -113,6 +113,7 @@ ifem_add_regression_test(
   TEST_FILES
     BeamOnly-dyn.reg
     BeamOnly.reg
+    DroppedBox.reg
     Fine-dyn.reg
     Fine-mlc.reg
     Fine-partial.reg

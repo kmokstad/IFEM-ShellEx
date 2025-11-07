@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry dim="3" modelsize="3.5">
+    <patchfile type="Nastran">Small_Boat.dat</patchfile>
+    <topologysets>
+      <set name="rib" type="elements">
+        <item patch="1">418:449 794:825</item>
+      </set>
+      <set name="wet" type="elements">
+        <item patch="1">450:517 533:611 737:793 856:945</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <elasticity>
+    <gravity z="-9.81"/>
+    <seasurface type="spectrum" angle="210.0" ramp="1.0">run18-irr482.asc</seasurface>
+    <pressure set="wet" type="hydrostatic" waterline="0.1" waterdensity="1000.0"/>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
+
+  <newmarksolver alpha1="1.0" alpha2="0.03">
+    <nupdate>0</nupdate>
+    <timestepping>
+      <step start="0.0" end="5.0">0.01</step>
+    </timestepping>
+  </newmarksolver>
+
+  <postprocessing>
+    <seasurface X0="-10.0 -2.5 0.1" Lx="20.0" Ly="5.0" gridsize="0.5"/>
+    <stride dt="0.1"/>
+    <vonMises_only/>
+  </postprocessing>
+
+</simulation>

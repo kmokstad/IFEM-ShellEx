@@ -1,0 +1,498 @@
+Robaat.xinp -dynamic -keep-previous-state -time 1.5
+
+Input file: Robaat.xinp
+Using the linear dynamics simulation driver.
+Parsing input file Robaat.xinp
+Parsing <discretization>
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file Small_Boat.dat
+	Nastran bulk data starting at line 71
+Parsing Nastran bulk data file succceeded.
+Total number of nodes:          518
+Number of shell elements:       504
+Number of constraint elements:  0
+Number of other elements:       3
+Model extension (diameter):     3.5
+	Reading patch 1
+  Parsing <topologysets>
+	Topology sets: rib (1,1,5D)
+	               wet (1,2,5D)
+  Parsing <patchfile>
+  Parsing <topologysets>
+Parsing <elasticity>
+  Parsing <gravity>
+	Gravitation vector: 0 0 -9.81
+  Parsing <seasurface>
+	Sea surface function (expression): g=9.81; Tp=5.0; Hs=1.5; tstart=1.0; omega=2.0\*PI/Tp; wavespeed=g/omega; wavel=wavespeed/omega; refx=10.0-wavespeed\*(t-tstart); if(above(x+ux,refx),0.5\*Hs\*sin((x+ux-refx)/wavel),0.0)
+  Parsing <pressure>
+	Pressure code 1 (hydrostatic): z0 = 0.1 rhow = 1000
+Parsing <newmarksolver>
+	alpha1 = 1  alpha2 = 0.03
+	beta = 0.25  gamma = 0.5
+Parsing <postprocessing>
+  Parsing <seasurface>
+  Parsing <stride>
+  Parsing <vonMises_only>
+	Sea surface \[-10 -2.5 0.1] to \[10 2.5 0.1], gridSize=0.5
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 2
+Lagrangian basis functions are used
+Problem definition:
+Formulation: ANDES shell
+Newmark predictor/multicorrector: beta = 0.25 gamma = 0.5
+ using constant coefficient matrices
+ using zero acceleration predictor
+Mass-proportional damping (alpha1): 1
+Stiffness-proportional damping (alpha2): 0.03
+Renumbered 518 nodes.
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
+Number of elements    507
+Number of nodes       518
+Number of dofs        3108
+Detected 492 holes in the element numbers, reordering...
+Number of unknowns    3108
+Total element set size: 358
+  step=131  time=1.31
+  Displacement L2-norm            : 0.0295227
+               Max X-displacement : 0.00429948
+               Max Y-displacement : 0.00894124
+               Max Z-displacement : 0.0723902
+               Max x-displacement : 0.000971693
+               Max y-displacement : 0.00033999
+               Max z-displacement : 0.00365259
+  Velocity L2-norm                : 0.145108
+               Max X-velocity     : 0.107808
+               Max Y-velocity     : 0.018985
+               Max Z-velocity     : 0.534831
+               Max x-velocity     : 0.00591296
+               Max y-velocity     : 0.249759
+               Max z-velocity     : 0.00676321
+  Acceleration L2-norm            : 0.555647
+               Max X-acceleration : 0.133943
+               Max Y-acceleration : 0.0805338
+               Max Z-acceleration : 1.83633
+               Max x-acceleration : 0.86293
+               Max y-acceleration : 0.972945
+               Max z-acceleration : 0.312862
+  step=132  time=1.32
+  Displacement L2-norm            : 0.0290918
+               Max X-displacement : 0.00436702
+               Max Y-displacement : 0.00910385
+               Max Z-displacement : 0.0753266
+               Max x-displacement : 0.000910449
+               Max y-displacement : 0.00281297
+               Max z-displacement : 0.00371759
+  Velocity L2-norm                : 0.144571
+               Max X-velocity     : 0.106078
+               Max Y-velocity     : 0.0187566
+               Max Z-velocity     : 0.539923
+               Max x-velocity     : 0.00640996
+               Max y-velocity     : 0.245654
+               Max z-velocity     : 0.00659086
+  Acceleration L2-norm            : 0.552264
+               Max X-acceleration : 0.211929
+               Max Y-acceleration : 0.0811573
+               Max Z-acceleration : 2.0391
+               Max x-acceleration : 0.887454
+               Max y-acceleration : 1.08756
+               Max z-acceleration : 0.323647
+  step=133  time=1.33
+  Displacement L2-norm            : 0.0286777
+               Max X-displacement : 0.00494231
+               Max Y-displacement : 0.00926173
+               Max Z-displacement : 0.0783461
+               Max x-displacement : 0.000844195
+               Max y-displacement : 0.00523654
+               Max z-displacement : 0.00378047
+  Velocity L2-norm                : 0.143264
+               Max X-velocity     : 0.103655
+               Max Y-velocity     : 0.0184516
+               Max Z-velocity     : 0.541325
+               Max x-velocity     : 0.00691366
+               Max y-velocity     : 0.239952
+               Max z-velocity     : 0.00638696
+  Acceleration L2-norm            : 0.577416
+               Max X-acceleration : 0.272669
+               Max Y-acceleration : 0.0819649
+               Max Z-acceleration : 2.22385
+               Max x-acceleration : 0.844962
+               Max y-acceleration : 1.29023
+               Max z-acceleration : 0.315538
+  step=134  time=1.34
+  Displacement L2-norm            : 0.0282824
+               Max X-displacement : 0.00550242
+               Max Y-displacement : 0.00941432
+               Max Z-displacement : 0.0811435
+               Max x-displacement : 0.000773392
+               Max y-displacement : 0.00759473
+               Max z-displacement : 0.00384093
+  Velocity L2-norm                : 0.141204
+               Max X-velocity     : 0.100558
+               Max Y-velocity     : 0.0180705
+               Max Z-velocity     : 0.539064
+               Max x-velocity     : 0.00731765
+               Max y-velocity     : 0.232646
+               Max z-velocity     : 0.00614813
+  Acceleration L2-norm            : 0.60072
+               Max X-acceleration : 0.346811
+               Max Y-acceleration : 0.0820953
+               Max Z-acceleration : 2.40105
+               Max x-acceleration : 0.868125
+               Max y-acceleration : 1.39488
+               Max z-acceleration : 0.325928
+  step=135  time=1.35
+  Displacement L2-norm            : 0.0279065
+               Max X-displacement : 0.00633953
+               Max Y-displacement : 0.00956107
+               Max Z-displacement : 0.0837013
+               Max x-displacement : 0.00069856
+               Max y-displacement : 0.00987212
+               Max z-displacement : 0.0038987
+  Velocity L2-norm                : 0.138421
+               Max X-velocity     : 0.0968119
+               Max Y-velocity     : 0.0176149
+               Max Z-velocity     : 0.533201
+               Max x-velocity     : 0.00771714
+               Max y-velocity     : 0.223848
+               Max z-velocity     : 0.00587465
+  Acceleration L2-norm            : 0.645068
+               Max X-acceleration : 0.402386
+               Max Y-acceleration : 0.0824857
+               Max Z-acceleration : 2.55641
+               Max x-acceleration : 0.825178
+               Max y-acceleration : 1.58673
+               Max z-acceleration : 0.317732
+  step=136  time=1.36
+  Displacement L2-norm            : 0.0275495
+               Max X-displacement : 0.00728582
+               Max Y-displacement : 0.00970149
+               Max Z-displacement : 0.0860037
+               Max x-displacement : 0.00062025
+               Max y-displacement : 0.0120539
+               Max z-displacement : 0.00395354
+  Velocity L2-norm                : 0.134947
+               Max X-velocity     : 0.0924459
+               Max Y-velocity     : 0.0170869
+               Max Z-velocity     : 0.523803
+               Max x-velocity     : 0.00801029
+               Max y-velocity     : 0.213569
+               Max z-velocity     : 0.00557782
+  Acceleration L2-norm            : 0.685412
+               Max X-acceleration : 0.470811
+               Max Y-acceleration : 0.0821758
+               Max Z-acceleration : 2.70446
+               Max x-acceleration : 0.847349
+               Max y-acceleration : 1.67814
+               Max z-acceleration : 0.327668
+  step=137  time=1.37
+  Displacement L2-norm            : 0.0272096
+               Max X-displacement : 0.00818551
+               Max Y-displacement : 0.00983512
+               Max Z-displacement : 0.0880362
+               Max x-displacement : 0.000539054
+               Max y-displacement : 0.0141257
+               Max z-displacement : 0.0040052
+  Velocity L2-norm                : 0.130822
+               Max X-velocity     : 0.0874911
+               Max Y-velocity     : 0.0164886
+               Max Z-velocity     : 0.510946
+               Max x-velocity     : 0.00829088
+               Max y-velocity     : 0.201923
+               Max z-velocity     : 0.00525529
+  Acceleration L2-norm            : 0.739214
+               Max X-acceleration : 0.52015
+               Max Y-acceleration : 0.0821434
+               Max Z-acceleration : 2.83016
+               Max x-acceleration : 0.804004
+               Max y-acceleration : 1.85804
+               Max z-acceleration : 0.319303
+  step=138  time=1.38
+  Displacement L2-norm            : 0.0268836
+               Max X-displacement : 0.00903288
+               Max Y-displacement : 0.00996939
+               Max Z-displacement : 0.0897859
+               Max x-displacement : 0.0004556
+               Max y-displacement : 0.0160743
+               Max z-displacement : 0.00405347
+  Velocity L2-norm                : 0.126102
+               Max X-velocity     : 0.0819839
+               Max Y-velocity     : 0.015823
+               Max Z-velocity     : 0.494742
+               Max x-velocity     : 0.00845831
+               Max y-velocity     : 0.188939
+               Max z-velocity     : 0.0049109
+  Acceleration L2-norm            : 0.786841
+               Max X-acceleration : 0.581302
+               Max Y-acceleration : 0.0813849
+               Max Z-acceleration : 2.94568
+               Max x-acceleration : 0.825159
+               Max y-acceleration : 1.93271
+               Max z-acceleration : 0.328666
+  step=139  time=1.39
+  Displacement L2-norm            : 0.0265675
+               Max X-displacement : 0.00982263
+               Max Y-displacement : 0.0101236
+               Max Z-displacement : 0.0912417
+               Max x-displacement : 0.000441197
+               Max y-displacement : 0.0178869
+               Max z-displacement : 0.00409814
+  Velocity L2-norm                : 0.120857
+               Max X-velocity     : 0.0759652
+               Max Y-velocity     : 0.0150938
+               Max Z-velocity     : 0.475338
+               Max x-velocity     : 0.00860722
+               Max y-velocity     : 0.174762
+               Max z-velocity     : 0.00454075
+  Acceleration L2-norm            : 0.840844
+               Max X-acceleration : 0.622436
+               Max Y-acceleration : 0.0828756
+               Max Z-acceleration : 3.03513
+               Max x-acceleration : 0.793536
+               Max y-acceleration : 2.09484
+               Max z-acceleration : 0.320125
+  step=140  time=1.4
+  Displacement L2-norm            : 0.0262564
+               Max X-displacement : 0.0105498
+               Max Y-displacement : 0.0102706
+               Max Z-displacement : 0.0923943
+               Max x-displacement : 0.000518314
+               Max y-displacement : 0.0195519
+               Max z-displacement : 0.00413904
+  Velocity L2-norm                : 0.11517
+               Max X-velocity     : 0.0694798
+               Max Y-velocity     : 0.0143048
+               Max Z-velocity     : 0.452904
+               Max x-velocity     : 0.00864093
+               Max y-velocity     : 0.159445
+               Max z-velocity     : 0.00415139
+  Acceleration L2-norm            : 0.887603
+               Max X-acceleration : 0.674635
+               Max Y-acceleration : 0.0824005
+               Max Z-acceleration : 3.11293
+               Max x-acceleration : 0.802513
+               Max y-acceleration : 2.14778
+               Max z-acceleration : 0.328889
+  step=141  time=1.41
+  Displacement L2-norm            : 0.0259448
+               Max X-displacement : 0.0112101
+               Max Y-displacement : 0.0104094
+               Max Z-displacement : 0.0932363
+               Max x-displacement : 0.000595587
+               Max y-displacement : 0.0210588
+               Max z-displacement : 0.00417601
+  Velocity L2-norm                : 0.109143
+               Max X-velocity     : 0.0625754
+               Max Y-velocity     : 0.0134593
+               Max Z-velocity     : 0.427638
+               Max x-velocity     : 0.00865445
+               Max y-velocity     : 0.143151
+               Max z-velocity     : 0.00374425
+  Acceleration L2-norm            : 0.93569
+               Max X-acceleration : 0.706249
+               Max Y-acceleration : 0.0873356
+               Max Z-acceleration : 3.16252
+               Max x-acceleration : 0.797123
+               Max y-acceleration : 2.28827
+               Max z-acceleration : 0.320382
+  step=142  time=1.42
+  Displacement L2-norm            : 0.0256266
+               Max X-displacement : 0.0117995
+               Max Y-displacement : 0.0105395
+               Max Z-displacement : 0.0937623
+               Max x-displacement : 0.000672398
+               Max y-displacement : 0.0223982
+               Max z-displacement : 0.00420889
+  Velocity L2-norm                : 0.102895
+               Max X-velocity     : 0.0553008
+               Max Y-velocity     : 0.0125609
+               Max Z-velocity     : 0.399745
+               Max x-velocity     : 0.00855361
+               Max y-velocity     : 0.125949
+               Max z-velocity     : 0.00332412
+  Acceleration L2-norm            : 0.976624
+               Max X-acceleration : 0.748672
+               Max Y-acceleration : 0.0923406
+               Max Z-acceleration : 3.20071
+               Max x-acceleration : 0.779963
+               Max y-acceleration : 2.31687
+               Max z-acceleration : 0.328684
+  step=143  time=1.43
+  Displacement L2-norm            : 0.0252958
+               Max X-displacement : 0.0123145
+               Max Y-displacement : 0.0106604
+               Max Z-displacement : 0.0939689
+               Max x-displacement : 0.000748137
+               Max y-displacement : 0.0235619
+               Max z-displacement : 0.00423756
+  Velocity L2-norm                : 0.0965608
+               Max X-velocity     : 0.047706
+               Max Y-velocity     : 0.0116149
+               Max Z-velocity     : 0.369442
+               Max x-velocity     : 0.00843232
+               Max y-velocity     : 0.108005
+               Max z-velocity     : 0.00288942
+  Acceleration L2-norm            : 1.01595
+               Max X-acceleration : 0.770276
+               Max Y-acceleration : 0.0968647
+               Max Z-acceleration : 3.21093
+               Max x-acceleration : 0.800709
+               Max y-acceleration : 2.43473
+               Max z-acceleration : 0.319914
+  step=144  time=1.44
+  Displacement L2-norm            : 0.0249462
+               Max X-displacement : 0.0127523
+               Max Y-displacement : 0.0107716
+               Max Z-displacement : 0.0938548
+               Max x-displacement : 0.000822194
+               Max y-displacement : 0.0245429
+               Max z-displacement : 0.0042619
+  Velocity L2-norm                : 0.0903061
+               Max X-velocity     : 0.0398428
+               Max Y-velocity     : 0.0106268
+               Max Z-velocity     : 0.336958
+               Max x-velocity     : 0.00819927
+               Max y-velocity     : 0.0893954
+               Max z-velocity     : 0.00244534
+  Acceleration L2-norm            : 1.0482
+               Max X-acceleration : 0.802366
+               Max Y-acceleration : 0.100755
+               Max Z-acceleration : 3.34572
+               Max x-acceleration : 0.776433
+               Max y-acceleration : 2.43761
+               Max z-acceleration : 0.327529
+  step=145  time=1.45
+  Displacement L2-norm            : 0.0245721
+               Max X-displacement : 0.0131103
+               Max Y-displacement : 0.0108727
+               Max Z-displacement : 0.0934203
+               Max x-displacement : 0.000893983
+               Max y-displacement : 0.0253354
+               Max z-displacement : 0.00428183
+  Velocity L2-norm                : 0.0843211
+               Max X-velocity     : 0.0317614
+               Max Y-velocity     : 0.00960174
+               Max Z-velocity     : 0.302521
+               Max x-velocity     : 0.00794942
+               Max y-velocity     : 0.0702875
+               Max z-velocity     : 0.00199199
+  Acceleration L2-norm            : 1.07728
+               Max X-acceleration : 0.813914
+               Max Y-acceleration : 0.104249
+               Max Z-acceleration : 3.54169
+               Max x-acceleration : 0.803615
+               Max y-acceleration : 2.53251
+               Max z-acceleration : 0.318631
+  step=146  time=1.46
+  Displacement L2-norm            : 0.0241679
+               Max X-displacement : 0.0133867
+               Max Y-displacement : 0.0109634
+               Max Z-displacement : 0.092668
+               Max x-displacement : 0.000962939
+               Max y-displacement : 0.0259348
+               Max z-displacement : 0.00429728
+  Velocity L2-norm                : 0.0788311
+               Max X-velocity     : 0.0235131
+               Max Y-velocity     : 0.00854504
+               Max Z-velocity     : 0.266367
+               Max x-velocity     : 0.00759389
+               Max y-velocity     : 0.0507562
+               Max z-velocity     : 0.00153403
+  Acceleration L2-norm            : 1.09973
+               Max X-acceleration : 0.83576
+               Max Y-acceleration : 0.10709
+               Max Z-acceleration : 3.68899
+               Max x-acceleration : 0.778588
+               Max y-acceleration : 2.51004
+               Max z-acceleration : 0.325707
+  step=147  time=1.47
+  Displacement L2-norm            : 0.0237289
+               Max X-displacement : 0.01358
+               Max Y-displacement : 0.0110435
+               Max Z-displacement : 0.091602
+               Max x-displacement : 0.00102853
+               Max y-displacement : 0.0263378
+               Max z-displacement : 0.00430821
+  Velocity L2-norm                : 0.0740908
+               Max X-velocity     : 0.0151485
+               Max Y-velocity     : 0.00746326
+               Max Z-velocity     : 0.228735
+               Max x-velocity     : 0.00722645
+               Max y-velocity     : 0.0309687
+               Max z-velocity     : 0.0010715
+  Acceleration L2-norm            : 1.11772
+               Max X-acceleration : 0.837156
+               Max Y-acceleration : 0.109267
+               Max Z-acceleration : 3.83759
+               Max x-acceleration : 0.8055
+               Max y-acceleration : 2.58193
+               Max z-acceleration : 0.316515
+  step=148  time=1.48
+  Displacement L2-norm            : 0.0232509
+               Max X-displacement : 0.0136893
+               Max Y-displacement : 0.0111126
+               Max Z-displacement : 0.0902284
+               Max x-displacement : 0.00109023
+               Max y-displacement : 0.0265422
+               Max z-displacement : 0.00431458
+  Velocity L2-norm                : 0.070372
+               Max X-velocity     : 0.00671743
+               Max Y-velocity     : 0.00636273
+               Max Z-velocity     : 0.190307
+               Max x-velocity     : 0.00675977
+               Max y-velocity     : 0.0109937
+               Max z-velocity     : 0.000609366
+  Acceleration L2-norm            : 1.13029
+               Max X-acceleration : 0.849056
+               Max Y-acceleration : 0.110838
+               Max Z-acceleration : 3.93837
+               Max x-acceleration : 0.779748
+               Max y-acceleration : 2.53548
+               Max z-acceleration : 0.322883
+  step=149  time=1.49
+  Displacement L2-norm            : 0.0227307
+               Max X-displacement : 0.0137142
+               Max Y-displacement : 0.0111707
+               Max Z-displacement : 0.0885547
+               Max x-displacement : 0.00114757
+               Max y-displacement : 0.0265469
+               Max z-displacement : 0.00431641
+  Velocity L2-norm                : 0.0679332
+               Max X-velocity     : 0.00492448
+               Max Y-velocity     : 0.0052509
+               Max Z-velocity     : 0.182158
+               Max x-velocity     : 0.00628839
+               Max y-velocity     : 0.00953113
+               Max z-velocity     : 0.000151628
+  Acceleration L2-norm            : 1.13707
+               Max X-acceleration : 0.840655
+               Max Y-acceleration : 0.111527
+               Max Z-acceleration : 4.03907
+               Max x-acceleration : 0.806222
+               Max y-acceleration : 2.58506
+               Max z-acceleration : 0.313296
+  step=150  time=1.5
+  Displacement L2-norm            : 0.0221661
+               Max X-displacement : 0.0136549
+               Max Y-displacement : 0.0112176
+               Max Z-displacement : 0.0865903
+               Max x-displacement : 0.00120125
+               Max y-displacement : 0.0263521
+               Max z-displacement : 0.00431374
+  Velocity L2-norm                : 0.0669709
+               Max X-velocity     : 0.0108183
+               Max Y-velocity     : 0.00505786
+               Max Z-velocity     : 0.210726
+               Max x-velocity     : 0.00572492
+               Max y-velocity     : 0.0294269
+               Max z-velocity     : 0.00050112
+  Acceleration L2-norm            : 1.13871
+               Max X-acceleration : 0.842544
+               Max Y-acceleration : 0.111515
+               Max Z-acceleration : 4.08939
+               Max x-acceleration : 0.779578
+               Max y-acceleration : 2.51378
+               Max z-acceleration : 0.318757
+  Time integration completed.
