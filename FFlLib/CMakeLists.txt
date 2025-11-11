@@ -148,7 +148,6 @@ ifem_add_library(
 )
 
 target_compile_definitions(FFlLib PUBLIC $<$<COMPILE_LANGUAGE:CXX>:HAS_FFLLIB=1 FFL_REFCOUNT=1>)
-target_compile_definitions(FFlLib PUBLIC $<$<COMPILE_LANGUAGE:Fortran>:HAS_FFLLIB=1>)
 
 if(FFL_USE_MEMPOOL)
   target_compile_definitions(FFlLib PUBLIC FT_USE_MEMPOOL=1)

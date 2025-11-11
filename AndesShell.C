@@ -42,6 +42,10 @@ extern "C" {
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
                     double* Ekt, double* Em, int& iERR);
+  //! \brief Interface to 3-noded shell stress routine (FORTRAN-90 code).
+  void ifem_strs23_(const int& iel, const double* X0, const double& Thick,
+                    const double& Emod, const double& Rny, const double* Ev,
+                    double* SR, double* Sigma, int& iERR);
   //! \brief Interface to 4-noded shell stress routine (FORTRAN-90 code).
   void ifem_strs24_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double* Ev,
@@ -743,11 +747,9 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
 {
   int iERR = 0;
   size_t nenod = fe.Xn.cols();
-  if (nenod <= 2) // 1-noded concentrated mass or 2-noded beam element
+  if (nenod <= 2) // 1-noded concentrated mass or 2-noded beam element (ignore)
     s.clear();
-  else if (nenod == 3) // 3-noded shell element
-    s.clear();
-  else if (nenod == 4) // 4-noded shell element
+  else if (nenod <= 4) // 3- or 4-noded shell element
   {
     s.resize(n2v > 12 ? n2v : 12, 0.0);
     if (!currentPatch)
@@ -758,9 +760,12 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
     if (!currentPatch->getStiffProp(fe.iel,fe.idx,E,nu) || thk < 0.0)
       return false;
 
-    // Invoke Fortran wrapper for the 4-noded ANDES element
-    ifem_strs24_(fe.iel, fe.Xn.ptr(), thk, E, nu,
-                 eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
+    if (nenod == 3) // Invoke Fortran wrapper for the 3-noded ANDES element
+      ifem_strs23_(fe.iel, fe.Xn.ptr(), thk, E, nu,
+                   eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
+    else // Invoke Fortran wrapper for the 4-noded ANDES element
+      ifem_strs24_(fe.iel, fe.Xn.ptr(), thk, E, nu,
+                   eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
 #endif
   }
   else
