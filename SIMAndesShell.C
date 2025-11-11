@@ -139,8 +139,7 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
     else if (strcasecmp(elem->Value(),"elasticity"))
       continue; // The remaining should be within the elasticity context
 
-    else if (!strcasecmp(child->Value(),"seasurface") && !seasurf &&
-             child->FirstChild())
+    else if (!strcasecmp(child->Value(),"seasurface") && !seasurf)
     {
       IFEM::cout <<"  Parsing <seasurface>"<< std::endl;
 
@@ -150,14 +149,7 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
       if (type == "spectrum")
       {
         double g = this->getIntegrand()->getGravity().length();
-        double angle = 0.0, rampT = 0.0;
-        utl::getAttribute(child,"angle",angle);
-        utl::getAttribute(child,"ramp",rampT);
-        IFEM::cout <<": file = "<< child->FirstChild()->Value()
-                   <<", wave angle = "<< angle;
-        if (rampT > 0.0)
-          IFEM::cout <<", ramp up time = "<< rampT;
-        seasurf = new WaveSpectrum(child->FirstChild()->Value(),angle,g,rampT);
+        seasurf = WaveSpectrum::parse(child,g);
       }
       else
         seasurf = utl::parseRealFunc(child->FirstChild()->Value(),type);
