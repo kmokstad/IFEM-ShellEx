@@ -78,6 +78,7 @@ namespace ASM {
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
   \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
+  \arg -dumpXML : Dump the mesh to specified XML-file
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state when evaluating the
@@ -103,6 +104,7 @@ int main (int argc, char** argv)
   bool dumpNodeMap = false;
   char* infile = nullptr;
   char* bdfile = nullptr;
+  char* xmlfile = nullptr;
   ElasticityArgs args;
   std::vector<std::string> resfiles, grpfiles, locfiles, disfiles;
 
@@ -197,6 +199,11 @@ int main (int argc, char** argv)
       dumpNodeMap = true;
     else if (!strncmp(argv[i],"-split",6))
       splitM = true;
+    else if (!strncmp(argv[i],"-dumpXML",8) && i+1 < argc)
+    {
+      if (argv[i+1][0] != '-')
+        xmlfile = argv[++i];
+    }
     else if (!infile && strcasestr(argv[i],".xinp") && !bdfile)
     {
       infile = argv[i];
@@ -260,10 +267,10 @@ int main (int argc, char** argv)
 
     showUsage({"<inputfile>","[-dense|-spr|-superlu[<nt>]|-samg|-petsc]",
                "[-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]",
-               "[-free]","[-time <t>]","[-check]","[-ignoreSol]",
-               "[-mlc|-qstatic|-dynamic|-modes]","[-keep-previous-state]",
+               "[-free]","[-time <t>]","[-keep-previous-state]",
+               "[-check|-ignoreSol|-mlc|-qstatic|-dynamic|-modes]",
                "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS] "
-               "[-no-vtfmass]]",
+               "[-no-vtfmass]]","[-dumpXML <filename>]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noMasses]","[-noBeams]","[-noEccs]",
                "[-noSets]","[-noRBE3]","[-split]"});
@@ -366,6 +373,12 @@ int main (int argc, char** argv)
       for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
         ifs >> displ.back()[idof];
     }
+  }
+
+  if (xmlfile)
+  {
+    IFEM::cout <<"\nDumping shell mesh to file "<< xmlfile << std::endl;
+    model->dumpShellMesh(xmlfile);
   }
 
   // Open HDF5 result database, if requested

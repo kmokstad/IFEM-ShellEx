@@ -37,6 +37,9 @@ public:
   //! \brief Prints out problem-specific data to the log stream.
   virtual bool printProblem() const;
 
+  //! \brief Dumps the shell mesh to a specified XML-file.
+  bool dumpShellMesh(const char* fname) const;
+
   //! \brief Enables the element matrix cache for reaction force calculation.
   void initForSingleStep() { if (!myRFset.empty()) this->initLHSbuffers(); }
   //! \brief Switches off separate reaction force calculations when multi-steps.
