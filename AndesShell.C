@@ -42,6 +42,10 @@ extern "C" {
   void ifem_andes4_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double& Rho,
                     double* Ekt, double* Em, int& iERR);
+  //! \brief Interface to 3-noded shell stress routine (FORTRAN-90 code).
+  void ifem_strs23_(const int& iel, const double* X0, const double& Thick,
+                    const double& Emod, const double& Rny, const double* Ev,
+                    double* SR, double* Sigma, int& iERR);
   //! \brief Interface to 4-noded shell stress routine (FORTRAN-90 code).
   void ifem_strs24_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double* Ev,
@@ -147,6 +151,8 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
   {
     if (!strcasecmp(elem->Value(),"vonMises_only"))
       n2v = 2; // only output von Mises as secondary variables
+    else if (!strcasecmp(elem->Value(),"stressTensor_only"))
+      n2v = 6; // only output stress tensor components as secondary variables
     return true; // nothing else here in <postprocessing> context
   }
 
@@ -741,33 +747,33 @@ bool AndesShell::finalizeElement (LocalIntegral& elmInt,
 bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
                            const FiniteElement& fe, const Vec3& X) const
 {
-  int iERR = 0;
+  s.clear();
   size_t nenod = fe.Xn.cols();
-  if (nenod <= 2) // 1-noded concentrated mass or 2-noded beam element
-    s.clear();
-  else if (nenod == 3) // 3-noded shell element
-    s.clear();
-  else if (nenod == 4) // 4-noded shell element
+  if (nenod <= 2) // 1-noded concentrated mass or 2-noded beam element (ignore)
+    return true;
+  else if (nenod > 4)
   {
-    s.resize(n2v > 12 ? n2v : 12, 0.0);
-    if (!currentPatch)
-      return false; // logic error, shouldn't happen
-#ifdef HAS_ANDES
-    double E = Emod, nu = Nu;
-    double thk = this->getMassProp(fe.iel,fe.idx,X).second;
-    if (!currentPatch->getStiffProp(fe.iel,fe.idx,E,nu) || thk < 0.0)
-      return false;
+    std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
+    return false;
+  }
+  else if (!currentPatch)
+    return false; // logic error, shouldn't happen
 
-    // Invoke Fortran wrapper for the 4-noded ANDES element
+  int iERR = 0;
+#ifdef HAS_ANDES
+  double E = Emod, nu = Nu;
+  double thk = this->getMassProp(fe.iel,fe.idx,X).second;
+  if (!currentPatch->getStiffProp(fe.iel,fe.idx,E,nu) || thk < 0.0)
+    return false;
+
+  s.resize(n2v > 12 ? n2v : 12, 0.0);
+  if (nenod == 3) // Invoke Fortran wrapper for the 3-noded ANDES element
+    ifem_strs23_(fe.iel, fe.Xn.ptr(), thk, E, nu,
+                 eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
+  else // Invoke Fortran wrapper for the 4-noded ANDES element
     ifem_strs24_(fe.iel, fe.Xn.ptr(), thk, E, nu,
                  eV.front().ptr(), s.ptr(), s.ptr()+6, iERR);
 #endif
-  }
-  else
-  {
-    iERR = -98;
-    std::cerr <<" *** AndesShell: Invalid element, nenod="<< nenod << std::endl;
-  }
 
   if (s.size() >= 18)
   {
@@ -785,7 +791,10 @@ bool AndesShell::evalSol2 (Vector& s, const Vectors& eV,
       s[j+5] = sigma.vonMises();
     }
   }
-  else if (s.size() >= 12)
+  else if (n2v == 6)
+    s = RealArray(s.begin()+6,s.begin()+12); // Extract tensor components only
+
+  else
   {
     // Calculate von Mises stresses only
     Vector vms;
@@ -880,9 +889,11 @@ std::string AndesShell::getField2Name (size_t i, const char* prefix) const
 
   if (n2v == 2) // output von Mises stresses only
     i = 6*i + 11;
+  else if (n2v == 6) // output stress tensor components only
+    i += 6;
 
-  std::string name(s[i < 6 ? i : 6 + i%6]);
-  if (i >= 12)
+  std::string name(s[i < 6 ? i : 6 + i % (n2v == 6 ? 3 : 6)]);
+  if (i >= (n2v == 6 ? 9 : 12))
     name = "Top " + name;
   else if (i >= 6)
     name = "Bottom " + name;
