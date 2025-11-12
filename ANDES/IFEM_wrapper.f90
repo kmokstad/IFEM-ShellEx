@@ -462,3 +462,37 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
 999 write(lpu,*) '*** Failed to compute stresses for element',iEL
 
 end subroutine IFEM_STRS24
+
+
+!> @brief Calculates the globalized shell element axes.
+subroutine IFEM_ELAXES (nelnod, X0, eX, eY, eZ, IERR)
+
+  use KindModule                    , only : dp
+  use StrainAndStressUtilitiesModule, only : getShellElementAxes
+
+  implicit none
+
+  integer , parameter   :: LPU = 6
+  integer , intent(in)  :: nelnod
+  real(dp), intent(in)  :: X0(3,nelnod)
+  real(dp), intent(out) :: eX(3), eY(3), eZ(3)
+  integer , intent(out) :: IERR
+
+  !! Local variables
+  real(dp) :: Xnod(3,4)
+
+  !! --- Logic section ---
+
+  if (nelnod == 4) then
+     !! Need to swap element nodes 3 and 4
+     Xnod(:,1:2) = X0(:,1:2)
+     Xnod(:,3) = X0(:,4)
+     Xnod(:,4) = X0(:,3)
+     call getShellElementAxes (nelnod, Xnod(1,:), Xnod(2,:), Xnod(3,:), &
+          &                    eX, eY, eZ, LPU, IERR, .true.)
+  else
+     call getShellElementAxes (nelnod, X0(1,:), X0(2,:), X0(3,:), &
+          &                    eX, eY, eZ, LPU, IERR, .true.)
+  end if
+
+end subroutine IFEM_ELAXES
