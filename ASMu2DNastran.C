@@ -895,6 +895,34 @@ bool ASMu2DNastran::getShellNormals (std::vector<Vec3Pair>& normals) const
 
 
 #ifdef HAS_ANDES
+extern "C" void ifem_elaxes_(const int& nelnod, const double* Xnod,
+                             double* eX, double* eY, double* eZ, int& ierr);
+#endif
+
+/*!
+  This method calculates and prints out the globalized shell surface axes.
+*/
+
+void ASMu2DNastran::printElmInfo (int iel, const IntegrandBase* integr) const
+{
+  if (integr && integr->getNoFields(2) <= 2) return;
+
+#ifdef HAS_ANDES
+  if (Matrix Xnod; this->getElementCoordinates(Xnod,iel))
+  {
+    double tmp[9];
+    int ierr, nelnod = Xnod.cols();
+    ifem_elaxes_(nelnod,Xnod.ptr(),tmp,tmp+3,tmp+6,ierr);
+    if (ierr == 0)
+      IFEM::cout <<"\teX = "<< Vec3(tmp) <<"\teY = "<< Vec3(tmp+3) << std::endl;
+  }
+#else
+  IFEM::cout <<"\tXc = "<< this->getElementCenter(iel) << std::endl;
+#endif
+}
+
+
+#ifdef HAS_ANDES
 extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
                                 const int& nM, const int& nW, const int* indC,
                                 const double* tenc, const double* weight,
