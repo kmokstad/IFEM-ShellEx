@@ -17,6 +17,7 @@
 #include "BeamProperty.h"
 #include "ElementBlock.h"
 #include "MPC.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Profiler.h"
 #include "IFEM.h"
@@ -408,8 +409,7 @@ bool ASMu2DNastran::read (std::istream& is)
   {
     std::string name = g->second->getName() + "_" + std::to_string(g->first);
     for (const GroupElemRef& elm : *g->second)
-      if (std::find(beamElms.begin(),beamElms.end(),
-                    elm->getID()) == beamElms.end())
+      if (utl::findIndex(beamElms,elm->getID()) < 0)
         this->addToElemSet(name,elm->getID(),true);
       else
         IFEM::cout <<"  ** Ignoring beam element "<< elm->getID()
@@ -455,17 +455,11 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
   beamElms.push_back(eId);
   beamMNPC.push_back(mnpc);
   for (int& inod : beamMNPC.back())
-  {
-    int node = MLGN[inod];
-    IntVec::iterator it = std::find(beamNodes.begin(),beamNodes.end(),node);
-    if (it == beamNodes.end())
+    if (int node = MLGN[inod]; (inod = utl::findIndex(beamNodes,node)) < 0)
     {
       beamNodes.push_back(node);
       inod = beamNodes.size() - 1;
     }
-    else
-      inod = it - beamNodes.begin();
-  }
 
   BeamProps& bprop = myBprops[eId];
   FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
@@ -1114,9 +1108,17 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
   for (size_t iel = 1; iel <= nel; iel++)
     if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
     {
-      if (!atNodes && !elements.empty() &&
-          std::find(elements.begin(),elements.end(),iel) == elements.end())
-        continue;
+      if (!atNodes)
+      {
+        if (elements.empty())
+        {
+          // Consider 3- and 4-noded elements only
+          if (MNPC[iel-1].size() < 3)
+            continue;
+        }
+        else if (utl::findIndex(elements,iel) < 0)
+          continue;
+      }
 
       if (!this->getElementCoordinates(fe.Xn,iel))
         return false;
@@ -1159,6 +1161,8 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
     }
 
   // Nodal averaging
+  if (!atNodes)
+    sField.resize(sField.rows(),ipt);
   for (size_t i = 0; i < checkPt.size(); i++)
     if (checkPt[i])
       sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
