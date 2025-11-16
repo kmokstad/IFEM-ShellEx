@@ -50,10 +50,6 @@ public:
   //! \param[out] solution Global primary solution vector
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[out] rCond Reciprocal condition number
-  //!
-  //! \details This method is overridden to also compute nodal reaction forces.
-  //! This requires an additional assembly loop calculating the internal forces,
-  //! since we only are doing a linear solve here.
   virtual bool solveSystem(Vector& solution, int printSol, double* rCond,
                            const char*, size_t);
 
@@ -64,6 +60,12 @@ public:
   //! \param[in] psol Primary solution vector
   //! \param[in] dumpNodeMap If \e true, write node mapping to the HDF5 as well
   DataExporter* getHDF5writer(const Vector& psol, double dumpNodeMap) const;
+
+  //! \brief Returns the number of shell elements in the model.
+  size_t getNoShellElms() const;
+
+  //! \brief Expands the shell patch result vector \a data into a global vector.
+  Vector expandElmVec(const Vector& data) const;
 
   //! \brief Retrieves the shell thickness of all elements in the model.
   void getShellThicknesses(RealArray& elmThick) const;
@@ -86,14 +88,22 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
   //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
-  //!
-  //! \details This method is overridden to also write out the sea surface.
   virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
-  //! \brief Writes sea surface elevation to the VTF-file.
+  //! \brief Writes current sea surface elevation to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time
   virtual bool writeGlvA(int& nBlock, int iStep, double time, int) const;
+
+  //! \brief Writes secondary solution for a load/time step to the VTF-file.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] time Load/time step parameter
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] psolComps Number of primary solution components
+  virtual int writeGlvS2(const Vector& psol, int iStep, int& nBlock,
+                         double time, int idBlock, int psolComps);
 
 protected:
   using SIMElasticity<SIM2D>::parse;
