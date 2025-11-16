@@ -321,6 +321,46 @@ bool SIMAndesShell::dumpShellMesh (const char* fname) const
 }
 
 
+size_t SIMAndesShell::getNoShellElms () const
+{
+  size_t nShells = 0;
+  for (const ASMbase* pch : myModel)
+    if (dynamic_cast<const ASMu2DLag*>(pch))
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->getElementNodes(iel).size() > 2) nShells++;
+
+  return nShells;
+}
+
+
+/*!
+  The input array \a data is assumed to have one value for each shell element
+  in the model, and therefore needs to be expanded in case the model also
+  contains other elements (beams and one-noded mass elements), such that it
+  can be provided as argument to SIMoutput::writeGlvE() for visualization.
+*/
+
+Vector SIMAndesShell::expandElmVec (const Vector& data) const
+{
+  // Include also the collapsed and non-shell elements,
+  // because that is what the VTF-writer expects
+  Vector elmVec(this->getNoElms(false,true));
+
+  size_t idx = 0, jel = 0;
+  for (const ASMbase* pch : myModel)
+    if (dynamic_cast<const ASMu2DLag*>(pch))
+    {
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++, jel++)
+        if (pch->getElementNodes(iel).size() > 2) // skip 1-noded mass elements
+          elmVec[jel] = data[idx++];
+    }
+    else
+      jel += pch->getNoElms(true);
+
+  return elmVec;
+}
+
+
 void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
   // Include also the collapsed and non-shell elements,
@@ -479,7 +519,7 @@ bool SIMAndesShell::assembleDiscreteItems (const IntegrandBase* itg,
 
 
 /*!
-  This method is overridden to optionally compute the reaction forces.
+  This method is overridden to optionally also compute the reaction forces.
   This requires an additional assembly loop calculating the internal forces,
   since we only are doing a linear solve here.
 */
@@ -586,6 +626,10 @@ bool SIMAndesShell::writeGlvNormal (int& geoBlk, int& nBlock) const
 }
 
 
+/*!
+  This method is overridden to also write out the sea surface, if any.
+*/
+
 bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
   if (!this->Parent::writeGlvG(nBlock,inpFile,doClear))
@@ -641,6 +685,51 @@ bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
 
   const_cast<SIMAndesShell*>(this)->addDisBlk[seaBlock] = nBlock;
   return true;
+}
+
+
+/*!
+  This method is overridden to also write out the von Mises stresses as a
+  piecewise constant element field.
+*/
+
+int SIMAndesShell::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
+                               double time, int idBlock, int psolComps)
+{
+  int idB = this->Parent::writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
+  if (idB <= idBlock) return idB;
+
+  size_t nf = myProblem->getNoFields(2);
+  if (nf != 2 && nf != 18) return idB; // no von Mises stress output
+
+  std::array<Vector,2> elmRes;
+  for (Vector& v : elmRes)
+    v.reserve(this->getNoElms(false,true));
+
+  for (const ASMbase* pch : myModel)
+    if (dynamic_cast<const ASMu2DNastran*>(pch))
+    {
+      // Direct evaluation of secondary solution variables at element centers
+      Matrix field;
+      pch->extractNodeVec(psol,myProblem->getSolution());
+      if (!pch->evalSolution(field,*myProblem,nullptr,true))
+        return -3;
+
+      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++)
+        if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
+          for (size_t i = 0; i < 2; i++) // extract bottom/top von Mises stress
+            elmRes[i].push_back(field(nf-1+i,iel));
+    }
+    else for (Vector& v : elmRes)
+      v.resize(v.size()+pch->getNoElms(true),utl::RETAIN);
+
+  const char* vms[2] = { "Bottom von Mises stress", "Top von Mises stress" };
+  const char** q = vms;
+  bool ok = true;
+  for (int i = 0; i < 2 && ok; i++, q++)
+    ok = this->writeGlvE(elmRes[i],iStep,nBlock,*q,idB++,true);
+
+  return ok ? idB : -5;
 }
 
 

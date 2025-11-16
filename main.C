@@ -360,6 +360,17 @@ int main (int argc, char** argv)
   if (!model->preprocess({},fixDup))
     return terminate(2);
 
+  // Lambda function ignoring comment lines from an input stream.
+  auto&& ignoreComment = [](std::istream& is)
+  {
+    char c = '\0';
+    while (is.get(c) && c == '#')
+      is.ignore(512,'\n');
+    if (is)
+      is.putback(c);
+    return is.good();
+  };
+
   std::array<Vector,2> displ;
   if (!disfiles.empty())
   {
@@ -368,11 +379,9 @@ int main (int argc, char** argv)
     size_t ndof = model->getNoDOFs();
     displ.back().resize(ndof);
     for (size_t ldof = 0; ldof < disfiles.size() && ldof < 6; ldof++)
-    {
-      std::ifstream ifs(disfiles[ldof]);
-      for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
-        ifs >> displ.back()[idof];
-    }
+      if (std::ifstream ifs(disfiles[ldof]); ignoreComment(ifs))
+        for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
+          ifs >> displ.back()[idof];
   }
 
   if (xmlfile)
@@ -547,7 +556,7 @@ int main (int argc, char** argv)
       // Read mode shapes from external file
       std::string firstLine;
       std::ifstream ifs(resfiles.front());
-      if (std::getline(ifs,firstLine))
+      if (ignoreComment(ifs) && std::getline(ifs,firstLine))
       {
         // Use the first line to count the number of modes
         RealArray values;
@@ -606,24 +615,42 @@ int main (int argc, char** argv)
     if (!resfiles.empty())
     {
       // Write external results (from OSP calculations)
+      if (!nodalR) data.resize(model->getNoShellElms());
       std::vector<Vectors> extResults(resfiles.size());
       std::vector<double> times;
       for (size_t i = 0; i < resfiles.size(); i++)
       {
         std::ifstream ifs(resfiles[i]);
-        ifs >> time;
+        if (ignoreComment(ifs))
+          ifs >> time;
+#ifdef INT_DEBUG
+        std::cout <<"\nTimes:";
+#endif
         while (ifs.good())
         {
+#ifdef INT_DEBUG
+          std::cout <<" "<< time;
+#endif
           if (i == 0) times.push_back(time);
           for (double& val : data) ifs >> val;
-          extResults[i].push_back(data);
+          if (nodalR || data.size() == model->getNoElms(true))
+            extResults[i].emplace_back(data);
+          else
+            extResults[i].emplace_back(model->expandElmVec(data));
           ifs >> time;
         }
-        if (!nStep || nStep > extResults[i].size())
+        if (!nStep)
           nStep = extResults[i].size();
+        else if (nStep != extResults[i].size())
+        {
+          std::cerr <<"\n *** Incompatible OSP result files, nStep = "
+                    << extResults[i].size() <<" (previously "<< nStep
+                    <<")."<< std::endl;
+          return terminate(19);
+        }
       }
 
-      IFEM::cout <<"Writing "<< nStep <<" steps"<< std::endl;
+      IFEM::cout <<"\nWriting "<< nStep <<" steps"<< std::endl;
       for (iStep = 1; iStep <= nStep; iStep++)
       {
         int jdBlock = idBlock;
