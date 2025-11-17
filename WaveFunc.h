@@ -16,6 +16,8 @@
 
 #include "Function.h"
 
+namespace tinyxml2 { class XMLElement; }
+
 
 /*!
   \brief A scalar-valued spatial function, wave spectrum (sum of sines).
@@ -23,28 +25,39 @@
 
 class WaveSpectrum : public RealFunc
 {
+protected:
   //! \brief A struct describing a single wave component of a spectrum.
   struct Component
   {
-    int    id = 0;      //!< Component id
-    double Ampl = 0.0;  //!< Amplitude
-    double omega = 0.0; //!< Angular frequency
-    double eps = 0.0;   //!< phase shift
+    int    id;    //!< Component id
+    double Ampl;  //!< Amplitude
+    double omega; //!< Angular frequency
+    double eps;   //!< phase shift
+
+    //! \brief Default constructor.
+    Component(double h = 0.0, double w = 0.0, double e = 0.0)
+      : id(0), Ampl(h), omega(w), eps(e) {}
   };
 
   std::vector<Component> wave;  //!< Wave component container
   double                 alpha; //!< Wave direction angle (w.r.t. global X-axis)
+  double                 vs;    //!< Vessel speed (against the wave direction)
   double                 grav;  //!< Gravitation constant
   double                 time;  //!< Ramp-up time
   std::vector<Vec3>      delta; //!< Spatial point offsets
 
+  //! \brief The default constructor is protected, used by sub-classes only.
+  WaveSpectrum(double a = 0.0, double v = 0.0, double g = 9.81, double t0 = 0.0)
+    : alpha(a), vs(v), grav(g), time(t0) {}
+
 public:
   //! \brief Constructor initializing the function parameters from a file.
   //! \param[in] file Name of file to read wave spectrum from
-  //! \param[in] angle Wave direction angle (w.r.t. to positive global X-axis)
+  //! \param[in] a Wave direction angle (w.r.t. to positive global X-axis)
+  //! \param[in] v Vessel speed (against the wave direction)
   //! \param[in] g Gravitation constant
   //! \param[in] t0 Ramp-up time
-  WaveSpectrum(const char* file, double angle, double g, double t0 = 0.0);
+  WaveSpectrum(const char* file, double a, double v, double g, double t0 = 0.0);
 
   //! \brief Returns whether the function is identically zero or not.
   bool isZero() const override { return wave.empty(); }
@@ -54,9 +67,40 @@ public:
   //! \brief Sets an additional parameter in the function.
   void setParam(const std::string& name, double value) override;
 
+  //! \brief Static method creating a WaveSpectrum instance.
+  //! \param[in] elem XML-element to parse function parameters from.
+  //! \param[in] g Gravitation constant
+  static RealFunc* parse(const tinyxml2::XMLElement* elem, double g);
+
 protected:
+  //! \brief Common initializer (used by constructors only).
+  void init();
+
   //! \brief Evaluates the sea elevation function.
   double evaluate(const Vec3& X) const override;
+};
+
+
+/*!
+  \brief A scalar-valued spatial function, Pierson-Moskovitz wave spectrum.
+*/
+
+class PiersonMoskovitz : public WaveSpectrum
+{
+public:
+  //! \brief The constructor realizes the Pierson-Moskowitz wave spectrum.
+  //! \param[in] Hs Significant wave height
+  //! \param[in] Tp Spectral peak period
+  //! \param[in] Twm Total length of wave maker time span
+  //! \param[in] fmin Minimum frequency to consider
+  //! \param[in] fmax Maximum frequency to consider
+  //! \param[in] a Wave direction angle (w.r.t. to positive global X-axis)
+  //! \param[in] v Vessel speed (against the wave direction)
+  //! \param[in] g Gravitation constant
+  //! \param[in] t0 Ramp-up time
+  PiersonMoskovitz(double Hs, double Tp, double Twm,
+                   double fmin, double fmax,
+                   double a, double v, double g, double t0);
 };
 
 

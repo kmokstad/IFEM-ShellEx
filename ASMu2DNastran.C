@@ -17,6 +17,7 @@
 #include "BeamProperty.h"
 #include "ElementBlock.h"
 #include "MPC.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Profiler.h"
 #include "IFEM.h"
@@ -408,8 +409,7 @@ bool ASMu2DNastran::read (std::istream& is)
   {
     std::string name = g->second->getName() + "_" + std::to_string(g->first);
     for (const GroupElemRef& elm : *g->second)
-      if (std::find(beamElms.begin(),beamElms.end(),
-                    elm->getID()) == beamElms.end())
+      if (utl::findIndex(beamElms,elm->getID()) < 0)
         this->addToElemSet(name,elm->getID(),true);
       else
         IFEM::cout <<"  ** Ignoring beam element "<< elm->getID()
@@ -455,17 +455,11 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
   beamElms.push_back(eId);
   beamMNPC.push_back(mnpc);
   for (int& inod : beamMNPC.back())
-  {
-    int node = MLGN[inod];
-    IntVec::iterator it = std::find(beamNodes.begin(),beamNodes.end(),node);
-    if (it == beamNodes.end())
+    if (int node = MLGN[inod]; (inod = utl::findIndex(beamNodes,node)) < 0)
     {
       beamNodes.push_back(node);
       inod = beamNodes.size() - 1;
     }
-    else
-      inod = it - beamNodes.begin();
-  }
 
   BeamProps& bprop = myBprops[eId];
   FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
@@ -895,6 +889,34 @@ bool ASMu2DNastran::getShellNormals (std::vector<Vec3Pair>& normals) const
 
 
 #ifdef HAS_ANDES
+extern "C" void ifem_elaxes_(const int& nelnod, const double* Xnod,
+                             double* eX, double* eY, double* eZ, int& ierr);
+#endif
+
+/*!
+  This method calculates and prints out the globalized shell surface axes.
+*/
+
+void ASMu2DNastran::printElmInfo (int iel, const IntegrandBase* integr) const
+{
+  if (integr && integr->getNoFields(2) <= 2) return;
+
+#ifdef HAS_ANDES
+  if (Matrix Xnod; this->getElementCoordinates(Xnod,iel))
+  {
+    double tmp[9];
+    int ierr, nelnod = Xnod.cols();
+    ifem_elaxes_(nelnod,Xnod.ptr(),tmp,tmp+3,tmp+6,ierr);
+    if (ierr == 0)
+      IFEM::cout <<"\teX = "<< Vec3(tmp) <<"\teY = "<< Vec3(tmp+3) << std::endl;
+  }
+#else
+  IFEM::cout <<"\tXc = "<< this->getElementCenter(iel) << std::endl;
+#endif
+}
+
+
+#ifdef HAS_ANDES
 extern "C" void wavgmconstreqn_(const int& iel, const int& lDof,
                                 const int& nM, const int& nW, const int* indC,
                                 const double* tenc, const double* weight,
@@ -1041,6 +1063,7 @@ ElementBlock* ASMu2DNastran::sensorGeometry (int idx, bool nodal) const
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const int*, char) const
 {
+  sField.clear();
   return this->evalSecSolution(sField,integr,true);
 }
 
@@ -1048,30 +1071,38 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const RealArray*, bool atElmCenters) const
 {
+  sField.clear();
   return this->evalSecSolution(sField,integr,!atElmCenters);
 }
 
 
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
-                                  const IntVec& elements) const
+                                  const IntVec& elements,
+                                  const RealArray* lpar) const
 {
-  return this->evalSecSolution(sField,integr,false,elements);
+  sField.clear();
+  return this->evalSecSolution(sField,integr,false,elements,lpar);
 }
 
 
 /*!
   This method evaluates the secondary solution at either the element nodes
   and then performs nodal averaging to obtain the unique nodal values,
-  or perform direct evaluation at the element centers.
+  or perform direct evaluation at the element centers. It can also evaluate at
+  specified internal points of the elements, by interpolating the nodal values.
+
   It is assumed that all calculations are performed by the
   IntegrandBase::evalSol() call, therefore no basis function evaluations here.
 */
 
 bool ASMu2DNastran::evalSecSolution (Matrix& sField,
                                      const IntegrandBase& integr, bool atNodes,
-                                     const IntVec& elements) const
+                                     const IntVec& elements,
+                                     const RealArray* lpar) const
 {
-  sField.clear();
+  size_t nIp = lpar ? std::min(lpar->size(),elements.size()) : 0;
+  if (nIp > 0) atNodes = true; // Need to do nodal averaging. Although only
+  // a few nodal values are needed we calculate for all, for the simplicity.
 
   FiniteElement fe;
   Vector        solPt;
@@ -1079,16 +1110,26 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
   IntVec        checkPt(atNodes ? nnod : 0,0);
 
   // Number of evaluation points
-  size_t npt = atNodes ? nnod : (elements.empty() ? nel : elements.size());
-  size_t ipt = 0;
+  size_t npt = elements.empty() ? nel : elements.size();
+  size_t ipt = sField.cols();
+  if (ipt > 0 && !atNodes) // append to existing results
+    sField.resize(sField.rows(),ipt+npt);
 
   // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 1; iel <= nel; iel++)
     if ((fe.iel = MLGE[iel-1]) > 0) // ignore the zero-area elements
     {
-      if (!atNodes && !elements.empty() &&
-          std::find(elements.begin(),elements.end(),iel) == elements.end())
-        continue;
+      if (!atNodes)
+      {
+        if (elements.empty())
+        {
+          // Consider 3- and 4-noded elements only
+          if (MNPC[iel-1].size() < 3)
+            continue;
+        }
+        else if (utl::findIndex(elements,iel) < 0)
+          continue;
+      }
 
       if (!this->getElementCoordinates(fe.Xn,iel))
         return false;
@@ -1117,9 +1158,8 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
           return false;
         else if (solPt.empty())
           break; // a valid element with no secondary solution
-
-        if (sField.empty())
-          sField.resize(solPt.size(),npt,true);
+        else if (sField.empty() && !atNodes)
+          sField.resize(solPt.size(),npt);
 
         if (!atNodes)
           sField.fillColumn(++ipt,solPt);
@@ -1131,9 +1171,27 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
     }
 
   // Nodal averaging
+  Matrix  tmpSol;
+  Matrix& nodalSol = nIp > 0 ? tmpSol : sField;
+  if (atNodes)
+    nodalSol.resize(globSolPt.front().size(),globSolPt.size());
+  else
+    sField.resize(sField.rows(),ipt);
   for (size_t i = 0; i < checkPt.size(); i++)
     if (checkPt[i])
-      sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
+      nodalSol.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
+
+  if (nIp > 0) // Interpolate the nodal averaged field at specified points
+  {
+    if (!this->evalSolution(sField,nodalSol.toVec(),elements,lpar))
+      return false;
+    else if (nIp == elements.size())
+      return true;
+
+    // Calculate and append the element center results
+    IntVec elmCtr(elements.begin()+nIp,elements.end());
+    return this->evalSecSolution(sField,integr,false,elmCtr);
+  }
 
   return true;
 }
