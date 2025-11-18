@@ -309,7 +309,7 @@ end subroutine IFEM_ANDES4
 
 
 !> @brief Calculates the constant FE stresses of a 3-noded shell element.
-subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
+subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
 
   use KindModule                    , only : dp
   use StrainAndStressUtilitiesModule, only : getShellElementAxes
@@ -322,14 +322,14 @@ subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   integer , intent(in)  :: iEL
   real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny
   real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
-  real(dp), intent(out) :: SR(6)      !< Constant stress resultants
+  real(dp), intent(out) :: SR(6)      !< Constant stress resultants or strains
   real(dp), intent(out) :: Sigma(6)   !< Constant stresses
+  logical , intent(in)  :: lStrain    !< If .true. return the strains in SR
   integer , intent(out) :: IERR
 
   !! Local variables
   integer  :: i
-  real(dp) :: T_el(3,3), Cmat(3,3), eps(6)
-  real(dp) :: vld(neldof), B_L(3,neldof), B_U(3,neldof)
+  real(dp) :: T_el(3,3), Cmat(3,3), vld(neldof), B_L(3,neldof), B_U(3,neldof)
 
   !! --- Logic section ---
 
@@ -347,11 +347,11 @@ subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   end do
 
   !! Strains at upper and lower surface
-  eps(1:3) = matmul(B_U,vld)
-  eps(4:6) = matmul(B_L,vld)
+  SR(1:3) = matmul(B_U,vld)
+  SR(4:6) = matmul(B_L,vld)
 
   !! Transform to stress output coordinate system
-  call transform2Dstrain (T_el(1,:), T_el(3,:), eps, LPU, IERR)
+  call transform2Dstrain (T_el(1,:), T_el(3,:), SR, LPU, IERR)
   if (ierr /= 0) goto 999
 
   !! Set up the constitutive matrix
@@ -363,11 +363,13 @@ subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   Cmat(2,2) = Cmat(1,1)
   Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
 
-  !! Consant stresses
-  Sigma(1:3) = matmul(Cmat,eps(1:3))
-  Sigma(4:6) = matmul(Cmat,eps(4:6))
+  !! Constant stresses
+  Sigma(1:3) = matmul(Cmat,SR(1:3))
+  Sigma(4:6) = matmul(Cmat,SR(4:6))
 
-  !! Constand stress resultants
+  if (lStrain) return ! return the strain components
+
+  !! Constant stress resultants
   SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
   SR(4:6) = (Sigma(1:3) - Sigma(4:6)) * Thick*Thick/12.0_dp
 
@@ -379,7 +381,7 @@ end subroutine IFEM_STRS23
 
 
 !> @brief Calculates FE stresses at the center of a 4-noded shell element.
-subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
+subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
 
   use KindModule                    , only : dp
   use PmatModule                    , only : pMatStiff
@@ -395,11 +397,12 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
   real(dp), intent(out) :: SR(6)      !< Stress resultants at element centre
   real(dp), intent(out) :: Sigma(6)   !< Stresses at element center
+  logical , intent(in)  :: lStrain    !< If .true. return strains in SR
   integer , intent(out) :: IERR
 
   !! Local variables
   integer  :: i
-  real(dp) :: T_el(3,3), Cmat(3,3), eps(6), Xnod(3,nelnod)
+  real(dp) :: T_el(3,3), Cmat(3,3), Xnod(3,nelnod)
   real(dp) :: PMAT(neldof,neldof), vld(neldof), B_L(3,neldof), B_U(3,neldof)
 
   !! --- Logic section ---
@@ -433,11 +436,11 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   end do
 
   !! Strains at element center, upper and lower surface
-  eps(1:3) = matmul(B_U,vld)
-  eps(4:6) = matmul(B_L,vld)
+  SR(1:3) = matmul(B_U,vld)
+  SR(4:6) = matmul(B_L,vld)
 
   !! Transform to stress output coordinate system
-  call transform2Dstrain (T_el(1,:), T_el(3,:), eps, LPU, IERR)
+  call transform2Dstrain (T_el(1,:), T_el(3,:), SR, LPU, IERR)
   if (ierr /= 0) goto 999
 
   !! Set up the constitutive matrix
@@ -450,8 +453,10 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
 
   !! Stresses at element centre
-  Sigma(1:3) = matmul(Cmat,eps(1:3))
-  Sigma(4:6) = matmul(Cmat,eps(4:6))
+  Sigma(1:3) = matmul(Cmat,SR(1:3))
+  Sigma(4:6) = matmul(Cmat,SR(4:6))
+
+  if (lStrain) return ! return the strains
 
   !! Stress resultants at element centre
   SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
