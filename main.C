@@ -78,6 +78,7 @@ namespace ASM {
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
   \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
+  \arg -dumpXML : Dump the mesh to specified XML-file
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
   \arg -keep-previous-state : Use previous state when evaluating the
@@ -103,6 +104,7 @@ int main (int argc, char** argv)
   bool dumpNodeMap = false;
   char* infile = nullptr;
   char* bdfile = nullptr;
+  char* xmlfile = nullptr;
   ElasticityArgs args;
   std::vector<std::string> resfiles, grpfiles, locfiles, disfiles;
 
@@ -197,6 +199,11 @@ int main (int argc, char** argv)
       dumpNodeMap = true;
     else if (!strncmp(argv[i],"-split",6))
       splitM = true;
+    else if (!strncmp(argv[i],"-dumpXML",8) && i+1 < argc)
+    {
+      if (argv[i+1][0] != '-')
+        xmlfile = argv[++i];
+    }
     else if (!infile && strcasestr(argv[i],".xinp") && !bdfile)
     {
       infile = argv[i];
@@ -260,10 +267,10 @@ int main (int argc, char** argv)
 
     showUsage({"<inputfile>","[-dense|-spr|-superlu[<nt>]|-samg|-petsc]",
                "[-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]",
-               "[-free]","[-time <t>]","[-check]","[-ignoreSol]",
-               "[-mlc|-qstatic|-dynamic|-modes]","[-keep-previous-state]",
+               "[-free]","[-time <t>]","[-keep-previous-state]",
+               "[-check|-ignoreSol|-mlc|-qstatic|-dynamic|-modes]",
                "[-vtf <format> [-vtfres <files>] [-vtfgrp <files>] [-vizRHS] "
-               "[-no-vtfmass]]",
+               "[-no-vtfmass]]","[-dumpXML <filename>]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noMasses]","[-noBeams]","[-noEccs]",
                "[-noSets]","[-noRBE3]","[-split]"});
@@ -353,6 +360,17 @@ int main (int argc, char** argv)
   if (!model->preprocess({},fixDup))
     return terminate(2);
 
+  // Lambda function ignoring comment lines from an input stream.
+  auto&& ignoreComment = [](std::istream& is)
+  {
+    char c = '\0';
+    while (is.get(c) && c == '#')
+      is.ignore(512,'\n');
+    if (is)
+      is.putback(c);
+    return is.good();
+  };
+
   std::array<Vector,2> displ;
   if (!disfiles.empty())
   {
@@ -361,11 +379,15 @@ int main (int argc, char** argv)
     size_t ndof = model->getNoDOFs();
     displ.back().resize(ndof);
     for (size_t ldof = 0; ldof < disfiles.size() && ldof < 6; ldof++)
-    {
-      std::ifstream ifs(disfiles[ldof]);
-      for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
-        ifs >> displ.back()[idof];
-    }
+      if (std::ifstream ifs(disfiles[ldof]); ignoreComment(ifs))
+        for (size_t idof = ldof; ifs.good() && idof < ndof; idof += incd)
+          ifs >> displ.back()[idof];
+  }
+
+  if (xmlfile)
+  {
+    IFEM::cout <<"\nDumping shell mesh to file "<< xmlfile << std::endl;
+    model->dumpShellMesh(xmlfile);
   }
 
   // Open HDF5 result database, if requested
@@ -534,7 +556,7 @@ int main (int argc, char** argv)
       // Read mode shapes from external file
       std::string firstLine;
       std::ifstream ifs(resfiles.front());
-      if (std::getline(ifs,firstLine))
+      if (ignoreComment(ifs) && std::getline(ifs,firstLine))
       {
         // Use the first line to count the number of modes
         RealArray values;
@@ -593,24 +615,42 @@ int main (int argc, char** argv)
     if (!resfiles.empty())
     {
       // Write external results (from OSP calculations)
+      if (!nodalR) data.resize(model->getNoShellElms());
       std::vector<Vectors> extResults(resfiles.size());
       std::vector<double> times;
       for (size_t i = 0; i < resfiles.size(); i++)
       {
         std::ifstream ifs(resfiles[i]);
-        ifs >> time;
+        if (ignoreComment(ifs))
+          ifs >> time;
+#ifdef INT_DEBUG
+        std::cout <<"\nTimes:";
+#endif
         while (ifs.good())
         {
+#ifdef INT_DEBUG
+          std::cout <<" "<< time;
+#endif
           if (i == 0) times.push_back(time);
           for (double& val : data) ifs >> val;
-          extResults[i].push_back(data);
+          if (nodalR || data.size() == model->getNoElms(true))
+            extResults[i].emplace_back(data);
+          else
+            extResults[i].emplace_back(model->expandElmVec(data));
           ifs >> time;
         }
-        if (!nStep || nStep > extResults[i].size())
+        if (!nStep)
           nStep = extResults[i].size();
+        else if (nStep != extResults[i].size())
+        {
+          std::cerr <<"\n *** Incompatible OSP result files, nStep = "
+                    << extResults[i].size() <<" (previously "<< nStep
+                    <<")."<< std::endl;
+          return terminate(19);
+        }
       }
 
-      IFEM::cout <<"Writing "<< nStep <<" steps"<< std::endl;
+      IFEM::cout <<"\nWriting "<< nStep <<" steps"<< std::endl;
       for (iStep = 1; iStep <= nStep; iStep++)
       {
         int jdBlock = idBlock;

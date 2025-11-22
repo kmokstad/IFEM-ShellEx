@@ -12,16 +12,61 @@
 //==============================================================================
 
 #include "WaveFunc.h"
+#include "Utilities.h"
+#include "IFEM.h"
+#include "tinyxml2.h"
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
 
 
-WaveSpectrum::WaveSpectrum (const char* file, double angle, double g, double t0)
-  : alpha(angle), grav(g), time(t0)
+RealFunc* WaveSpectrum::parse (const tinyxml2::XMLElement* elem, double g)
 {
+  double Hs = 0.0, Tp = 1.0, Twm = 100.0, fmin = 0.1, fmax = 10.0;
+  if (elem->FirstChild())
+    IFEM::cout <<": file = "<< elem->FirstChild()->Value();
+  else if (utl::getAttribute(elem,"Hs",Hs))
+  {
+    IFEM::cout <<": Hs = "<< Hs;
+    if (utl::getAttribute(elem,"Tp",Tp))
+      IFEM::cout <<" Tp = "<< Tp;
+    if (utl::getAttribute(elem,"Twm",Twm))
+      IFEM::cout <<" Twm = "<< Twm;
+    if (utl::getAttribute(elem,"fmin",fmin))
+      IFEM::cout <<" fmin = "<< fmin;
+    if (utl::getAttribute(elem,"fmax",fmax))
+      IFEM::cout <<" fmax = "<< fmax;
+  }
+  else
+  {
+    IFEM::cout <<" (invalid specification, ignored).\n";
+    return nullptr;
+  }
+
+  double angle = 180.0, vs = 0.0, rampT = 0.0;
+  if (utl::getAttribute(elem,"angle",angle))
+    IFEM::cout <<", wave angle = "<< angle;
+  if (utl::getAttribute(elem,"speed",vs))
+    IFEM::cout <<", vessel speed = "<< vs;
+  if (utl::getAttribute(elem,"ramp",rampT) && rampT > 0.0)
+    IFEM::cout <<", ramp up time = "<< rampT;
+
+  if (elem->FirstChild())
+    return new WaveSpectrum(elem->FirstChild()->Value(),angle,vs,g,rampT);
+  else
+    return new PiersonMoskovitz(Hs,Tp,Twm,fmin,fmax,angle,vs,g,rampT);
+}
+
+
+WaveSpectrum::WaveSpectrum (const char* file,
+                            double a, double v, double g, double t0)
+  : alpha(a), vs(v), grav(g), time(t0)
+{
+  this->init();
+
   std::ifstream is(file);
   if (!is)
   {
@@ -38,7 +83,43 @@ WaveSpectrum::WaveSpectrum (const char* file, double angle, double g, double t0)
     str >> wc.id >> wc.Ampl >> wc.omega >> wc.eps;
     wave.emplace_back(wc);
   }
+}
 
+
+PiersonMoskovitz::PiersonMoskovitz (double Hs, double Tp, double Twm,
+                                    double fmin, double fmax,
+                                    double a, double v, double g, double t0)
+  : WaveSpectrum(a,v,g,t0)
+{
+  this->init();
+
+  const size_t Nspectr = (fmax - fmin) * Twm;
+  const double twoPi   = 2.0 * M_PI;
+  const double omega_p = twoPi / Tp;
+  const double omega_4 = pow(omega_p,4.0);
+
+  // Lambda function generating a Pierson-Moskowitz wave height component.
+  auto S = [Hs,omega_4] (double omega)
+  {
+    return (0.3125 * Hs*Hs * omega_4 * pow(omega,-5.0) *
+            exp(-1.25*pow(omega,-4.0)/omega_4));
+  };
+
+  wave.reserve(Nspectr);
+  double omega = twoPi * fmin;
+  double domega = twoPi / Twm;
+
+  srand(0); // we want the same random series for each run
+  for (size_t i = 0; i < Nspectr; i++, omega += domega)
+  {
+    double phi = twoPi * rand() / static_cast<double>(RAND_MAX);
+    wave.emplace_back(sqrt(2.0 * S(omega) * domega), omega, phi);
+  }
+}
+
+
+void WaveSpectrum::init ()
+{
   alpha *= M_PI/180.0; // Convert to radians
 
 #ifdef USE_OPENMP
@@ -77,7 +158,7 @@ double WaveSpectrum::evaluate (const Vec3& X) const
 #endif
 
   double XoG = ((X.x+delta[i].x)*cos(alpha) +
-                (X.y+delta[i].y)*sin(alpha)) / grav;
+                (X.y+delta[i].y)*sin(alpha) + vs*t) / grav;
 
   double res = 0.0;
   for (const Component& w : wave)

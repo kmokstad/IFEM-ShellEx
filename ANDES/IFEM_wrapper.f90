@@ -308,14 +308,86 @@ contains
 end subroutine IFEM_ANDES4
 
 
+!> @brief Calculates the constant FE stresses of a 3-noded shell element.
+subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
+
+  use KindModule                    , only : dp
+  use StrainAndStressUtilitiesModule, only : getShellElementAxes
+  use StrainAndStressUtilitiesModule, only : strainDispCST
+  use StrainAndStressUtilitiesModule, only : transform2Dstrain
+
+  implicit none
+
+  integer , parameter   :: nelnod = 3, neldof = 6*nelnod, LPU = 6
+  integer , intent(in)  :: iEL
+  real(dp), intent(in)  :: X0(3,nelnod), Thick, Emod, Rny
+  real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
+  real(dp), intent(out) :: SR(6)      !< Constant stress resultants or strains
+  real(dp), intent(out) :: Sigma(6)   !< Constant stresses
+  logical , intent(in)  :: lStrain    !< If .true. return the strains in SR
+  integer , intent(out) :: IERR
+
+  !! Local variables
+  integer  :: i
+  real(dp) :: T_el(3,3), Cmat(3,3), vld(neldof), B_L(3,neldof), B_U(3,neldof)
+
+  !! --- Logic section ---
+
+  !! Compute the global-to-local transformation matrix
+  call getShellElementAxes (nelnod, X0(1,:), X0(2,:), X0(3,:), &
+       &                    T_el(1,:), T_el(2,:), T_el(3,:), LPU, IERR)
+
+  !! Evaluate the strain-displacement matrix (constant)
+  call StrainDispCST (6, X0(1,:), X0(2,:), X0(3,:), T_el, 0.5_dp*Thick, B_U)
+  call StrainDispCST (6, X0(1,:), X0(2,:), X0(3,:), t_el,-0.5_dp*Thick, B_L)
+
+  !! Form local coordinate displacement vector
+  do i = 1, neldof, 3
+     vld(i:i+2) = matmul(T_el,EV(i:i+2))
+  end do
+
+  !! Strains at upper and lower surface
+  SR(1:3) = matmul(B_U,vld)
+  SR(4:6) = matmul(B_L,vld)
+
+  !! Transform to stress output coordinate system
+  call transform2Dstrain (T_el(1,:), T_el(3,:), SR, LPU, IERR)
+  if (ierr /= 0) goto 999
+
+  !! Set up the constitutive matrix
+
+  Cmat = 0.0_dp
+  Cmat(1,1) = Emod*Thick / (1.0_dp - Rny*Rny)
+  Cmat(1,2) = Rny * Cmat(1,1)
+  Cmat(2,1) = Cmat(1,2)
+  Cmat(2,2) = Cmat(1,1)
+  Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
+
+  !! Constant stresses
+  Sigma(1:3) = matmul(Cmat,SR(1:3))
+  Sigma(4:6) = matmul(Cmat,SR(4:6))
+
+  if (lStrain) return ! return the strain components
+
+  !! Constant stress resultants
+  SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
+  SR(4:6) = (Sigma(1:3) - Sigma(4:6)) * Thick*Thick/12.0_dp
+
+  return
+
+999 write(lpu,*) '*** Failed to compute stresses for element',iEL
+
+end subroutine IFEM_STRS23
+
+
 !> @brief Calculates FE stresses at the center of a 4-noded shell element.
-subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
+subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
 
   use KindModule                    , only : dp
   use PmatModule                    , only : pMatStiff
   use StrainAndStressUtilitiesModule, only : getShellElementAxes
-  use StrainAndStressUtilitiesModule, only : getShellStressTrans
   use StrainAndStressUtilitiesModule, only : strainDispQuad4
+  use StrainAndStressUtilitiesModule, only : transform2Dstrain
 
   implicit none
 
@@ -325,11 +397,12 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
   real(dp), intent(out) :: SR(6)      !< Stress resultants at element centre
   real(dp), intent(out) :: Sigma(6)   !< Stresses at element center
+  logical , intent(in)  :: lStrain    !< If .true. return strains in SR
   integer , intent(out) :: IERR
 
   !! Local variables
   integer  :: i
-  real(dp) :: T_el(3,3), T_str(2,2), Cmat(3,3), epsU(3), epsL(3), Xnod(3,nelnod)
+  real(dp) :: T_el(3,3), Cmat(3,3), Xnod(3,nelnod)
   real(dp) :: PMAT(neldof,neldof), vld(neldof), B_L(3,neldof), B_U(3,neldof)
 
   !! --- Logic section ---
@@ -342,10 +415,6 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   !! Compute the global-to-local transformation matrix
   call getShellElementAxes (nelnod, Xnod(1,:), Xnod(2,:), Xnod(3,:), &
        &                    T_el(1,:), T_el(2,:), T_el(3,:), LPU, IERR)
-  if (ierr /= 0) goto 999
-
-  !! Compute the 2D stress transformation matrix
-  call getShellStressTrans (T_el(1,:), T_el(3,:), T_str, LPU, IERR)
   if (ierr /= 0) goto 999
 
   !! Evaluate the strain-displacement matrix in the element center
@@ -367,12 +436,12 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   end do
 
   !! Strains at element center, upper and lower surface
-  epsU = matmul(B_U,vld)
-  epsL = matmul(B_L,vld)
+  SR(1:3) = matmul(B_U,vld)
+  SR(4:6) = matmul(B_L,vld)
 
   !! Transform to stress output coordinate system
-  call traStrain (epsU,T_str)
-  call traStrain (epsL,T_str)
+  call transform2Dstrain (T_el(1,:), T_el(3,:), SR, LPU, IERR)
+  if (ierr /= 0) goto 999
 
   !! Set up the constitutive matrix
 
@@ -384,8 +453,10 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
   Cmat(3,3) = 0.5_dp * Emod*Thick / (1.0_dp + Rny)
 
   !! Stresses at element centre
-  Sigma(1:3) = matmul(Cmat,epsU)
-  Sigma(4:6) = matmul(Cmat,epsL)
+  Sigma(1:3) = matmul(Cmat,SR(1:3))
+  Sigma(4:6) = matmul(Cmat,SR(4:6))
+
+  if (lStrain) return ! return the strains
 
   !! Stress resultants at element centre
   SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
@@ -395,20 +466,38 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, IERR)
 
 999 write(lpu,*) '*** Failed to compute stresses for element',iEL
 
-contains
-
-  !> @brief Transforms a 2D strain tensor.
-  subroutine traStrain (eps,T_str)
-#ifdef HAS_FFLLIB
-    use FFaTensorTransformsInterface, only : tratensor
-#endif
-    real(dp), intent(inout) :: eps(3)
-    real(dp), intent(in)    :: T_str(2,2)
-#ifdef HAS_FFLLIB
-    eps(3) = 0.5_dp * eps(3) ! to tensorial shear strain, epsilon_xy
-    call tratensor (2,eps,T_str)
-    eps(3) = 2.0_dp * eps(3) ! back to enginering shear strain, gamma_xy
-#endif
-  end subroutine traStrain
-
 end subroutine IFEM_STRS24
+
+
+!> @brief Calculates the globalized shell element axes.
+subroutine IFEM_ELAXES (nelnod, X0, eX, eY, eZ, IERR)
+
+  use KindModule                    , only : dp
+  use StrainAndStressUtilitiesModule, only : getShellElementAxes
+
+  implicit none
+
+  integer , parameter   :: LPU = 6
+  integer , intent(in)  :: nelnod
+  real(dp), intent(in)  :: X0(3,nelnod)
+  real(dp), intent(out) :: eX(3), eY(3), eZ(3)
+  integer , intent(out) :: IERR
+
+  !! Local variables
+  real(dp) :: Xnod(3,4)
+
+  !! --- Logic section ---
+
+  if (nelnod == 4) then
+     !! Need to swap element nodes 3 and 4
+     Xnod(:,1:2) = X0(:,1:2)
+     Xnod(:,3) = X0(:,4)
+     Xnod(:,4) = X0(:,3)
+     call getShellElementAxes (nelnod, Xnod(1,:), Xnod(2,:), Xnod(3,:), &
+          &                    eX, eY, eZ, LPU, IERR, .true.)
+  else
+     call getShellElementAxes (nelnod, X0(1,:), X0(2,:), X0(3,:), &
+          &                    eX, eY, eZ, LPU, IERR, .true.)
+  end if
+
+end subroutine IFEM_ELAXES

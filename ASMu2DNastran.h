@@ -70,6 +70,9 @@ public:
   //! \param[out] normals Vector of element-center normal-vector pairs
   bool getShellNormals(std::vector<Vec3Pair>& normals) const;
 
+  //! \brief Prints out additional element information.
+  virtual void printElmInfo(int iel, const IntegrandBase* integr) const;
+
   //! \brief Returns an additional geometry to visualize (point masses, etc.).
   virtual ElementBlock* immersedGeometry(char* name) const;
   //! \brief Returns an additional geometry to visualize (constraints, etc.).

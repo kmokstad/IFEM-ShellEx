@@ -396,4 +396,47 @@ contains
 
   end subroutine getShellStressTrans
 
+
+  !!============================================================================
+  !> @brief Transforms 2D strains to a globalized shell coordinate system.
+  !>
+  !> @param[in] eX X-axis of the element coordinate system
+  !> @param[in] eZ Z-axis of the element coordinate system
+  !> @param eps 2D strain tensor components
+  !> @param[in] lpu File unit number for res-file output
+  !> @param[out] ierr Error flag
+  !>
+  !> @callergraph @callgraph
+  !>
+  !> @author Knut Morten Okstad
+  !>
+  !> @date 11 Nov 2025
+
+  subroutine transform2Dstrain (eX, eZ, eps, lpu, ierr)
+
+    use KindModule                  , only : dp
+    use FFaTensorTransformsInterface, only : tratensor
+
+    real(dp), intent(in)    :: eX(3), eZ(3)
+    real(dp), intent(inout) :: eps(:)
+    integer , intent(in)    :: lpu
+    integer , intent(out)   :: ierr
+
+    !! Local variables
+    integer  :: i
+    real(dp) :: T_str(2,2)
+
+    !! --- Logic section ---
+
+    call getShellStressTrans (eX, eZ, T_str, lpu, ierr)
+    if (ierr < 0) return
+
+    do i = 1, size(eps), 3
+       eps(i+2) = 0.5_dp * eps(i+2) ! to tensorial shear strain, epsilon_xy
+       call tratensor (2,eps(i:i+2),T_str)
+       eps(i+2) = 2.0_dp * eps(i+2) ! back to enginering shear strain, gamma_xy
+    end do
+
+  end subroutine transform2Dstrain
+
 end module StrainAndStressUtilitiesModule
