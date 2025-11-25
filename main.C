@@ -20,6 +20,7 @@
 #include "MultiLoadCaseSim.h"
 #include "DynamicSim.h"
 #include "DataExporter.h"
+#include "Utilities.h"
 #include "Profiler.h"
 #ifdef INT_DEBUG
 #include "SAM.h"
@@ -35,9 +36,10 @@
 #include <unistd.h>
 
 namespace ASM {
-  extern char useBeam;
-  extern bool replRBE3, skipMass, skipVTFmass, readSets;
+  extern char useBeam, skipMass;
+  extern bool skipRBE2, replRBE3, skipLoad, readSets;
   extern double Ktra, Krot;
+  extern std::vector<int> ignoredElms;
 }
 
 
@@ -77,7 +79,10 @@ namespace ASM {
   \arg -noMasses : Ignore point mass elements
   \arg -noBeams : Ignore beam elements
   \arg -noEccs : Ignore beam end offsets
+  \arg -noRBE2 : Ignore all rigid couplings
   \arg -noRBE3 : Replace RBE3 elements by equivalent RBE2 elements
+  \arg -noLoad : Ignore all FE surface loads
+  \arg -ignore \a e1, \a e1, ... : Ignore these elements in the analysis
   \arg -dumpXML : Dump the mesh to specified XML-file
   \arg -dumpNodeMap : Dump Local-to-global node number mapping to HDF5
   \arg -split : Split the model into two material regions
@@ -133,6 +138,9 @@ int main (int argc, char** argv)
       iop = 100;
     else if (!strcmp(argv[i],"-ignoreSol"))
       iop = 200;
+    else if (!strcmp(argv[i],"-ignore"))
+      while (i < argc-1 && isdigit(argv[i+1][0]))
+        utl::parseIntegers(ASM::ignoredElms,argv[++i]);
     else if (!strcmp(argv[i],"-vizRHS"))
       vizRHS = true;
     else if (!strcmp(argv[i],"-noSets"))
@@ -143,8 +151,12 @@ int main (int argc, char** argv)
       ASM::useBeam = 0;
     else if (!strcmp(argv[i],"-noEccs"))
       ASM::useBeam = 2;
+    else if (!strcmp(argv[i],"-noRBE2"))
+      ASM::skipRBE2 = true;
     else if (!strcmp(argv[i],"-noRBE3"))
       ASM::replRBE3 = true;
+    else if (!strcmp(argv[i],"-noLoad"))
+      ASM::skipLoad = true;
     else if (!strcmp(argv[i],"-Kbush"))
     {
       if (i+1 < argc && argv[i+1][0] != '-')
@@ -175,7 +187,7 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-keep-previous-state"))
       nstates = 2; // both current and previous state will reside in core
     else if (!strcmp(argv[i],"-no-vtfmass"))
-      ASM::skipVTFmass = true;
+      ASM::skipMass = 2;
     else if (!strncmp(argv[i],"-vtfres",6))
     {
       while (i+1 < argc && argv[i+1][0] != '-')
@@ -273,7 +285,8 @@ int main (int argc, char** argv)
                "[-no-vtfmass]]","[-dumpXML <filename>]",
                "[-hdf5 [<filename>] [-dumpNodeMap]]","[-fixDup [<tol>]]",
                "[-refsol <files>]","[-noMasses]","[-noBeams]","[-noEccs]",
-               "[-noSets]","[-noRBE3]","[-split]"});
+               "[-noSets]","[-noRBE2]","[-noRBE3]","[-noLoad]",
+               "[-ignore <e1> <e2> ...]","[-split]"});
     delete prof;
     return 0;
   }

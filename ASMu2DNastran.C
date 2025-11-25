@@ -25,13 +25,15 @@
 
 namespace ASM {
   char useBeam = 1; //!< If nonzero, include beam elements as a separate patch
+  char skipMass = 0; //!< 1: ignore one-noded mass elements, 2: no VTF output
+  bool skipRBE2 = false; //!< If \e true, ignore all RBE2 elements
   bool replRBE3 = false; //!< If \e true, convert RBE3 elements to RBE2 elements
-  bool skipMass = false; //!< If \e true, ignore the one-noded mass elements
-  bool skipVTFmass = false; //!< If \e true, skip mass point geometries in VTF
+  bool skipLoad = false; //!< If \e true, ignore all FE surface loads
   bool readSets = true; //!< If \e true, read pre-bulk Nastran SET definitions
   double Ktra = 0.0; //!< Translation stiffness for added springs in slave nodes
   double Krot = 0.0; //!< Rotation stiffness for added sprins in slave nodes
   IntVec fixRBE3; //!< List of RBE3 elements to be constrained
+  IntVec ignoredElms; //!< List of elements to ignore
 }
 
 #ifdef HAS_FFLLIB
@@ -86,12 +88,14 @@ public:
       return false;
 
     // Remove all solid elements (not yet supported),
-    // and (optionally) all the mass and beam elements
+    // and (optionally) all the mass and beam elements, and ...
     ElementsVec toBeErased;
     ElementsCIter it;
     for (it = myLink->elementsBegin(); it != myLink->elementsEnd(); ++it)
       if ((*it)->getCathegory() == FFlTypeInfoSpec::SOLID_ELM ||
-          (ASM::skipMass && (*it)->getTypeName() == "CMASS") ||
+          utl::findIndex(ASM::ignoredElms,(*it)->getID()) >= 0 ||
+          (ASM::skipRBE2 && (*it)->getTypeName() == "RGD") ||
+          (ASM::skipMass == 1 && (*it)->getTypeName() == "CMASS") ||
           (!ASM::useBeam && (*it)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM))
         toBeErased.push_back(*it);
     if (!toBeErased.empty())
@@ -190,17 +194,16 @@ bool ASMu2DNastran::read (std::istream& is)
   }
 
   for (int eId : ASM::fixRBE3)
-  {
-    FFlElementBase* elm = fem.getElement(eId);
-    FFlNode* refNode = elm ? elm->getNode(1) : nullptr;
-    if (refNode && refNode->isRefNode())
-    {
-      // Create a new node co-located with this reference node
-      refNode = fem.createAttachableNode(refNode,refNode->getPos(),
-                                         nullptr,ASM::Ktra,ASM::Krot);
-      if (refNode) refNode->setExternal();
-    }
-  }
+    if (FFlElementBase* elm = fem.getElement(eId); elm)
+      if (FFlNode* refNode = elm->getNode(1); refNode && refNode->isRefNode())
+        if ((refNode = fem.createAttachableNode(refNode,refNode->getPos(),
+                                                nullptr,ASM::Ktra,ASM::Krot)))
+        {
+          refNode->setExternal();
+          IFEM::cout <<"   * Adding External node "<< refNode->getID()
+                     <<" connected to RBE3 reference node "<< elm->getNodeID(1)
+                     << std::endl;
+        }
 
   nnod = fem.getNodeCount(FFlLinkHandler::FFL_FEM);
   nel  = fem.getElementCount(FFlTypeInfoSpec::SHELL_ELM);
@@ -218,9 +221,8 @@ bool ASMu2DNastran::read (std::istream& is)
              << fem.getElementCount(FFlTypeInfoSpec::OTHER_ELM)
              << std::endl;
 #endif
-  size_t allNodes = fem.getNodeCount(FFlLinkHandler::FFL_ALL);
-  if (allNodes > nnod)
-    IFEM::cout <<"\n  ** Warning: This model contains "<< allNodes-nnod
+  if (size_t allN = fem.getNodeCount(FFlLinkHandler::FFL_ALL); allN > nnod)
+    IFEM::cout <<"\n  ** Warning: This model contains "<< allN-nnod
                <<" node(s) without any element connections (ignored)."
                <<"\n     Please check the FE data file.\n"<< std::endl;
 
@@ -328,11 +330,24 @@ bool ASMu2DNastran::read (std::istream& is)
     }
     else if ((*e)->getTypeName() == "WAVGM" && mnpc.size() > 1)
     {
-#if INT_DEBUG > 5
+      unsigned int refCount = (*e)->getNode(1)->getRefCount();
+#ifdef FFL_REFCOUNT
+      if (refCount < 2)
+      {
+        IFEM::cout <<"  ** Ignoring constraint element WAVGM "<< eid
+                   <<" since it's reference node "<< MLGN[mnpc.front()]
+                   <<" is not connected to any other element"<< std::endl;
+	continue;
+      }
+#endif
+#if INT_DEBUG > 1
       std::cout <<"Weighted average motion element "<< eid
                 <<": reference node = "<< MLGN[mnpc.front()]
-                <<"\n\tmasters =";
+                <<" (ref.count = "<< refCount <<")";
+#if INT_DEBUG > 5
+      std::cout <<"\n\tmasters =";
       for (size_t i = 1; i < mnpc.size(); i++) std::cout <<" "<< MLGN[mnpc[i]];
+#endif
       std::cout << std::endl;
 #endif
       spiders.push_back(mnpc);
@@ -364,7 +379,8 @@ bool ASMu2DNastran::read (std::istream& is)
 
   // Extract the pressure loads, if any
   std::set<int> loadCases;
-  fem.getLoadCases(loadCases);
+  if (!ASM::skipLoad)
+    fem.getLoadCases(loadCases);
   for (int lc : loadCases)
   {
     LoadsVec loads;
@@ -462,8 +478,7 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
     }
 
   BeamProps& bprop = myBprops[eId];
-  FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
-  if (mat)
+  if (FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT); mat)
   {
     bprop.Emod = mat->youngsModule.getValue();
     bprop.Gmod = mat->shearModule.getValue();
@@ -473,8 +488,7 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
     IFEM::cout <<"  ** No material attached to element "<< eId
                <<", using default properties"<< std::endl;
 
-  FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(elm,PBEAMSECTION);
-  if (bsec)
+  if (FFlPBEAMSECTION* bsec = GET_ATTRIBUTE(elm,PBEAMSECTION); bsec)
   {
     size_t i = 0;
     for (FFlFieldBase* field : *bsec)
@@ -488,12 +502,10 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
     std::cerr <<" *** No beam cross section attached to beam element "<< eId
               << std::endl;
 
-  FFlPORIENT* bori = GET_ATTRIBUTE(elm,PORIENT);
-  if (bori)
+  if (FFlPORIENT* bori = GET_ATTRIBUTE(elm,PORIENT); bori)
     bprop.Zaxis = Vec3(bori->directionVector.getValue().getPt());
 
-  FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(elm,PBEAMECCENT);
-  if (bEcc && useEcc)
+  if (FFlPBEAMECCENT* bEcc = GET_ATTRIBUTE(elm,PBEAMECCENT); bEcc && useEcc)
     bprop.eccN = {
       -Vec3(bEcc->node1Offset.getValue().getPt()),
       -Vec3(bEcc->node2Offset.getValue().getPt())
@@ -519,8 +531,7 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
 
   // Extract material properties
   ShellProps sprop;
-  FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT);
-  if (mat)
+  if (FFlPMAT* mat = GET_ATTRIBUTE(elm,PMAT); mat)
   {
     sprop.id1  = mat->getID();
     sprop.Emod = mat->youngsModule.getValue();
@@ -532,8 +543,7 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
                <<", using default properties"<< std::endl;
 
   // Extract shell thickness
-  FFlPTHICK* thk = GET_ATTRIBUTE(elm,PTHICK);
-  if (thk)
+  if (FFlPTHICK* thk = GET_ATTRIBUTE(elm,PTHICK); thk)
   {
     sprop.id2   = thk->getID();
     sprop.Thick = thk->thickness.getValue();
@@ -655,8 +665,7 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
   int indC[6] = { -1, -1, -1, 0, 0, 0 };
   std::set<int> refC;
   RealArray weights;
-  FFlPWAVGM* wavgm = GET_ATTRIBUTE(elm,PWAVGM);
-  if (wavgm)
+  if (FFlPWAVGM* wavgm = GET_ATTRIBUTE(elm,PWAVGM); wavgm)
   {
     int div = 100000;
     int dofIds = wavgm->refC.getValue();
@@ -978,7 +987,7 @@ void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
 ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 {
   ElementBlock* geo = nullptr;
-  if (myMass.empty() || ASM::skipVTFmass) return geo;
+  if (myMass.empty() || ASM::skipMass) return geo;
 
   // Let the largest point mass be visualized as a sphere
   // with diameter ~5% of the total length of the structure
