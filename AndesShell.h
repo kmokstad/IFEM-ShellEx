@@ -202,7 +202,7 @@ private:
   double Nu;    //!< Constant Poisson's ratio
   double Rho;   //!< Constant mass density
   bool ovrMat;  //!< If \e true, patch-level material properties are overridden
-  bool lStrain; //!< If \e true, output strains instead of stress resultants
+  int  lStrain; //!< If &gt; 0, output strains instead of stress resultants
 
   double trInside;  //!< Thickness loss level inside given box domain
   double trOutside; //!< Thickness loss level outside given box domain

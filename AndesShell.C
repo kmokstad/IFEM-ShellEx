@@ -45,11 +45,11 @@ extern "C" {
   //! \brief Interface to 3-noded shell stress routine (FORTRAN-90 code).
   void ifem_strs23_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double* Ev,
-                    double* SR, double* Sigma, const bool& lStrain, int& iERR);
+                    double* SR, double* Sigma, const int& lStrain, int& iERR);
   //! \brief Interface to 4-noded shell stress routine (FORTRAN-90 code).
   void ifem_strs24_(const int& iel, const double* X0, const double& Thick,
                     const double& Emod, const double& Rny, const double* Ev,
-                    double* SR, double* Sigma, const bool& lStrain, int& iERR);
+                    double* SR, double* Sigma, const int& lStrain, int& iERR);
 }
 #endif
 
@@ -67,7 +67,8 @@ AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
   Nu    = 0.3;
   Thck0 = 0.1;
   Rho   = 7.85e3;
-  ovrMat = lStrain = false;
+  ovrMat = false;
+  lStrain = 0;
 
 #ifdef USE_OPENMP
   const size_t nthreads = omp_get_max_threads();
@@ -155,7 +156,7 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
       n2v = 6; // only output stress tensor components as secondary variables
     else if (!strcasecmp(elem->Value(),"strainTensor_only"))
     {
-      lStrain = true;
+      lStrain = 1;
       n2v = 6; // only output strain tensor components as secondary variables
     }
     return true; // nothing else here in <postprocessing> context

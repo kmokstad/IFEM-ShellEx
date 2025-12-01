@@ -324,7 +324,7 @@ subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
   real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
   real(dp), intent(out) :: SR(6)      !< Constant stress resultants or strains
   real(dp), intent(out) :: Sigma(6)   !< Constant stresses
-  logical , intent(in)  :: lStrain    !< If .true. return the strains in SR
+  integer , intent(in)  :: lStrain    !< If > 0, return the strains in SR
   integer , intent(out) :: IERR
 
   !! Local variables
@@ -367,7 +367,7 @@ subroutine IFEM_STRS23 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
   Sigma(1:3) = matmul(Cmat,SR(1:3))
   Sigma(4:6) = matmul(Cmat,SR(4:6))
 
-  if (lStrain) return ! return the strain components
+  if (lStrain > 0) return ! return the strain components
 
   !! Constant stress resultants
   SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
@@ -397,7 +397,7 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
   real(dp), intent(in)  :: EV(neldof) !< Element nodal displacements
   real(dp), intent(out) :: SR(6)      !< Stress resultants at element centre
   real(dp), intent(out) :: Sigma(6)   !< Stresses at element center
-  logical , intent(in)  :: lStrain    !< If .true. return strains in SR
+  integer , intent(in)  :: lStrain    !< If > 0, return the strains in SR
   integer , intent(out) :: IERR
 
   !! Local variables
@@ -456,7 +456,7 @@ subroutine IFEM_STRS24 (iEL, X0, Thick, Emod, Rny, EV, SR, Sigma, lStrain, IERR)
   Sigma(1:3) = matmul(Cmat,SR(1:3))
   Sigma(4:6) = matmul(Cmat,SR(4:6))
 
-  if (lStrain) return ! return the strains
+  if (lStrain > 0) return ! return the strain components
 
   !! Stress resultants at element centre
   SR(1:3) = (Sigma(1:3) + Sigma(4:6)) * Thick/2.0_dp
