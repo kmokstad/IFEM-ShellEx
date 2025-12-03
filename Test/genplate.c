@@ -31,7 +31,7 @@ int main (int argc, const char** argv)
   if (!outputFile)
   {
     fprintf(stderr,"Usage: %s [-nx <nx>] [-ny <ny>] [-Lx <Lx>] [-Ly <Ly>]"
-	    " <Nastran-file>\n",argv[0]);
+            " <Nastran-file>\n",argv[0]);
     return 1;
   }
 
@@ -51,9 +51,9 @@ int main (int argc, const char** argv)
     for (i = 0, x = 0.0f; i <= nx; i++, x += Lx/(float)nx)
       fprintf(fd,"GRID,%d,,%g,%g\n",++k,x,y);
   for (j = k = 0; j < ny; j++)
-    for (i = 0; i < nx; i++)
+    for (i = 1; i <= nx; i++)
       fprintf(fd,"CQUAD4,%d,1,%d,%d,%d,%d\n",++k,
-	      1+i+(nx+1)*j,2+i+(nx+1)*j,2+i+(nx+1)*(1+j),1+i+(nx+1)*(1+j));
+              i+(nx+1)*j,i+1+(nx+1)*j,i+1+(nx+1)*(1+j),i+(nx+1)*(1+j));
   fprintf(fd,"PSHELL,1,1,%g\n",t);
   fprintf(fd,"MAT1,1,%g,%g,%g,%g\n",E,G,nu,rho);
   if (nx > 1)
@@ -77,6 +77,7 @@ int main (int argc, const char** argv)
     fprintf(fd,"\n");
   }
   fprintf(fd,"END DATA\n");
+  fclose(fd);
 
   return 0;
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Simple test of FE analysis of a bicycle wheel !-->
+
+<simulation>
+
+  <geometry dim="3">
+    <patchfile type="Nastran">sykkelhjul.nas</patchfile>
+  </geometry>
+
+  <elasticity>
+    <gravity z="-9.81"/>
+  </elasticity>
+
+  <discretization type="lagrange">
+    <nGauss>2</nGauss>
+  </discretization>
+
+  <newmarksolver alpha1="0.0" alpha2="0.01">
+    <timestepping>
+      <step start="0.0" end="1.0">0.01</step>
+    </timestepping>
+  </newmarksolver>
+
+</simulation>

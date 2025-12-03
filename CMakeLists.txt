@@ -127,6 +127,7 @@ ifem_add_regression_test(
     Q4noBeam.reg
     Q4.reg
     T3.reg
+    Wheel.reg
 )
 
 ifem_add_regression_test(
