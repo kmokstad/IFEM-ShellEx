@@ -123,7 +123,7 @@ protected:
                       IntMat& beamMNPC, IntVec& beamElms, IntVec& beamNodes,
                       int& nErr, bool useEcc = true);
   //! \brief Adds a shell element to this patch.
-  void addShellElement(FFlElementBase* elm, int eId, const IntVec& mnpc);
+  bool addShellElement(FFlElementBase* elm, int eId, const IntVec& mnpc);
   //! \brief Adds a mass element to this patch.
   void addMassElement(FFlElementBase* elm, int eId, int inod);
   //! \brief Adds a spring element to this patch.
@@ -136,6 +136,10 @@ protected:
   void addFlexibleCoupling(int eId, int lDof, const int* indC,
                            const RealArray& weights, double* work,
                            const IntVec& mnpc, const Matrix& Xnod);
+
+  //! \brief Returns the index into \ref myProps for element \a eId.
+  size_t getPropIndex(int eId, size_t igel, char label) const;
+
 
   //! \brief Evaluates the secondary solution field at element centers.
   //! \param[out] sField Solution field

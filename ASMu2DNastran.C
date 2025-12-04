@@ -52,6 +52,8 @@ namespace ASM {
 #include "FFlFEParts/FFlPBEAMECCENT.H"
 #include "FFlFEParts/FFlPORIENT.H"
 #include <unordered_map>
+#include <iterator>
+#include <climits>
 
 namespace FFlNastran {
   extern std::string mainPath;
@@ -313,7 +315,7 @@ bool ASMu2DNastran::read (std::istream& is)
       std::cout <<"Shell element "<< MLGE.size() <<" "<< eid <<":";
       for (int inod : mnpc) std::cout <<" "<< MLGN[inod];
 #endif
-      this->addShellElement(*e,eid,mnpc);
+      if (!this->addShellElement(*e,eid,mnpc)) ++nErr;
     }
     else if ((*e)->getTypeName() == "RGD" && mnpc.size() > 1)
     {
@@ -523,7 +525,7 @@ void ASMu2DNastran::addBeamElement (FFlElementBase* elm, int eId,
 }
 
 
-void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
+bool ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
                                      const IntVec& mnpc)
 {
   myMLGE.push_back(eId);
@@ -552,11 +554,18 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
     IFEM::cout <<"  ** No shell thickness attached to element "<< eId
                <<", using default value "<< sprop.Thick << std::endl;
 
-  std::vector<ShellProps>::const_iterator it;
-  if ((it = std::find(myProps.begin(),myProps.end(),sprop)) == myProps.end())
+  std::vector<ShellProps>::iterator it;
+  if ((it = std::find(myProps.begin(),myProps.end(),sprop)) != myProps.end())
+  {
+    elmProp.push_back(std::distance(myProps.begin(),it));
+#if INT_DEBUG > 10
+    std::cout <<" mid="<< sprop.id1 <<" tid="<< sprop.id2 << std::endl;
+#endif
+  }
+  else if (myProps.size() < UCHAR_MAX) // to be on the safe side
   {
     elmProp.push_back(myProps.size());
-    myProps.emplace_back(sprop);
+    myProps.push_back(sprop);
 #if INT_DEBUG > 10
     std::cout <<" mid="<< sprop.id1 <<" tid="<< sprop.id2
               <<" E="<< sprop.Emod  <<" nu="<< sprop.Rny <<" rho="<< sprop.Rho
@@ -565,11 +574,13 @@ void ASMu2DNastran::addShellElement (FFlElementBase* elm, int eId,
   }
   else
   {
-    elmProp.push_back(it - myProps.begin());
-#if INT_DEBUG > 10
-    std::cout <<" mid="<< sprop.id1 <<" tid="<< sprop.id2 << std::endl;
-#endif
+    std::cerr <<" *** ASMu2DNastran::addShellElement(): Too many properties."
+              <<" Assigning the last one for element "<< eId << std::endl;
+    elmProp.push_back(myProps.size()-1);
+    return false;
   }
+
+  return true;
 }
 
 
@@ -698,15 +709,25 @@ void ASMu2DNastran::addFlexibleCouplings (FFlElementBase* elm, int eId,
 #endif
 
 
+size_t ASMu2DNastran::getPropIndex (int eId, size_t igel, char label) const
+{
+  if (igel >= firstEl && igel-firstEl < elmProp.size())
+    if (size_t iprop = elmProp[igel-firstEl]; iprop < myProps.size())
+      return iprop;
+
+  std::cerr <<" *** No properties("<< label <<") for shell element "<< eId
+            <<"\n     igel="<< igel <<" firstEl="<< firstEl
+            <<" size(elmProp)="<< elmProp.size()
+            <<" size(myProps)="<< myProps.size() << std::endl;
+  return myProps.size();
+}
+
+
 bool ASMu2DNastran::getMassProp (int eId, size_t igel,
                                  double& rho, double& t) const
 {
-  size_t iprop = igel < firstEl+elmProp.size() ? elmProp[igel-firstEl] : 0;
-  if (iprop > myProps.size())
-  {
-    std::cerr <<" *** No properties for shell element "<< eId << std::endl;
-    return false;
-  }
+  size_t iprop = this->getPropIndex(eId,igel,'M');
+  if (iprop >= myProps.size()) return false;
 
   rho = myProps[iprop].Rho;
   t   = myProps[iprop].Thick;
@@ -718,12 +739,8 @@ bool ASMu2DNastran::getMassProp (int eId, size_t igel,
 bool ASMu2DNastran::getStiffProp (int eId, size_t igel,
                                   double& E, double& nu) const
 {
-  size_t iprop = igel < firstEl+elmProp.size() ? elmProp[igel-firstEl] : 0;
-  if (iprop > myProps.size())
-  {
-    std::cerr <<" *** No properties for shell element "<< eId << std::endl;
-    return false;
-  }
+  size_t iprop = this->getPropIndex(eId,igel,'S');
+  if (iprop >= myProps.size()) return false;
 
   E  = myProps[iprop].Emod;
   nu = myProps[iprop].Rny;
@@ -743,12 +760,9 @@ bool ASMu2DNastran::getThickness (size_t iel, double& t) const
     t = 0.0; // Silently ignore mass elements
   else
   {
-    size_t iprop = iel < elmProp.size() ? elmProp[iel] : 0;
-    if (iprop > myProps.size())
-    {
-      std::cerr <<" *** No properties for shell element "<< eId << std::endl;
-      return false;
-    }
+    size_t iprop = this->getPropIndex(eId,firstEl+iel,'T');
+    if (iprop >= myProps.size()) return false;
+
     t = myProps[iprop].Thick;
   }
 
@@ -1132,6 +1146,7 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
       if (!this->getElementCoordinates(fe.Xn,iel))
         return false;
 
+      fe.idx = firstEl + iel-1;
       const IntVec& mnpc = MNPC[iel-1];
       const size_t nenod = atNodes ? mnpc.size() : 1;
       for (size_t loc = 0; loc < nenod; loc++)
