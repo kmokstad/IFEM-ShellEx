@@ -601,7 +601,6 @@ int main (int argc, char** argv)
     if (!grpfiles.empty() || !resfiles.empty())
       data.resize(nodalR ? model->getNoNodes() : model->getNoElms(true));
 
-    bool ok = true;
     idBlock = 100;
     for (const std::string& fName : grpfiles)
     {
@@ -615,12 +614,8 @@ int main (int argc, char** argv)
         if (ifs.good() && iel > 1 && iel <= static_cast<int>(data.size()))
           data[iel-1] = 1.0;
       }
-
-      if (nodalR)
-        ok = model->writeGlvS(data,fName.c_str(),iStep,nBlock,++idBlock);
-      else
-        ok = model->writeGlvE(data,iStep,nBlock,fName.c_str(),++idBlock,true);
-      if (!ok) return terminate(19);
+      if (!model->writeField(data,fName,iStep,nBlock,++idBlock,nodalR))
+        return terminate(19);
     }
 
     model->writeGlvStep(iStep, time, resfiles.empty() ? -1 : 0);
@@ -646,10 +641,7 @@ int main (int argc, char** argv)
 #endif
           if (i == 0) times.push_back(time);
           for (double& val : data) ifs >> val;
-          if (nodalR || data.size() == model->getNoElms(true))
-            extResults[i].emplace_back(data);
-          else
-            extResults[i].emplace_back(model->expandElmVec(data));
+          extResults[i].push_back(data);
           ifs >> time;
         }
         if (!nStep)
@@ -667,14 +659,10 @@ int main (int argc, char** argv)
       for (iStep = 1; iStep <= nStep; iStep++)
       {
         int jdBlock = idBlock;
-        for (size_t j = 0; j < extResults.size() && ok; j++)
-          if (nodalR)
-            ok = model->writeGlvS(extResults[j][iStep-1],
-                                  resfiles[j].c_str(),iStep+1,nBlock,++jdBlock);
-          else
-            ok = model->writeGlvE(extResults[j][iStep-1],iStep+1,nBlock,
-                                  resfiles[j].c_str(),++jdBlock,true);
-        if (!ok) return terminate(19);
+        for (size_t j = 0; j < extResults.size(); j++)
+          if (!model->writeField(extResults[j][iStep-1],resfiles[j],
+                                 iStep+1,nBlock,++jdBlock,nodalR,true))
+            return terminate(19);
 
         model->writeGlvStep(iStep+1,times[iStep-1]);
       }

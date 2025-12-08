@@ -44,6 +44,7 @@ SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
   seaLx = seaLy = seaGridSize = 0.0;
   seaBlock = 0;
   seasurf = nullptr;
+  shellp = nullptr;
 }
 
 
@@ -72,9 +73,9 @@ bool SIMAndesShell::printProblem () const
 ElasticBase* SIMAndesShell::getIntegrand ()
 {
   if (!myProblem)
-    myProblem = new AndesShell(nss,modal,ASM::useBeam);
+    myProblem = shellp = new AndesShell(nss,modal,ASM::useBeam);
 
-  return dynamic_cast<ElasticBase*>(myProblem);
+  return shellp;
 }
 
 
@@ -184,13 +185,13 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
 
         this->setPropertyType(code,Property::BODYLOAD);
         IFEM::cout << std::endl;
-        AndesShell* shellp = dynamic_cast<AndesShell*>(this->getIntegrand());
-        if (!shellp) continue; // Empty integrand - skip
+        AndesShell* shellInt = dynamic_cast<AndesShell*>(this->getIntegrand());
+        if (!shellInt) continue; // Empty integrand - skip
 
         if (set.empty()) // Applies to all elements in the model
-          shellp->setPressure(myScalars[code],code);
+          shellInt->setPressure(myScalars[code],code);
         else for (const ASMbase* pch : myModel)
-          if (shellp->setPressure(myScalars[code],code,set,pch))
+          if (shellInt->setPressure(myScalars[code],code,set,pch))
             break; // Note: This assumes a set has elements from one patch only
       }
     }
@@ -333,34 +334,6 @@ size_t SIMAndesShell::getNoShellElms () const
 }
 
 
-/*!
-  The input array \a data is assumed to have one value for each shell element
-  in the model, and therefore needs to be expanded in case the model also
-  contains other elements (beams and one-noded mass elements), such that it
-  can be provided as argument to SIMoutput::writeGlvE() for visualization.
-*/
-
-Vector SIMAndesShell::expandElmVec (const Vector& data) const
-{
-  // Include also the collapsed and non-shell elements,
-  // because that is what the VTF-writer expects
-  Vector elmVec(this->getNoElms(false,true));
-
-  size_t idx = 0, jel = 0;
-  for (const ASMbase* pch : myModel)
-    if (dynamic_cast<const ASMu2DLag*>(pch))
-    {
-      for (size_t iel = 1; iel <= pch->getNoElms(true); iel++, jel++)
-        if (pch->getElementNodes(iel).size() > 2) // skip 1-noded mass elements
-          elmVec[jel] = data[idx++];
-    }
-    else
-      jel += pch->getNoElms(true);
-
-  return elmVec;
-}
-
-
 void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
 {
   // Include also the collapsed and non-shell elements,
@@ -436,7 +409,7 @@ bool SIMAndesShell::extractPatchSolution (IntegrandBase* itg,
                                           size_t pindx) const
 {
   if (itg == myProblem && dynamic_cast<ASMuBeam*>(this->getPatch(pindx+1)))
-    itg = static_cast<AndesShell*>(myProblem)->hasBeamProblem();
+    if (shellp) itg = shellp->hasBeamProblem();
 
   return this->Parent::extractPatchSolution(itg,sol,pindx);
 }
@@ -452,12 +425,11 @@ bool SIMAndesShell::assembleDiscreteItems (const IntegrandBase* itg,
                                            const TimeDomain& time,
                                            const Vectors& sol)
 {
-  AndesShell* shellp = static_cast<AndesShell*>(myProblem);
-  bool ok = shellp->allElementsOK();
+  bool ok = !shellp || shellp->allElementsOK();
   if (itg != myProblem || !myEqSys)
     return ok;
 
-  if (!mySprings.empty())
+  if (!mySprings.empty() && shellp)
     if (ElmMats* sprMat = shellp->getDofMatrices(); sprMat)
     {
       // Assemble discrete DOF spring stiffnesses and associated internal forces
@@ -697,7 +669,7 @@ int SIMAndesShell::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
                                double time, int idBlock, int psolComps)
 {
   int idB = this->Parent::writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
-  if (idB <= idBlock) return idB;
+  if (idB < idBlock) return idB;
 
   size_t nf = myProblem->getNoFields(2);
   if (nf != 2 && nf != 18) return idB; // no von Mises stress output
@@ -738,17 +710,59 @@ bool SIMAndesShell::writeAddFuncs (int& nBlock, int& idBlock,
                                    int iStep, double time)
 {
   // Find the shell surface pressure function, if any
-  const RealFunc* pressure = nullptr;
-  const ASMu2DNastran* shl = nullptr;
   for (const ASMbase* pch : myModel)
-    if ((shl = dynamic_cast<const ASMu2DNastran*>(pch)))
-      if ((pressure = static_cast<AndesShell*>(myProblem)->getPressure(pch)))
-        break;
-
-  if (pressure) // Write pressure function as a scalar field
-    if (!this->writeGlvF(*pressure, "Pressure", iStep, nBlock,
-                         psol.empty() ? nullptr : &psol, idBlock++, time, shl))
-      return false;
+    if (dynamic_cast<const ASMu2DLag*>(pch) && shellp)
+      if (const RealFunc* pressure = shellp->getPressure(pch); pressure)
+        // Write the pressure function as a scalar field
+        if (!this->writeGlvF(*pressure, "Pressure", iStep, nBlock,
+                             psol.empty() ? nullptr : &psol,
+                             idBlock++, time, pch))
+          return false;
 
   return this->Parent::writeAddFuncs(nBlock,idBlock,psol,iStep,time);
+}
+
+
+bool SIMAndesShell::writeField (const Vector& field, const std::string& fldName,
+                                int iStep, int& nBlock, int idBlock,
+                                bool isNodal, bool isLocal) const
+{
+  if (isLocal && (isNodal || field.size() != this->getNoElms(true)))
+  {
+    // This field is already assumed to be associated with the
+    // nodal points (or elements) of the shell element patch
+    int geomID = this->getStartGeo();
+    for (const ASMbase* pch : myModel)
+      if (dynamic_cast<const ASMu2DLag*>(pch))
+      {
+        if (msgLevel > 1)
+          IFEM::cout <<"Writing "<< (isNodal ? "nodal" : "element")
+                     <<" scalar field \""<< fldName
+                     <<"\" for patch "<< pch->idx+1 << std::endl;
+
+        VTF* vtf = this->getVTF();
+        if (isNodal)
+        {
+          Matrix sField;
+          if (!pch->evalSolution(sField,field,nullptr,false))
+            return false;
+
+          if (!vtf->writeNres(sField,++nBlock,++geomID))
+            return false;
+        }
+        else
+          if (!vtf->writeEres(field,++nBlock,++geomID))
+            return false;
+
+        return vtf->writeSblk(nBlock,fldName.c_str(),idBlock,iStep,!isNodal);
+      }
+      else
+        ++geomID;
+
+    return true; // no shell elements (silently ignore)
+  }
+  else if (isNodal) // global nodal field
+    return this->writeGlvS(field,fldName.c_str(),iStep,nBlock,idBlock);
+  else // global element field
+    return this->writeGlvE(field,iStep,nBlock,fldName.c_str(),idBlock,true);
 }

@@ -17,6 +17,7 @@
 #include "SIMElasticity.h"
 #include "SIM2D.h"
 
+class AndesShell;
 class DataExporter;
 
 
@@ -64,9 +65,6 @@ public:
   //! \brief Returns the number of shell elements in the model.
   size_t getNoShellElms() const;
 
-  //! \brief Expands the shell patch result vector \a data into a global vector.
-  Vector expandElmVec(const Vector& data) const;
-
   //! \brief Retrieves the shell thickness of all elements in the model.
   void getShellThicknesses(RealArray& elmThick) const;
   //! \brief Retrieves the specified element group \a iset as a scalar field.
@@ -74,7 +72,7 @@ public:
 
   //! \brief Writes additional geometries illustrating sensor locations.
   //! \param[in] locfiles Files with sensor locations (node or element IDs)
-  //! \param[in] nodal If \e true, nodal sensors. Othwerwise element sensors.
+  //! \param[in] nodal If \e true, nodal sensors. Otherwise element sensors.
   //! \param nBlock Running geometry block counter
   bool writeGlvLoc(std::vector<std::string>& locfiles,
                    bool nodal, int& nBlock) const;
@@ -104,6 +102,21 @@ public:
   //! \param[in] psolComps Number of primary solution components
   virtual int writeGlvS2(const Vector& psol, int iStep, int& nBlock,
                          double time, int idBlock, int psolComps);
+
+  //! \brief Writes a scalar field from OSP-calculations to the VTF-file.
+  //! \param[in] field Nodal (or element) scalar field values
+  //! \param[in] fldName Name identifying the scalar field
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] idBlock Result block ID number
+  //! \param[in] isNodal If \e true, then \a field is a nodal field.
+  //! Otherwise it is a piece-wise constant element field.
+  //! \param[in] isLocal If \e true, the field is already associated with the
+  //! nodes (or elements) of the shell element patch. Otherwise it is global
+  //! and needs to be mapped into the patch nodal/element order
+  bool writeField(const Vector& field, const std::string& fldName,
+                  int iStep, int& nBlock, int idBlock,
+                  bool isNodal, bool isLocal = false) const;
 
 protected:
   using SIMElasticity<SIM2D>::parse;
@@ -179,6 +192,8 @@ private:
   double    seaGridSize; //!< Size of sea surface segments
   RealFunc* seasurf;     //!< Sea surface elevation function
   int       seaBlock;    //!< Geometry block ID for sea surface
+
+  AndesShell* shellp; //!< Pointer to the actual shell problem integrand
 };
 
 #endif
