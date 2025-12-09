@@ -58,6 +58,7 @@ AndesShell::AndesShell (unsigned short int ns, bool modal, bool withBeams)
 {
   nsd =  3; // Number of spatial dimensions
   npv =  6; // Number of primary unknowns per node
+  n1v =  7; // Number pf primary variables for output
   n2v = 18; // Number of secondary variables for output
   nCS = ns; // Number of consecutive solution states in core
   nSV = ns; // Total number of solution vectors in core
@@ -150,7 +151,9 @@ bool AndesShell::parse (const tinyxml2::XMLElement* elem)
 {
   if (!strcasecmp(elem->Parent()->Value(),"postprocessing"))
   {
-    if (!strcasecmp(elem->Value(),"vonMises_only"))
+    if (!strcasecmp(elem->Value(),"translation_only"))
+      n1v = 4; // only output translations as primary variables
+    else if (!strcasecmp(elem->Value(),"vonMises_only"))
       n2v = 2; // only output von Mises as secondary variables
     else if (!strcasecmp(elem->Value(),"stressTensor_only"))
       n2v = 6; // only output stress tensor components as secondary variables
@@ -888,10 +891,18 @@ void AndesShell::primaryScalarFields (Matrix& field)
     return sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
   };
 
-  // Insert the absolute value as the 7th solution component
-  field.expandRows(1);
-  for (size_t c = 1; c <= field.cols(); c++)
-    field(npv+1,c) = absDis(field.ptr(c-1));
+  // Optionally throw away the rotational DOFs (n1v < 6), and
+  // insert the absolute value as the last solution component
+  field.expandRows(n1v-field.rows());
+  if (n1v == 4 || n1v == 7)
+    for (size_t c = 1; c <= field.cols(); c++)
+      field(n1v,c) = absDis(field.ptr(c-1));
+}
+
+
+std::string AndesShell::getField1Name (size_t i, const char* prefix) const
+{
+  return this->ElasticBase::getField1Name(n1v < 6 && i >= 3 ? i+3 : i, prefix);
 }
 
 

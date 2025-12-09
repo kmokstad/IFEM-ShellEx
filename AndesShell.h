@@ -144,7 +144,11 @@ public:
 
   //! \brief Returns the number of primary/secondary solution field components.
   //! \param[in] fld which field set to consider (1=primary, 2=secondary)
-  virtual size_t getNoFields(int fld) const { return fld < 2 ? npv+1 : n2v; }
+  virtual size_t getNoFields(int fld) const { return fld < 2 ? n1v : n2v; }
+  //! \brief Returns the name of a primary solution field component.
+  //! \param[in] i Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual std::string getField1Name(size_t i, const char* prefix) const;
   //! \brief Returns the name of a secondary solution field component.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
@@ -227,6 +231,7 @@ private:
   Matrices myKmats; //!< Element stiffness matrix buffer
   Matrices myMmats; //!< Element mass matrix buffer
 
+  size_t n1v; //!< Number of primary variables to output
   size_t n2v; //!< Number of secondary variables to output
 
   bool isModal; //!< Flag for modal dynamics simulation
