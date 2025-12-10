@@ -862,9 +862,21 @@ void AndesShell::setParam (const std::string& name, const Vec3& value)
 }
 
 
+/*!
+  It is assumed that identically zero points are associated with
+  triangular elements on which we don't do numerical integration
+  and therefore will not be assigned any pressure value.
+  This method will therefore catch the event of a triangles-only mesh
+  and return \e false in that case even if \ref presVal is not empty.
+*/
+
 bool AndesShell::hasTractionValues () const
 {
-  return !presVal.empty();
+  for (const Vec3Pair& pt : presVal)
+    if (!pt.first.isZero(1.0e-15))
+      return true;
+
+  return false;
 }
 
 
