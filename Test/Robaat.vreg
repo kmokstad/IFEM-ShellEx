@@ -1,0 +1,122 @@
+Robaat.xinp -dynamic -keep-previous-state -time -0.5
+
+Step 1
+  Element block 1
+    518 nodes
+    24, 480 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    126 nodes
+    144 elements
+    Displacement: 'Solution'
+  Element block 3
+    451 nodes
+    400 elements
+    Displacement: 'Solution'
+Step 2
+  Element block 1
+    518 nodes
+    24, 480 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    126 nodes
+    144 elements
+    Displacement: 'Solution'
+  Element block 3
+    451 nodes
+    400 elements
+    Displacement: 'Solution'
+Step 3
+  Element block 1
+    518 nodes
+    24, 480 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    126 nodes
+    144 elements
+    Displacement: 'Solution'
+  Element block 3
+    451 nodes
+    400 elements
+    Displacement: 'Solution'
+Step 4
+  Element block 1
+    518 nodes
+    24, 480 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    126 nodes
+    144 elements
+    Displacement: 'Solution'
+  Element block 3
+    451 nodes
+    400 elements
+    Displacement: 'Solution'
+Step 5
+  Element block 1
+    518 nodes
+    24, 480 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    126 nodes
+    144 elements
+    Displacement: 'Solution'
+  Element block 3
+    451 nodes
+    400 elements
+    Displacement: 'Solution'

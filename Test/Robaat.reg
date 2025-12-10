@@ -1,6 +1,7 @@
 Robaat.xinp -dynamic -keep-previous-state -time 1.5
 
 Input file: Robaat.xinp
+Simulation stop time: 1.5
 Using the linear dynamics simulation driver.
 Parsing input file Robaat.xinp
 Parsing <discretization>
@@ -31,9 +32,11 @@ Parsing <newmarksolver>
 	alpha1 = 1  alpha2 = 0.03
 	beta = 0.25  gamma = 0.5
 Parsing <postprocessing>
-  Parsing <seasurface>
   Parsing <stride>
-  Parsing <vonMises_only>
+  Parsing <primarysol_only>
+  Parsing <translation_only>
+  Parsing <saveAcc>
+  Parsing <seasurface>
 	Sea surface \[-10 -2.5 0.1] to \[10 2.5 0.1], gridSize=0.5
 Parsing input file succeeded.
 Equation solver: 2

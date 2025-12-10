@@ -37,9 +37,11 @@
   </newmarksolver>
 
   <postprocessing>
-    <seasurface X0="-10.0 -2.5 0.1" Lx="20.0" Ly="5.0" gridsize="0.5"/>
     <stride dt="0.1"/>
-    <vonMises_only/>
+    <primarysol_only/>
+    <translation_only/>
+    <saveAcc/>
+    <seasurface X0="-10.0 -2.5 0.1" Lx="20.0" Ly="5.0" gridsize="0.5"/>
   </postprocessing>
 
 </simulation>

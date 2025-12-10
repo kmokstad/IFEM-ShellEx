@@ -152,6 +152,7 @@ ifem_add_vtf_test(
     T3.vreg
     Q4.vreg
     DroppedBox.vreg
+    Robaat.vreg
 )
 
 if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
