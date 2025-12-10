@@ -516,7 +516,7 @@ int main (int argc, char** argv)
   if (model->opt.format >= 0)
   {
     int geoBlk = 0, nBlock = 0;
-    size_t iStep = 1, nStep = 0;
+    size_t iStep = 1;
     double time = 0.0;
     Vector data;
 
@@ -605,6 +605,7 @@ int main (int argc, char** argv)
     for (const std::string& fName : grpfiles)
     {
       // Write node/element set definition
+      IFEM::cout <<"\nReading "<< fName << std::endl;
       data.fill(0.0);
       std::ifstream ifs(fName);
       while (ifs.good())
@@ -622,50 +623,57 @@ int main (int argc, char** argv)
 
     if (!resfiles.empty())
     {
-      // Write external results (from OSP calculations)
-      if (!nodalR) data.resize(model->getNoShellElms());
-      std::vector<Vectors> extResults(resfiles.size());
-      std::vector<double> times;
+      // Lambda function checking if all elements in an array are equal.
+      auto allEqual = [](const RealArray& v)
+      {
+        if (std::adjacent_find(v.begin(), v.end(), [](double a, double b)
+                               { return fabs(a-b) > 1.0e-8; }) == v.end())
+          return true;
+
+        IFEM::cout <<"  ** Incompatible data files, times:";
+        for (double t : v) IFEM::cout <<" "<< t;
+        IFEM::cout << std::endl;
+        return false;
+      };
+
+      // Lambda function checking if all file streams in an array are good.
+      auto allGood = [](std::vector<std::ifstream>& fs)
+      {
+        return std::all_of(fs.begin(), fs.end(), [](std::ifstream& ifs)
+                           { return ifs.good(); });
+      };
+
+      // Open the external result files (from OSP calculations)
+      std::vector<std::ifstream> ifs;
+      std::vector<double> times(resfiles.size());
       for (size_t i = 0; i < resfiles.size(); i++)
       {
-        std::ifstream ifs(resfiles[i]);
-        if (ignoreComment(ifs))
-          ifs >> time;
-#ifdef INT_DEBUG
-        std::cout <<"\nTimes:";
-#endif
-        while (ifs.good())
-        {
-#ifdef INT_DEBUG
-          std::cout <<" "<< time;
-#endif
-          if (i == 0) times.push_back(time);
-          for (double& val : data) ifs >> val;
-          extResults[i].push_back(data);
-          ifs >> time;
-        }
-        if (!nStep)
-          nStep = extResults[i].size();
-        else if (nStep != extResults[i].size())
-        {
-          std::cerr <<"\n *** Incompatible OSP result files, nStep = "
-                    << extResults[i].size() <<" (previously "<< nStep
-                    <<")."<< std::endl;
-          return terminate(19);
-        }
+        IFEM::cout <<"Reading "<< resfiles[i] << std::endl;
+        ifs.emplace_back(resfiles[i]);
+        if (ignoreComment(ifs.back()))
+          ifs.back() >> times[i];
       }
 
-      IFEM::cout <<"\nWriting "<< nStep <<" steps"<< std::endl;
-      for (iStep = 1; iStep <= nStep; iStep++)
+      if (!nodalR) data.resize(model->getNoShellElms());
+
+      // Read the results step-by step and write to the VTF-file
+      bool ok = true;
+      while (ok && allEqual(times) && allGood(ifs))
       {
         int jdBlock = idBlock;
-        for (size_t j = 0; j < extResults.size(); j++)
-          if (!model->writeField(extResults[j][iStep-1],resfiles[j],
-                                 iStep+1,nBlock,++jdBlock,nodalR,true))
-            return terminate(19);
-
-        model->writeGlvStep(iStep+1,times[iStep-1]);
+        double time = times.front();
+        IFEM::cout <<"\nReading data for time step "
+                   << ++iStep <<": "<< time << std::endl;
+        for (size_t i = 0; i < ifs.size() && ok; i++)
+        {
+          for (double& val : data) ifs[i] >> val;
+          ok = model->writeField(data,resfiles[i],iStep,
+                                 nBlock,++jdBlock,nodalR,true);
+          ifs[i] >> times[i];
+        }
+        if (ok) model->writeGlvStep(iStep,time);
       }
+      if (!ok) return terminate(19);
     }
     model->closeGlv();
   }
