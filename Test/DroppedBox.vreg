@@ -1,0 +1,242 @@
+DroppedBox.xinp -dynamic -keep-previous-state -time -0.5
+
+Step 1
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 2
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 3
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 4
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 5
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 6
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 7
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 8
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 9
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'
+Step 10
+  Element block 1
+    8 nodes
+    6 elements
+    Displacement: 'Solution'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'displacement'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+    Scalar: 'Pressure'
+    Scalar: 'acceleration_x'
+    Scalar: 'acceleration_y'
+    Scalar: 'acceleration_z'
+    Scalar: 'acceleration'
+  Element block 2
+    189 nodes
+    160 elements
+    Displacement: 'Solution'
+  Element block 3
+    24 nodes
+    24 elements
+    Vector: 'Pressure'

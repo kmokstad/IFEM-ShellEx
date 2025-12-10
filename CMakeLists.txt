@@ -142,6 +142,18 @@ ifem_add_regression_test(
     Fine-load.reg
 )
 
+ifem_add_vtf_test(
+  TARGET
+    ShellSim
+  CONDITIONS
+    IFEM_USE_ANDES
+    IFEM_USE_FFLLIB
+  TEST_FILES
+    T3.vreg
+    Q4.vreg
+    DroppedBox.vreg
+)
+
 if(NOT MPI_FOUND OR IFEM_SERIAL_TESTS_IN_PARALLEL)
   if(IFEM_USE_ANDES AND IFEM_USE_FFLLIB AND SPR_FOUND)
     set_tests_properties(ShellSim+Fine-load.reg

@@ -27,9 +27,11 @@
   </newmarksolver>
 
   <postprocessing>
-    <vonMises_only/>
+    <primarysol_only/>
+    <translation_only/>
     <saveTrac/>
-    <seasurface X0="-3.0 -0.5 0.1" Lx="5" Ly="2" gridsize="0.1"/>
+    <saveAcc/>
+    <seasurface X0="-3.0 -0.5 0.1" Lx="5" Ly="2" gridsize="0.25"/>
   </postprocessing>
 
 </simulation>

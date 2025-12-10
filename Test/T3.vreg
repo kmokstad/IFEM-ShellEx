@@ -1,0 +1,51 @@
+T3.xinp
+
+Step 1
+  Element block 1
+    27 nodes
+    32 elements
+    Displacement: 'Solution'
+    Scalar: 'fix_X'
+    Scalar: 'fix_Y'
+    Scalar: 'fix_Z'
+    Scalar: 'fix_RZ'
+    Scalar: 'Global element numbers'
+    Scalar: 'Original element numbers'
+    Scalar: 'Global node numbers'
+    Scalar: 'Original node numbers'
+    Scalar: 'Shell thickness'
+    Scalar: 'u_x'
+    Scalar: 'u_y'
+    Scalar: 'u_z'
+    Scalar: 'r_x'
+    Scalar: 'r_y'
+    Scalar: 'r_z'
+    Scalar: 'displacement'
+    Scalar: 'n_xx'
+    Scalar: 'n_yy'
+    Scalar: 'n_xy'
+    Scalar: 'm_xx'
+    Scalar: 'm_yy'
+    Scalar: 'm_xy'
+    Scalar: 'Bottom sigma_x'
+    Scalar: 'Bottom sigma_y'
+    Scalar: 'Bottom tau_xy'
+    Scalar: 'Bottom sigma_1'
+    Scalar: 'Bottom sigma_2'
+    Scalar: 'Bottom sigma_m'
+    Scalar: 'Top sigma_x'
+    Scalar: 'Top sigma_y'
+    Scalar: 'Top tau_xy'
+    Scalar: 'Top sigma_1'
+    Scalar: 'Top sigma_2'
+    Scalar: 'Top sigma_m'
+    Scalar: 'Bottom von Mises stress'
+    Scalar: 'Top von Mises stress'
+  Element block 2
+    6 nodes
+    4 elements
+    Displacement: 'Solution'
+  Element block 3
+    32 nodes
+    32 elements
+    Vector: 'Normal vectors'
