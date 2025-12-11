@@ -45,7 +45,3 @@ Step 1
     6 nodes
     4 elements
     Displacement: 'Solution'
-  Element block 3
-    32 nodes
-    32 elements
-    Vector: 'Normal vectors'

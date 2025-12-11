@@ -186,6 +186,8 @@ private:
 
   bool modal; //!< Modal dynamics simulation flag
 
+  bool saveNormals; //!< If \e true, save shell normal vectors to VTF
+
   Vec3      seaX0;       //!< Origin of sea surface visualization
   double    seaLx;       //!< Length of sea surface visualization
   double    seaLy;       //!< Width of sea surface visualization

@@ -45,6 +45,7 @@ SIMAndesShell::SIMAndesShell (unsigned short int n, bool m) : nss(n), modal(m)
   seaBlock = 0;
   seasurf = nullptr;
   shellp = nullptr;
+  saveNormals = false;
 }
 
 
@@ -134,6 +135,8 @@ bool SIMAndesShell::parse (const tinyxml2::XMLElement* elem)
         if (!utl::getAttribute(child,"set",myRFset))
           myRFset = "(all)";
       }
+      else if (!strcasecmp(child->Value(),"saveNormals"))
+        saveNormals = true;
       else if (ElasticBase* problem = this->getIntegrand(); problem)
         problem->parse(child);
     }
@@ -580,19 +583,20 @@ bool SIMAndesShell::writeGlvLoc (std::vector<std::string>& locfiles,
 
 bool SIMAndesShell::writeGlvNormal (int& geoBlk, int& nBlock) const
 {
-  VTF* vtf = this->getVTF();
-  if (!vtf || myProblem->hasTractionValues()) return true;
+  if (!saveNormals || myProblem->hasTractionValues())
+    return true; // Can't save shell normals when pressure vectors are saved
 
   for (const ASMbase* pch : myModel)
     if (const ASMu2DNastran* shl = dynamic_cast<const ASMu2DNastran*>(pch); shl)
       if (std::vector<Vec3Pair> normals; shl->getShellNormals(normals))
-      {
-        if (msgLevel > 1)
-          IFEM::cout <<"Writing shell normal vectors"<< std::endl;
+        if (VTF* vtf = this->getVTF(); vtf)
+        {
+          if (msgLevel > 1)
+            IFEM::cout <<"Writing shell normal vectors"<< std::endl;
 
-        // Write shell normals as discrete point vectors to the VTF-file
-        return vtf->writeVectors(normals,geoBlk,++nBlock,"Normal vectors",1);
-      }
+          // Write shell normals as discrete point vectors to the VTF-file
+          return vtf->writeVectors(normals,geoBlk,++nBlock,"Normal vectors",1);
+        }
 
   return true; // No shell elements
 }
