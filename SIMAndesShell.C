@@ -352,14 +352,14 @@ void SIMAndesShell::getShellThicknesses (RealArray& elmThick) const
         if (pch->getElementNodes(iel).size() > 1) // skip 1-noded mass elements
         {
           elmThick.push_back(0.0);
-          if (!shl->getThickness(iel-1,elmThick.back()))
+          if (!shl->getThickness(iel,elmThick.back()))
             ++missing;
         }
     }
     else
       elmThick.insert(elmThick.end(),pch->getNoElms(true),0);
 
-  if (missing > 1)
+  if (missing > 0)
     IFEM::cout <<" *** A total of "<< missing <<" elements lack thickness.\n"
                <<"     Please check your model for inconsistency."<< std::endl;
 }

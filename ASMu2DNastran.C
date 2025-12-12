@@ -760,7 +760,7 @@ bool ASMu2DNastran::getThickness (size_t iel, double& t) const
     t = 0.0; // Silently ignore mass elements
   else
   {
-    size_t iprop = this->getPropIndex(eId,firstEl+iel,'T');
+    size_t iprop = this->getPropIndex(eId,firstEl+iel-1,'T');
     if (iprop >= myProps.size()) return false;
 
     t = myProps[iprop].Thick;
@@ -897,14 +897,14 @@ bool ASMu2DNastran::checkPressSet (int iEl, size_t idx, int iSet) const
 bool ASMu2DNastran::getShellNormals (std::vector<Vec3Pair>& normals) const
 {
   normals.reserve(nel);
-  for (size_t iel = 0; iel < nel; iel++)
-    if (const IntVec& mnpc = MNPC[iel]; mnpc.size() == 3 || mnpc.size() == 4)
+  for (size_t iel = 1; iel <= nel; iel++)
+    if (const IntVec& mnpc = MNPC[iel-1]; mnpc.size() == 3 || mnpc.size() == 4)
     {
       const size_t n1 = mnpc.size() - 3;
       const size_t n3 = mnpc.size() == 4 ? 3 : 1;
       Vec3 V3(coord[mnpc[n3]]-coord[mnpc[0]], coord[mnpc[2]]-coord[mnpc[n1]]);
       V3.normalize();
-      normals.emplace_back(this->getElementCenter(1+iel),V3);
+      normals.emplace_back(this->getElementCenter(iel),V3);
     }
 
   return !normals.empty();
@@ -1282,7 +1282,7 @@ bool ASMuBeam::initLocalElementAxes (const Vec3& Zaxis)
   size_t iel = 0;
   for (Tensor& Tlg : myCS)
   {
-    int eId = MLGE[iel++];
+    int eId = MLGE[iel];
     std::map<int,BeamProps>::const_iterator it = myProps.find(eId);
     if (it == myProps.end())
     {
@@ -1291,8 +1291,8 @@ bool ASMuBeam::initLocalElementAxes (const Vec3& Zaxis)
     }
 
     // Set up the global-to-local transformation matrix
-    int n1 = MNPC[iel-1].front();
-    int n2 = MNPC[iel-1].back();
+    int n1 = MNPC[iel].front();
+    int n2 = MNPC[iel++].back();
     const Vec3& X1 = coord[n1];
     const Vec3& X2 = coord[n2];
     if (!it->second.Zaxis.isZero())

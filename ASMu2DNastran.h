@@ -41,7 +41,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is);
 
-  //! \brief Retrieves the shell thickness for element \a iel (0-based index).
+  //! \brief Retrieves the shell thickness for element \a iel (1-based index).
   bool getThickness(size_t iel, double& t) const;
   //! \brief Retrieves mass properties for element with external ID \a eId.
   bool getMassProp(int eId, size_t igel, double& rho, double& t) const;
