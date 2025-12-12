@@ -1086,6 +1086,7 @@ ElementBlock* ASMu2DNastran::sensorGeometry (int idx, bool nodal) const
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const int*, char) const
 {
+  sField.clear();
   return this->evalSecSolution(sField,integr,true);
 }
 
@@ -1093,30 +1094,38 @@ bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
                                   const RealArray*, bool atElmCenters) const
 {
+  sField.clear();
   return this->evalSecSolution(sField,integr,!atElmCenters);
 }
 
 
 bool ASMu2DNastran::evalSolution (Matrix& sField, const IntegrandBase& integr,
-                                  const IntVec& elements) const
+                                  const IntVec& elements,
+                                  const RealArray* lpar) const
 {
-  return this->evalSecSolution(sField,integr,false,elements);
+  sField.clear();
+  return this->evalSecSolution(sField,integr,false,elements,lpar);
 }
 
 
 /*!
   This method evaluates the secondary solution at either the element nodes
   and then performs nodal averaging to obtain the unique nodal values,
-  or perform direct evaluation at the element centers.
+  or perform direct evaluation at the element centers. It can also evaluate at
+  specified internal points of the elements, by interpolating the nodal values.
+
   It is assumed that all calculations are performed by the
   IntegrandBase::evalSol() call, therefore no basis function evaluations here.
 */
 
 bool ASMu2DNastran::evalSecSolution (Matrix& sField,
                                      const IntegrandBase& integr, bool atNodes,
-                                     const IntVec& elements) const
+                                     const IntVec& elements,
+                                     const RealArray* lpar) const
 {
-  sField.clear();
+  size_t nIp = lpar ? std::min(lpar->size(),elements.size()) : 0;
+  if (nIp > 0) atNodes = true; // Need to do nodal averaging. Although only
+  // a few nodal values are needed we calculate for all, for the simplicity.
 
   FiniteElement fe;
   Vector        solPt;
@@ -1124,8 +1133,10 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
   IntVec        checkPt(atNodes ? nnod : 0,0);
 
   // Number of evaluation points
-  size_t npt = atNodes ? nnod : (elements.empty() ? nel : elements.size());
-  size_t ipt = 0;
+  size_t npt = elements.empty() ? nel : elements.size();
+  size_t ipt = sField.cols();
+  if (ipt > 0 && !atNodes) // append to existing results
+    sField.resize(sField.rows(),ipt+npt);
 
   // Evaluate the secondary solution field at each element node or center
   for (size_t iel = 1; iel <= nel; iel++)
@@ -1171,9 +1182,8 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
           return false;
         else if (solPt.empty())
           break; // a valid element with no secondary solution
-
-        if (sField.empty())
-          sField.resize(solPt.size(),npt,true);
+        else if (sField.empty() && !atNodes)
+          sField.resize(solPt.size(),npt);
 
         if (!atNodes)
           sField.fillColumn(++ipt,solPt);
@@ -1185,11 +1195,27 @@ bool ASMu2DNastran::evalSecSolution (Matrix& sField,
     }
 
   // Nodal averaging
-  if (!atNodes)
+  Matrix  tmpSol;
+  Matrix& nodalSol = nIp > 0 ? tmpSol : sField;
+  if (atNodes)
+    nodalSol.resize(integr.getNoFields(2),globSolPt.size());
+  else
     sField.resize(sField.rows(),ipt);
   for (size_t i = 0; i < checkPt.size(); i++)
     if (checkPt[i])
-      sField.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
+      nodalSol.fillColumn(1+i, globSolPt[i] /= static_cast<double>(checkPt[i]));
+
+  if (nIp > 0) // Interpolate the nodal averaged field at specified points
+  {
+    if (!this->evalSolution(sField,nodalSol.toVec(),elements,lpar))
+      return false;
+    else if (nIp == elements.size())
+      return true;
+
+    // Calculate and append the element center results
+    IntVec elmCtr(elements.begin()+nIp,elements.end());
+    return this->evalSecSolution(sField,integr,false,elmCtr);
+  }
 
   return true;
 }
