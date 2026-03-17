@@ -8,7 +8,7 @@ Parsing <geometry>
   Parsing <patchfile>
 	Reading data file FEM_Fine.nas
 	Nastran bulk data starting at line 36
-Parsing Nastran bulk data file succceeded.
+Parsing Nastran bulk data file succeeded.
 Total number of nodes:          951
 Number of shell elements:       902
 Number of constraint elements:  0
