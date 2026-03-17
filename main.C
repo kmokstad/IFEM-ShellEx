@@ -36,10 +36,13 @@
 #include <unistd.h>
 
 namespace ASM {
-  extern char useBeam, skipMass;
-  extern bool skipRBE2, replRBE3, skipLoad, readSets;
+  extern bool replRBE3, skipLoad;
   extern double Ktra, Krot;
+#ifdef HAS_FFLLIB
+  extern bool skipRBE2, readSets;
+  extern char useBeam, skipMass;
   extern std::vector<int> ignoredElms;
+#endif
 }
 
 
@@ -138,11 +141,10 @@ int main (int argc, char** argv)
       iop = 100;
     else if (!strcmp(argv[i],"-ignoreSol"))
       iop = 200;
+#ifdef HAS_FFLLIB
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
         utl::parseIntegers(ASM::ignoredElms,argv[++i]);
-    else if (!strcmp(argv[i],"-vizRHS"))
-      vizRHS = true;
     else if (!strcmp(argv[i],"-noSets"))
       ASM::readSets = false;
     else if (!strcmp(argv[i],"-noMasses"))
@@ -153,6 +155,7 @@ int main (int argc, char** argv)
       ASM::useBeam = 2;
     else if (!strcmp(argv[i],"-noRBE2"))
       ASM::skipRBE2 = true;
+#endif
     else if (!strcmp(argv[i],"-noRBE3"))
       ASM::replRBE3 = true;
     else if (!strcmp(argv[i],"-noLoad"))
@@ -164,6 +167,8 @@ int main (int argc, char** argv)
       if (i+1 < argc && argv[i+1][0] != '-')
         ASM::Krot = atof(argv[++i]);
     }
+    else if (!strcmp(argv[i],"-vizRHS"))
+      vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
     {
       fixDup = true;
@@ -186,8 +191,10 @@ int main (int argc, char** argv)
     }
     else if (!strcmp(argv[i],"-keep-previous-state"))
       nstates = 2; // both current and previous state will reside in core
+#ifdef HAS_FFLLIB
     else if (!strcmp(argv[i],"-no-vtfmass"))
       ASM::skipMass = 2;
+#endif
     else if (!strncmp(argv[i],"-vtfres",6))
     {
       while (i+1 < argc && argv[i+1][0] != '-')

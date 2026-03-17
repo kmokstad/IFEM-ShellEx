@@ -98,9 +98,16 @@ ifem_add_application(
     ShellSim
   SOURCES
     main.C
+  HEADERS
+    IFEMNastranReader.h
   LIBRARIES
     IFEM::ShellEx
 )
+target_compile_definitions(ShellSim PUBLIC HAS_PROFILER=1)
+
+if(IFEM_USE_FFLLIB)
+  target_sources(ShellSim PRIVATE IFEMNastranReader.C)
+endif()
 
 # Regression tests
 enable_testing()
