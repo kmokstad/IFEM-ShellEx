@@ -33,6 +33,8 @@ public:
   FFaTensor1(const FFaTensor2& t);
   FFaTensor1(const FFaTensor3& t);
 
+  void fill(double d) { myT = d; }
+
   // Local operators
 
   FFaTensor1& operator= (const FFaTensor1& t);
