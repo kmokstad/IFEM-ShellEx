@@ -108,6 +108,20 @@ if(IFEM_USE_FFLLIB)
   target_sources(ShellSim PRIVATE IFEMNastranReader.C)
 endif()
 
+ifem_add_application(
+  NAME
+    PointCloud
+  CONDITIONS
+    IFEM_USE_FFLLIB
+  SOURCES
+    main_pcloud.C
+    IFEMNastranReader.C
+  HEADERS
+    IFEMNastranReader.h
+  LIBRARIES
+    FFlLib
+)
+
 # Regression tests
 enable_testing()
 
