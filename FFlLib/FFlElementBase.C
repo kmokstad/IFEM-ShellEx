@@ -81,20 +81,21 @@ double FFlElementBase::getMassDensity() const
 }
 
 
-bool FFlElementBase::getVolumeAndInertia(double& volume, FaVec3& cog,
-					 FFaTensor3& inertia) const
+double FFlElementBase::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inert) const
 {
-  volume  = 0.0;
-  cog     = FaVec3(0.0,0.0,0.0);
-  inertia = FFaTensor3(0.0);
-  return false;
+  cog.clear();
+  if (inert)
+    inert->fill(0.0);
+
+  return 0.0;
 }
 
 
 bool FFlElementBase::getMassProperties(double& mass, FaVec3& cog,
 				       FFaTensor3& inertia) const
 {
-  if (!this->getVolumeAndInertia(mass,cog,inertia)) return false;
+  if ((mass = this->getVolumeAndCoG(cog,&inertia)) <= 0.0)
+    return false;
 
   double rho = this->getMassDensity();
   mass    *= rho;
