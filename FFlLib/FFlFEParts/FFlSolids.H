@@ -25,7 +25,6 @@ class FFlTET4 : public FFlElementBase
 {
 public:
   FFlTET4(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlTET4() {}
 
   static void init();
 
@@ -37,8 +36,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
   virtual int checkOrientation(bool fixIt = false);
 
@@ -52,7 +50,6 @@ class FFlWEDG6 : public FFlElementBase
 {
 public:
   FFlWEDG6(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlWEDG6() {}
 
   static void init();
 
@@ -64,8 +61,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
@@ -77,7 +73,6 @@ class FFlHEX8 : public FFlElementBase
 {
 public:
   FFlHEX8(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlHEX8() {}
 
   static void init();
 
@@ -89,8 +84,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
@@ -102,7 +96,6 @@ class FFlTET10 : public FFlElementBase
 {
 public:
   FFlTET10(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlTET10() {}
 
   static void init();
 
@@ -114,8 +107,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
   virtual int checkOrientation(bool fixIt = false);
 
@@ -129,7 +121,6 @@ class FFlWEDG15 : public FFlElementBase
 {
 public:
   FFlWEDG15(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlWEDG15() {}
 
   static void init();
 
@@ -141,8 +132,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
@@ -154,7 +144,6 @@ class FFlHEX20 : public FFlElementBase
 {
 public:
   FFlHEX20(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlHEX20() {}
 
   static void init();
 
@@ -166,8 +155,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
