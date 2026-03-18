@@ -71,11 +71,10 @@ double FFlBEAM2::getMassDensity() const
 }
 
 
-bool FFlBEAM2::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlBEAM2::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FFlPBEAMSECTION* psec = dynamic_cast<FFlPBEAMSECTION*>(this->getAttribute("PBEAMSECTION"));
-  if (!psec) return false; // Should not happen
+  if (!psec) return -1.0; // Should not happen
 
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
@@ -90,8 +89,9 @@ bool FFlBEAM2::getVolumeAndInertia(double& volume, FaVec3& cog,
 
   double A = psec->crossSectionArea.getValue();
   double L = (v2-v1).length();
+  double V = A*L;
   cog      = (v1+v2)*0.5;
-  volume   = A*L;
+  if (!inertia) return V;
 
   // Compute local coordinate system
   FaMat33 Telm;
@@ -109,14 +109,15 @@ bool FFlBEAM2::getVolumeAndInertia(double& volume, FaVec3& cog,
 
   // Set up the inertia tensor in local axes
   double Ixx = psec->Iy.getValue() + psec->Iz.getValue();
-  inertia[0] = L*(Ixx > 0.0 ? Ixx : psec->It.getValue());
-  inertia[1] = L*(psec->Iy.getValue() + A*L*L/12.0);
-  inertia[2] = L*(psec->Iz.getValue() + A*L*L/12.0);
-  inertia[3] = inertia[4] = inertia[5] = 0.0;
+  FFaTensor3& I = *inertia;
+  I[0] = L*(Ixx > 0.0 ? Ixx : psec->It.getValue());
+  I[1] = L*(psec->Iy.getValue() + A*L*L/12.0);
+  I[2] = L*(psec->Iz.getValue() + A*L*L/12.0);
+  I[3] = I[4] = I[5] = 0.0;
 
   // Transform to global axes
-  inertia.rotate(Telm.transpose());
-  return true;
+  inertia->rotate(Telm.transpose());
+  return V;
 }
 
 
@@ -312,11 +313,10 @@ double FFlBEAM3::getMassDensity() const
 }
 
 
-bool FFlBEAM3::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlBEAM3::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FFlPBEAMSECTION* psec = dynamic_cast<FFlPBEAMSECTION*>(this->getAttribute("PBEAMSECTION"));
-  if (!psec) return false; // Should not happen
+  if (!psec) return -1.0; // Should not happen
 
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
@@ -333,8 +333,9 @@ bool FFlBEAM3::getVolumeAndInertia(double& volume, FaVec3& cog,
 
   double A = psec->crossSectionArea.getValue();
   double L = (v2-v1).length() + (v3-v2).length();
+  double V = A*L;
   cog      = (v1+v3)*0.25 + v2*0.5;
-  volume   = A*L;
+  if (!inertia) return V;
 
   // Compute local coordinate system
   FFlPORIENT* pori = dynamic_cast<FFlPORIENT*>(this->getAttribute("PORIENT"));
@@ -355,14 +356,15 @@ bool FFlBEAM3::getVolumeAndInertia(double& volume, FaVec3& cog,
 
   // Set up the inertia tensor in local axes
   double Ixx = psec->Iy.getValue() + psec->Iz.getValue();
-  inertia[0] = L*(Ixx > 0.0 ? Ixx : psec->It.getValue());
-  inertia[1] = L*(psec->Iy.getValue() + A*L*L/12.0);
-  inertia[2] = L*(psec->Iz.getValue() + A*L*L/12.0);
-  inertia[3] = inertia[4] = inertia[5] = 0.0;
+  FFaTensor3& I = *inertia;
+  I[0] = L*(Ixx > 0.0 ? Ixx : psec->It.getValue());
+  I[1] = L*(psec->Iy.getValue() + A*L*L/12.0);
+  I[2] = L*(psec->Iz.getValue() + A*L*L/12.0);
+  I[3] = I[4] = I[5] = 0.0;
 
   // Transform to global axes
-  inertia.rotate(Telm.transpose());
-  return true;
+  inertia->rotate(Telm.transpose());
+  return V;
 }
 
 #ifdef FF_NAMESPACE

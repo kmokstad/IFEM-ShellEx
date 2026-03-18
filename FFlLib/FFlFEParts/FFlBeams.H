@@ -25,7 +25,6 @@ class FFlBEAM2 : public FFlElementBase
 {
 public:
   FFlBEAM2(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlBEAM2() {}
 
   static void init();
 
@@ -35,8 +34,7 @@ public:
   FFL_TYPE_INFO(FFlBEAM2);
 
   virtual double getMassDensity() const;
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
   virtual int getNodalCoor(double* X, double* Y, double* Z) const;
   FaVec3 getLocalZdirection() const;
 
@@ -50,7 +48,6 @@ class FFlBEAM3 : public FFlElementBase
 {
 public:
   FFlBEAM3(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlBEAM3() {}
 
   static void init();
 
@@ -60,8 +57,7 @@ public:
   FFL_TYPE_INFO(FFlBEAM3);
 
   virtual double getMassDensity() const;
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
   //! \brief Splits the 3-noded beam element into two 2-noded elements.
   virtual bool split(Elements& newElm, FFlLinkHandler* owner, int);

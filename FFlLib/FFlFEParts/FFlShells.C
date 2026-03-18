@@ -109,35 +109,37 @@ bool FFlTRI3::getFaceNormals(std::vector<FaVec3>& normals, short int,
 }
 
 
-bool FFlTRI3::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                  FFaTensor3& inertia) const
+double FFlTRI3::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   double th = this->getThickness();
-  if (th <= 0.0) return false; // Should not happen
+  if (th <= 0.0) return -1.0; // Should not happen
 
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
   FaVec3 v3(this->getNode(3)->getPos());
+  cog = (v1 + v2 + v3) / 3.0;
 
   FaVec3 normal = (v2-v1) ^ (v3-v1);
   double length = normal.length();
-  volume = 0.5 * length * th;
-  cog = (v1 + v2 + v3) / 3.0;
-  if (length < 1.0e-16) return false;
+  if (length < 1.0e-16) return -2.0;
 
   // Compute inertias by expanding the shell into a solid
 
-  normal *= th/length;
-  v1 -= cog + 0.5*normal;
-  v2 -= cog + 0.5*normal;
-  v3 -= cog + 0.5*normal;
+  if (inertia)
+  {
+    normal *= th/length;
+    v1 -= cog + 0.5*normal;
+    v2 -= cog + 0.5*normal;
+    v3 -= cog + 0.5*normal;
 
-  FaVec3 v4(v1+normal);
-  FaVec3 v5(v2+normal);
-  FaVec3 v6(v3+normal);
+    FaVec3 v4(v1+normal);
+    FaVec3 v5(v2+normal);
+    FaVec3 v6(v3+normal);
 
-  FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,inertia);
-  return true;
+    FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,*inertia);
+  }
+
+  return 0.5 * length * th; // volume
 }
 
 
@@ -295,11 +297,10 @@ bool FFlTRI6::getFaceNormals(std::vector<FaVec3>& normals, short int,
 }
 
 
-bool FFlTRI6::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                  FFaTensor3& inertia) const
+double FFlTRI6::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   double th = this->getThickness();
-  if (th <= 0.0) return false; // Should not happen
+  if (th <= 0.0) return -1.0; // Should not happen
 
   //TODO,kmo: Account for curved edges and face (by numerical integration)
   FaVec3 v1(this->getNode(1)->getPos());
@@ -308,23 +309,25 @@ bool FFlTRI6::getVolumeAndInertia(double& volume, FaVec3& cog,
 
   FaVec3 normal = (v2-v1) ^ (v3-v1);
   double length = normal.length();
-  volume = 0.5 * length * th;
   cog = (v1 + v2 + v3) / 3.0;
-  if (length < 1.0e-16) return false;
+  if (length < 1.0e-16) return -2.0;
 
   // Compute inertias by expanding the shell into a solid
 
-  normal *= th/length;
-  v1 -= cog + 0.5*normal;
-  v2 -= cog + 0.5*normal;
-  v3 -= cog + 0.5*normal;
+  if (inertia)
+  {
+    normal *= th/length;
+    v1 -= cog + 0.5*normal;
+    v2 -= cog + 0.5*normal;
+    v3 -= cog + 0.5*normal;
 
-  FaVec3 v4(v1+normal);
-  FaVec3 v5(v2+normal);
-  FaVec3 v6(v3+normal);
+    FaVec3 v4(v1+normal);
+    FaVec3 v5(v2+normal);
+    FaVec3 v6(v3+normal);
 
-  FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,inertia);
-  return true;
+    FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,*inertia);
+  }
+  return 0.5 * length * th; // volume
 }
 
 
@@ -401,11 +404,10 @@ bool FFlQUAD4::getFaceNormals(std::vector<FaVec3>& normals, short int,
 }
 
 
-bool FFlQUAD4::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlQUAD4::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   double th = this->getThickness();
-  if (th <= 0.0) return false; // Should not happen
+  if (th <= 0.0) return -1.0; // Should not happen
 
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
@@ -415,28 +417,31 @@ bool FFlQUAD4::getVolumeAndInertia(double& volume, FaVec3& cog,
   double a1 = ((v2-v1) ^ (v3-v1)).length();
   double a2 = ((v3-v1) ^ (v4-v1)).length();
 
-  volume = 0.5*(a1+a2)*th;
   cog = ((v1+v3)*(a1+a2) + v2*a1 + v4*a2) / ((a1+a2)*3.0);
 
   // Compute inertias by expanding the shell into a solid
 
-  FaVec3 normal = (v3-v1) ^ (v4-v2);
-  double length = normal.length();
-  if (length < 1.0e-16) return false;
+  if (inertia)
+  {
+    FaVec3 normal = (v3-v1) ^ (v4-v2);
+    double length = normal.length();
+    if (length < 1.0e-16) return -2.0;
 
-  normal *= th/length;
-  v1 -= cog + 0.5*normal;
-  v2 -= cog + 0.5*normal;
-  v3 -= cog + 0.5*normal;
-  v4 -= cog + 0.5*normal;
+    normal *= th/length;
+    v1 -= cog + 0.5*normal;
+    v2 -= cog + 0.5*normal;
+    v3 -= cog + 0.5*normal;
+    v4 -= cog + 0.5*normal;
 
-  FaVec3 v5(v1+normal);
-  FaVec3 v6(v2+normal);
-  FaVec3 v7(v3+normal);
-  FaVec3 v8(v4+normal);
+    FaVec3 v5(v1+normal);
+    FaVec3 v6(v2+normal);
+    FaVec3 v7(v3+normal);
+    FaVec3 v8(v4+normal);
 
-  FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,inertia);
-  return true;
+    FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,*inertia);
+  }
+
+  return 0.5*(a1+a2)*th; // volume
 }
 
 
@@ -663,11 +668,10 @@ bool FFlQUAD8::getFaceNormals(std::vector<FaVec3>& normals, short int,
 }
 
 
-bool FFlQUAD8::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlQUAD8::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   double th = this->getThickness();
-  if (th <= 0.0) return false; // Should not happen
+  if (th <= 0.0) return -1.0; // Should not happen
 
   //TODO,kmo: Account for curved edges and face (by numerical integration)
   FaVec3 v1(this->getNode(1)->getPos());
@@ -678,28 +682,31 @@ bool FFlQUAD8::getVolumeAndInertia(double& volume, FaVec3& cog,
   double a1 = ((v2-v1) ^ (v3-v1)).length();
   double a2 = ((v3-v1) ^ (v4-v1)).length();
 
-  volume = 0.5*(a1+a2)*th;
   cog = ((v1+v3)*(a1+a2) + v2*a1 + v4*a2) / ((a1+a2)*3.0);
 
   // Compute inertias by expanding the shell into a solid
 
-  FaVec3 normal = (v3-v1) ^ (v4-v2);
-  double length = normal.length();
-  if (length < 1.0e-16) return false;
+  if (inertia)
+  {
+    FaVec3 normal = (v3-v1) ^ (v4-v2);
+    double length = normal.length();
+    if (length < 1.0e-16) return -2.0;
 
-  normal *= th/length;
-  v1 -= cog + 0.5*normal;
-  v2 -= cog + 0.5*normal;
-  v3 -= cog + 0.5*normal;
-  v4 -= cog + 0.5*normal;
+    normal *= th/length;
+    v1 -= cog + 0.5*normal;
+    v2 -= cog + 0.5*normal;
+    v3 -= cog + 0.5*normal;
+    v4 -= cog + 0.5*normal;
 
-  FaVec3 v5(v1+normal);
-  FaVec3 v6(v2+normal);
-  FaVec3 v7(v3+normal);
-  FaVec3 v8(v4+normal);
+    FaVec3 v5(v1+normal);
+    FaVec3 v6(v2+normal);
+    FaVec3 v7(v3+normal);
+    FaVec3 v8(v4+normal);
 
-  FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,inertia);
-  return true;
+    FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,*inertia);
+  }
+
+  return 0.5*(a1+a2)*th; // volume
 }
 
 #ifdef FF_NAMESPACE
