@@ -436,36 +436,30 @@ bool FFlLinkHandler::updateCalculationFlag(int groupID, bool status)
 
 bool FFlLinkHandler::updateCalculationFlag(FFlPartBase* part, bool status)
 {
-  FFlGroup* tmpGroup = dynamic_cast<FFlGroup*>(part);
-  if (tmpGroup) {
-    for (const GroupElemRef& elm : *tmpGroup)
+  if (FFlGroup* group = dynamic_cast<FFlGroup*>(part); group)
+  {
+    for (const GroupElemRef& elm : *group)
       elm->setUpForCalculations(status);
-    return true;
   }
-
-  FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part);
-  if (attr) {
+  else if (FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part); attr)
+  {
     for (FFlElementBase* elm : myElements)
       if (elm->hasAttribute(attr))
         elm->setUpForCalculations(status);
-    return true;
   }
-
-  FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part);
-  if (elm) {
+  else if (FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part); elm)
     elm->setUpForCalculations(status);
-    return true;
-  }
+  else
+    return false;
 
-  return false;
+  return true;
 }
 
 
 bool FFlLinkHandler::updateCalculationFlag(const std::string& type,
                                            int id, bool status)
 {
-  FFlAttributeBase* attrib = this->getAttribute(type,id);
-  if (attrib)
+  if (FFlAttributeBase* attrib = this->getAttribute(type,id); attrib)
     return this->updateCalculationFlag(attrib,status);
   else
     return false;
@@ -521,28 +515,23 @@ bool FFlLinkHandler::setVisDetail(const FFlVDetail* detail)
 
 bool FFlLinkHandler::setVisDetail(FFlPartBase* part, const FFlVDetail* detail)
 {
-  FFlGroup* tmpGroup = dynamic_cast<FFlGroup*>(part);
-  if (tmpGroup) {
-    for (const GroupElemRef& elm : *tmpGroup)
+  if (FFlGroup* group = dynamic_cast<FFlGroup*>(part); group)
+  {
+    for (const GroupElemRef& elm : *group)
       elm->setDetail(detail);
-    return true;
   }
-
-  FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part);
-  if (attr) {
+  else if (FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part); attr)
+  {
     for (FFlElementBase* elm : myElements)
       if (elm->hasAttribute(attr))
         elm->setDetail(detail);
-    return true;
   }
-
-  FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part);
-  if (elm) {
+  else if (FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part); elm)
     elm->setDetail(detail);
-    return true;
-  }
+  else
+    return false;
 
-  return false;
+  return true;
 }
 
 
@@ -551,25 +540,14 @@ bool FFlLinkHandler::setVisDetail(const std::vector<FFlPartBase*>& parts,
 {
   std::vector<FFlAttributeBase*> attribParts;
 
-  for (FFlPartBase* part : parts)
-  {
-    FFlGroup* tmpGroup = dynamic_cast<FFlGroup*>(part);
-    if (tmpGroup)
-      for (const GroupElemRef& elm : *tmpGroup)
+  for (FFlPartBase* pt : parts)
+    if (FFlGroup* group = dynamic_cast<FFlGroup*>(pt); group)
+      for (const GroupElemRef& elm : *group)
         elm->setDetail(detail);
-    else
-    {
-      FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part);
-      if (attr)
-        attribParts.push_back(attr);
-      else
-      {
-        FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part);
-        if (elm)
-          elm->setDetail(detail);
-      }
-    }
-  }
+    else if (FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(pt); attr)
+      attribParts.push_back(attr);
+    else if (FFlElementBase* elm = dynamic_cast<FFlElementBase*>(pt); elm)
+      elm->setDetail(detail);
 
   if (!attribParts.empty())
     for (FFlElementBase* elm : myElements)
@@ -584,28 +562,23 @@ bool FFlLinkHandler::setVisDetail(const std::vector<FFlPartBase*>& parts,
 bool FFlLinkHandler::setVisAppearance(FFlPartBase* part,
                                       const FFlVAppearance* app)
 {
-  FFlGroup* tmpGroup = dynamic_cast<FFlGroup*>(part);
-  if (tmpGroup) {
-    for (const GroupElemRef& elm : *tmpGroup)
+  if (FFlGroup* group = dynamic_cast<FFlGroup*>(part); group)
+  {
+    for (const GroupElemRef& elm : *group)
       elm->setAppearance(app);
-    return true;
   }
-
-  FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part);
-  if (attr) {
+  else if (FFlAttributeBase* attr = dynamic_cast<FFlAttributeBase*>(part); attr)
+  {
     for (FFlElementBase* elm : myElements)
       if (elm->hasAttribute(attr))
         elm->setAppearance(app);
-    return true;
   }
-
-  FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part);
-  if (elm) {
+  else if (FFlElementBase* elm = dynamic_cast<FFlElementBase*>(part); elm)
     elm->setAppearance(app);
-    return true;
-  }
+  else
+    return false;
 
-  return false;
+  return true;
 }
 #endif
 
@@ -701,9 +674,9 @@ void FFlLinkHandler::addVisual(FFlVisualBase* visual, bool sortOnInsert)
 
 void FFlLinkHandler::setRunningIdxOnAppearances()
 {
-  FFlVAppearance* vapp = NULL; int idx = 0;
+  int idx = 0;
   for (FFlVisualBase* vis : myVisuals)
-    if ((vapp = dynamic_cast<FFlVAppearance*>(vis)))
+    if (FFlVAppearance* vapp = dynamic_cast<FFlVAppearance*>(vis); vapp)
       vapp->runningIdx = idx++;
 }
 #endif
@@ -769,14 +742,13 @@ FFlVAppearance* FFlLinkHandler::getAppearance(int ID) const
                                                         myVisuals.end(), ID,
                                                         FFlFEPartBaseLess());
 
-  FFlVAppearance* vapp = NULL;
   while (ep.first != ep.second)
-    if ((vapp = dynamic_cast<FFlVAppearance*>(*ep.first)))
-      break;
+    if (FFlVAppearance* vapp = dynamic_cast<FFlVAppearance*>(*ep.first); vapp)
+      return vapp;
     else
       ep.first++;
 
-  return vapp;
+  return NULL;
 }
 
 
@@ -788,14 +760,13 @@ FFlVDetail* FFlLinkHandler::getDetail(int ID) const
                                                         myVisuals.end(), ID,
                                                         FFlFEPartBaseLess());
 
-  FFlVDetail* vdet = NULL;
   while (ep.first != ep.second)
-    if ((vdet = dynamic_cast<FFlVDetail*>(*ep.first)))
-      break;
+    if (FFlVDetail* vdet = dynamic_cast<FFlVDetail*>(*ep.first); vdet)
+      return vdet;
     else
       ep.first++;
 
-  return vdet;
+  return NULL;
 }
 #endif
 
@@ -1217,7 +1188,7 @@ bool FFlLinkHandler::addGroup(FFlGroup* group, bool silence)
 {
   if (!group) return false;
 
-  if (myGroupMap.insert({group->getID(),group}).second)
+  if (myGroupMap.emplace(group->getID(),group).second)
   {
     isResolved = false;
     return true;
@@ -1237,7 +1208,7 @@ bool FFlLinkHandler::addAttribute(FFlAttributeBase* attr, bool silence,
 {
   if (!attr) return false;
 
-  if (myAttributes[name].insert({attr->getID(),attr}).second)
+  if (myAttributes[name].emplace(attr->getID(),attr).second)
   {
     isResolved = false;
     return true;
@@ -1334,13 +1305,12 @@ bool FFlLinkHandler::removeAttribute(const std::string& typeName,
 
 FFlVDetail* FFlLinkHandler::getPredefDetail(int detailType)
 {
-  FFlVDetail* vdet = NULL;
   for (FFlVisualBase* vis : myVisuals)
-    if ((vdet = dynamic_cast<FFlVDetail*>(vis)))
+    if (FFlVDetail* vdet = dynamic_cast<FFlVDetail*>(vis); vdet)
       if (vdet->detail.getValue() == detailType)
 	return vdet;
 
-  vdet = new FFlVDetail(this->getNewVisualID());
+  FFlVDetail* vdet = new FFlVDetail(this->getNewVisualID());
   vdet->detail.setValue(detailType);
   this->addVisual(vdet,true);
 
@@ -1371,10 +1341,9 @@ void FFlLinkHandler::getAllInternalCoordSys(std::vector<FaMat34>& mxes) const
   AttributeTypeCIter mapit = myAttributes.find("PCOORDSYS");
   if (mapit == myAttributes.end()) return;
 
-  FFlPCOORDSYS* lcs;
   mxes.reserve(mapit->second.size());
   for (const AttributeMap::value_type& attr : mapit->second)
-    if ((lcs = dynamic_cast<FFlPCOORDSYS*>(attr.second)))
+    if (FFlPCOORDSYS* lcs = dynamic_cast<FFlPCOORDSYS*>(attr.second); lcs)
     {
       mxes.push_back(FaMat34());
       mxes.back().makeCS_Z_XZ(lcs->Origo.getValue(),
@@ -1410,14 +1379,13 @@ FFlNode* FFlLinkHandler::findFreeNodeAtPoint(const FaVec3& point,
   FFlNode* closest = NULL;
   double closestdist = DBL_MAX;
   double sqrTol = tol > sqrt(DBL_MAX) ? DBL_MAX : tol*tol;
-  double sqrdist, xd, yd, zd;
 
   for (FFlNode* node : myNodes)
     if (node->hasDOFs(dofFilter) || node->isExternal() || node->isRefNode())
-      if ((xd = fabs(node->getPos().x() - point.x())) < tol)
-        if ((yd = fabs(node->getPos().y() - point.y())) < tol)
-          if ((zd = fabs(node->getPos().z() - point.z())) < tol)
-            if ((sqrdist = xd*xd+yd*yd+zd*zd) < sqrTol)
+      if (double xd = fabs(node->getPos().x() - point.x()); xd < tol)
+        if (double yd = fabs(node->getPos().y() - point.y()); yd < tol)
+          if (double zd = fabs(node->getPos().z() - point.z()); zd < tol)
+            if (double sqrdist = xd*xd+yd*yd+zd*zd; sqrdist < sqrTol)
             {
               if (closestdist >= sqrTol)
               {
@@ -1617,13 +1585,12 @@ FFlNode* FFlLinkHandler::findClosestNode(const FaVec3& point) const
 {
   FFlNode* closest = NULL;
   double closestdist = DBL_MAX;
-  double sqrdist;
 
   for (FFlNode* node : myNodes)
-    if ((sqrdist = (point - node->getPos()).sqrLength()) <= closestdist)
+    if (double d2 = (point - node->getPos()).sqrLength(); d2 <= closestdist)
     {
       closest     = node;
-      closestdist = sqrdist;
+      closestdist = d2;
     }
 
   return closest;
@@ -1641,19 +1608,18 @@ FFlElementBase* FFlLinkHandler::findClosestElement(const FaVec3& point,
 {
   FFlElementBase* closest = NULL;
   double closestdist = DBL_MAX;
-  double sqrdist;
 
   // OTHER_ELM = the total number of element cathegories
   std::vector<bool> typeOk(FFlTypeInfoSpec::OTHER_ELM+1,wantedTypes.empty());
   for (FFlTypeInfoSpec::Cathegory type : wantedTypes)
     typeOk[type] = true;
 
-  for (FFlElementBase* elm : myElements)
-    if (typeOk[elm->getCathegory()])
-      if ((sqrdist = (point - elm->getNodeCenter()).sqrLength()) <= closestdist)
+  for (FFlElementBase* e : myElements)
+    if (typeOk[e->getCathegory()])
+      if (double d2 = (point - e->getNodeCenter()).sqrLength(); d2 <= closestdist)
       {
-        closest     = elm;
-        closestdist = sqrdist;
+        closest     = e;
+        closestdist = d2;
       }
 
   return closest;
@@ -1670,13 +1636,12 @@ FFlElementBase* FFlLinkHandler::findClosestElement(const FaVec3& point,
 {
   FFlElementBase* closest = NULL;
   double closestdist = DBL_MAX;
-  double sqrdist;
 
-  for (const GroupElemRef& elm : group)
-    if ((sqrdist = (point - elm->getNodeCenter()).sqrLength()) <= closestdist)
+  for (const GroupElemRef& e : group)
+    if (double d2 = (point - e->getNodeCenter()).sqrLength(); d2 <= closestdist)
     {
-      closest     = elm.getReference();
-      closestdist = sqrdist;
+      closest     = e.getReference();
+      closestdist = d2;
     }
 
   return closest;
@@ -1820,15 +1785,10 @@ void FFlLinkHandler::findWindowedNodes(std::map<int,FaVec3>& nodes,
   int nVertices = myVertices.size();
   for (int idx : indices)
     if (idx < nVertices && visited.insert(idx).second)
-    {
-      const FFlVertex* vrtx = static_cast<const FFlVertex*>(myVertices[idx]);
-      if (vrtx && vrtx->getNode())
-      {
-        FaVec3 globalPos = lCS * (*vrtx);
-        if (isInsideWindow(globalPos))
-          nodes[vrtx->getNode()->getID()] = globalPos;
-      }
-    }
+      if (const FFlVertex* vx = static_cast<const FFlVertex*>(myVertices[idx]);
+          vx && vx->getNode())
+        if (FaVec3 globalPos = lCS * (*vx); isInsideWindow(globalPos))
+          nodes[vx->getNode()->getID()] = globalPos;
 }
 
 #endif
@@ -1945,10 +1905,9 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
                  << attr.second->getID() <<" failed\n";
 
   // Remove loose nodes from WAVGM and RGD elements
-  int nNod = 0;
   ElementsVec toBeErased;
   for (FFlElementBase* elm : myElements)
-    if ((nNod = elm->getNodeCount()) < 1)
+    if (int nNod = elm->getNodeCount(); nNod < 1)
       toBeErased.push_back(elm);
     else if (elm->getTypeName() == "WAVGM")
     {
@@ -1983,7 +1942,15 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
         continue;
       }
 
-      (*refn)->pushDOFs(6); // Ensure the reference node is not flagged DOF-less
+      FFlAttributeBase* pAtt = elm->getAttribute("PWAVGM");
+
+      // Ensure the reference node is not flagged DOF-less.
+      // Issue fedem-solvers#49: Don't enforce rotational DOFs on the reference
+      // node if the constraint element couples translational DOFs only.
+      if (pAtt && abs(static_cast<FFlPWAVGM*>(pAtt)->refC.getValue()) < 322)
+        (*refn)->pushDOFs(3);
+      else
+        (*refn)->pushDOFs(6);
 
       if (looseNodes.empty()) continue;
 
@@ -1992,18 +1959,16 @@ bool FFlLinkHandler::resolve(bool subdivParabolic, bool fromSESAM)
              <<" loose nodes from WAVGM element "<< elm->getID();
       if (!static_cast<FFlWAVGM*>(elm)->removeMasterNodes(looseNodes))
         ++nError;
-      else
+      else if (pAtt)
       {
-        FFlAttributeBase* newAtt = elm->getAttribute("PWAVGM");
-        if (newAtt)
-        {
-          int ID = 1;
-          while (this->getAttribute("PWAVGM",ID)) ID++;
-          newAtt = static_cast<FFlPWAVGM*>(newAtt)->removeWeights(looseNodes,nNod);
-          newAtt->setID(ID);
-          elm->clearAttribute("PWAVGM"); // Replace the old attribute with the new one
-          elm->setAttribute(this->getAttribute("PWAVGM",this->addUniqueAttribute(newAtt)));
-        }
+        int ID = 1;
+        while (this->getAttribute("PWAVGM",ID)) ID++;
+        pAtt = static_cast<FFlPWAVGM*>(pAtt)->removeWeights(looseNodes,nNod);
+        pAtt->setID(ID);
+        // Replace the old attribute with the new one
+        elm->clearAttribute("PWAVGM");
+        ID = this->addUniqueAttribute(pAtt);
+        elm->setAttribute(this->getAttribute("PWAVGM",ID));
       }
     }
     else if (elm->getTypeName() == "RGD")
@@ -2250,13 +2215,13 @@ void FFlLinkHandler::countElements() const
 }
 
 
-void FFlLinkHandler::dump() const
+void FFlLinkHandler::dump(const std::string& heading) const
 {
   if (myNumElements.empty())
     this->countElements();
 
-  std::cout <<"\nFFlLinkHandler::dump()"
-            <<"\n   Elements:        "<< myElements.size();
+  std::cout <<"\nFFlLinkHandler::dump("<< heading
+            <<")\n   Elements:        "<< myElements.size();
   for (const ElmTypeCount::value_type& ec : myNumElements)
     std::cout <<"\n\t"<< ec.first <<"\t"<< ec.second;
 
@@ -2419,7 +2384,6 @@ int FFlLinkHandler::createConnector(const FFaCompoundGeometry& compound,
   cItems.clear();
 
   FFlNode* refNode = new FFlNode(this->getNewNodeID(),nodePos);
-  refNode->pushDOFs(6);
   this->addNode(refNode,true);
   cItems.addNode(refNode->getID());
   ListUI <<"  -> Creating FE node "<< refNode->getID() <<"\n";
