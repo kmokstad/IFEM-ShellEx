@@ -20,7 +20,7 @@ if(NOT TARGET IFEM)
 endif()
 
 if(NOT TARGET Elasticity)
-  add_subdirectory(.. Elasticity)
+  add_subdirectory(../Elasticity Elasticity)
 endif()
 
 # ANDES shell elements (3rd-party Fortran-90 code)
@@ -174,7 +174,12 @@ else(IFEM_COMMON_APP_BUILD)
 endif()
 
 # For generating the doxy
-ifem_add_doc_target(TARGET ShellSim)
+ifem_add_doc_target(
+  TARGET
+    ShellSim
+  DEPENDENCIES
+    Elasticity
+)
 
 # Installation
 include(GNUInstallDirs)
