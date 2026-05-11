@@ -8,6 +8,8 @@ set_property(CACHE FFA_USE_ROUND PROPERTY STRINGS OFF ON NEW)
 ifem_add_library(
   NAME
     FFlLib
+  ALIAS
+    IFEM::FFlLib
   SOURCES
     FFlAttributeBase.C
     FFlCrossSection.C
