@@ -19,7 +19,7 @@ if(NOT TARGET IFEM)
   endif()
 endif()
 
-if(NOT TARGET Elasticity)
+if(NOT TARGET IFEM::Elasticity)
   add_subdirectory(../Elasticity Elasticity)
 endif()
 
@@ -37,6 +37,8 @@ endif()
 ifem_add_library(
   NAME
     ShellEx
+  ALIAS
+    IFEM::ShellEx
   SOURCES
     AndesShell.C
     ASMu2DNastran.C
@@ -57,14 +59,13 @@ ifem_add_library(
     SIMShellModal.h
     WaveFunc.h
   LIBRARIES
-    Elasticity
+    IFEM::Elasticity
 )
 
-target_include_directories(
-    ShellEx
-    PUBLIC
-      ${PROJECT_SOURCE_DIR}/../Beam
-      ${PROJECT_SOURCE_DIR}/../Linear
+target_include_directories(ShellEx
+  PUBLIC
+    ${PROJECT_SOURCE_DIR}/../Beam
+    ${PROJECT_SOURCE_DIR}/../Linear
 )
 
 if(IFEM_USE_ANDES)
@@ -88,7 +89,7 @@ if(IFEM_USE_ANDES)
 endif()
 
 if(TARGET FFlLib)
-  target_link_libraries(ShellEx PUBLIC FFlLib)
+  target_link_libraries(ShellEx PUBLIC IFEM::FFlLib)
 endif()
 
 # Building executable
@@ -98,7 +99,7 @@ ifem_add_application(
   SOURCES
     main.C
   LIBRARIES
-    ShellEx
+    IFEM::ShellEx
 )
 
 # Regression tests
