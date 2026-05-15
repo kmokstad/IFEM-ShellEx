@@ -37,27 +37,26 @@ void FFlCMASS::init()
 }
 
 
-bool FFlCMASS::getVolumeAndInertia(double& volume, FaVec3& cog,
-				   FFaTensor3& inertia) const
+double FFlCMASS::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
-  volume = 0.0;
   cog = this->getNode(1)->getPos();
 
   FFlPMASS* pmass = dynamic_cast<FFlPMASS*>(this->getAttribute("PMASS"));
   if (!pmass)
   {
     // Property-less mass element, ignore
-    inertia = FFaTensor3(0.0);
-    return true;
+    if (inertia)
+      inertia->fill(0.0);
+    return 0.0;
   }
 
   const std::vector<double>& M = pmass->M.getValue();
   if (M.size() > 0 && M.size() <= 6)
   {
     // No inertia for this element, only mass
-    volume = M[0];
-    inertia = FFaTensor3(0.0);
-    return true;
+    if (inertia)
+      inertia->fill(0.0);
+    return M[0];
   }
   else if (M.size() != 21)
   {
@@ -82,21 +81,23 @@ bool FFlCMASS::getVolumeAndInertia(double& volume, FaVec3& cog,
   bool haveInertia = RtMR(M,R,II);
 
   // Compute the mass = volume
-  volume = (II[0][0]+II[1][1]+II[2][2]) / 3.0;
+  double V = (II[0][0]+II[1][1]+II[2][2]) / 3.0;
   if (!haveInertia)
   {
-    inertia = FFaTensor3(0.0);
-    return true;
+    if (inertia)
+      inertia->fill(0.0);
+    return V;
   }
-  else if (volume < 1.0e-16)
+  else if (V < 1.0e-16)
   {
     ListUI <<"\n  ** Warning: CMASS element "<< this->getID()
            <<" has zero mass, but non-zero inertia. This is non-physical.\n";
-    return false;
+    return -2.0;
   }
 
   // Adjust the center of gravity for possible offset
-  cog = FaVec3(II[1][5],II[2][3],II[0][4]) / volume;
+  cog = FaVec3(II[1][5],II[2][3],II[0][4]) / V;
+  if (!inertia) return V;
 
   // Compute the inertia tensor about the center of gravity
   R[1][3] += cog[2];
@@ -107,9 +108,9 @@ bool FFlCMASS::getVolumeAndInertia(double& volume, FaVec3& cog,
   R[1][5] -= cog[0];
   RtMR(M,R,II);
 
-  inertia = FFaTensor3(II[3][3],II[4][4],II[5][5],
-                       II[3][4],II[3][5],II[4][5]);
-  return true;
+  *inertia = FFaTensor3(II[3][3],II[4][4],II[5][5],
+                        II[3][4],II[3][5],II[4][5]);
+  return V;
 }
 
 

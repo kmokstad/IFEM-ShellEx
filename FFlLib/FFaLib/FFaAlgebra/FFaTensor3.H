@@ -8,6 +8,7 @@
 #ifndef FFA_TENSOR3_H
 #define FFA_TENSOR3_H
 
+#include <array>
 #include <iostream>
 
 class FaVec3;
@@ -25,14 +26,13 @@ class FFaTensor2;
 
 class FFaTensor3
 {
-  double myT[6];
+  std::array<double,6> myT;
 
 public:
 
   // Constructors
 
-  FFaTensor3()                    { for (int i=0; i<6; i++) myT[i] = 0.0; }
-  FFaTensor3(double d)            { for (int i=0; i<6; i++) myT[i] = d; }
+  FFaTensor3(double d = 0.0)      { myT.fill(d); }
   FFaTensor3(const float* t)      { for (int i=0; i<6; i++) myT[i] = t[i]; }
   FFaTensor3(const double* t)     { for (int i=0; i<6; i++) myT[i] = t[i]; }
   FFaTensor3(const FFaTensor3& t) { for (int i=0; i<6; i++) myT[i] = t.myT[i]; }
@@ -42,13 +42,14 @@ public:
   FFaTensor3(double t11      , double t22      , double t33,
              double t12 = 0.0, double t13 = 0.0, double t23 = 0.0)
   {
-    myT[0] = t11; myT[1] = t22; myT[2] = t33;
-    myT[3] = t12; myT[4] = t13; myT[5] = t23;
+    myT = { t11, t22, t33, t12, t13, t23 };
   }
   FFaTensor3(const FaVec3& v1, const FaVec3& v2, const FaVec3& v3)
   {
     this->makeInertia(v1,v2,v3);
   }
+
+  void fill(double d) { myT.fill(d); }
 
   // Local operators
 
@@ -82,8 +83,8 @@ public:
 
   // Access to internal array
 
-  const double* getPt() const { return myT; }
-  double*       getPt()       { return myT; }
+  const double* getPt() const { return myT.data(); }
+  double*       getPt()       { return myT.data(); }
 
   // Indexing
 
@@ -136,8 +137,8 @@ inline const double& FFaTensor3::operator[] (int i) const
 {
 #ifdef FFA_INDEXCHECK
   if (i < 0 || i > 5)
-    std::cerr <<"FFaTensor3::operator[]: index i="<< i <<" is out of range [0,5]"
-	      << std::endl;
+    std::cerr <<"FFaTensor3::operator[]: index i="<< i
+              <<" is out of range [0,5]"<< std::endl;
 #endif
   return myT[i];
 }
@@ -146,8 +147,8 @@ inline double& FFaTensor3::operator[] (int i)
 {
 #ifdef FFA_INDEXCHECK
   if (i < 0 || i > 5)
-    std::cerr <<"FFaTensor3::operator[]: index i="<< i <<" is out of range [0,5]"
-	      << std::endl;
+    std::cerr <<"FFaTensor3::operator[]: index i="<< i
+              <<" is out of range [0,5]"<< std::endl;
 #endif
   return myT[i];
 }
