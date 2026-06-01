@@ -82,11 +82,12 @@ public:
   //! \param nBlock Running result block counter
   bool writeGlvNormal(int& geoBlk, int& nBlock) const;
 
+  using SIMElasticity<SIM2D>::writeGlvG;
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
-  //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
-  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
+  //! \param[in] time The time from which this (new) geometry applies
+  //! \param[in] append If \e true, append new blocks to existing ones, if any
+  virtual bool writeGlvG(int& nBlock, double time, bool append);
   //! \brief Writes current sea surface elevation to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier

@@ -606,9 +606,9 @@ bool SIMAndesShell::writeGlvNormal (int& geoBlk, int& nBlock) const
   This method is overridden to also write out the sea surface, if any.
 */
 
-bool SIMAndesShell::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
+bool SIMAndesShell::writeGlvG (int& nBlock, double time, bool append)
 {
-  if (!this->Parent::writeGlvG(nBlock,inpFile,doClear))
+  if (!this->Parent::writeGlvG(nBlock,time,append))
     return false;
 
   if (seaGridSize < 1.0e-8 || seaLx < seaGridSize || seaLy < seaGridSize)
