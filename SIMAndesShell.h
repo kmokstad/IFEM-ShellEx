@@ -138,8 +138,8 @@ protected:
   virtual bool renumberNodes(const std::map<int,int>& nodeMap);
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
-  virtual bool extractPatchSolution(IntegrandBase* itg,
-                                    const Vectors& sol, size_t pindx) const;
+  virtual bool extractPatchSolution(IntegrandBase* itg, const Vectors& sol,
+                                    size_t pindx, double time) const;
 
   //! \brief Assembles the DOF springs and nodal point loads, if any.
   virtual bool assembleDiscreteItems(const IntegrandBase* itg,

@@ -409,12 +409,12 @@ bool SIMAndesShell::renumberNodes (const std::map<int,int>& nodeMap)
 
 bool SIMAndesShell::extractPatchSolution (IntegrandBase* itg,
                                           const Vectors& sol,
-                                          size_t pindx) const
+                                          size_t pindx, double time) const
 {
   if (itg == myProblem && dynamic_cast<ASMuBeam*>(this->getPatch(pindx+1)))
     if (shellp) itg = shellp->hasBeamProblem();
 
-  return this->Parent::extractPatchSolution(itg,sol,pindx);
+  return this->Parent::extractPatchSolution(itg,sol,pindx,time);
 }
 
 
