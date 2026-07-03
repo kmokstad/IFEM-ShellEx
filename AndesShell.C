@@ -253,7 +253,7 @@ void AndesShell::setMode (SIM::SolutionMode mode)
   if (beamProblem)
   {
     beamProblem->setMode(mode);
-    beamProblem->setGravity(gravity.x,gravity.y,gravity.z);
+    beamProblem->setGravity(gravity);
   }
 }
 
