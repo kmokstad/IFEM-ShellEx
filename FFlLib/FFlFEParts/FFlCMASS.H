@@ -25,7 +25,6 @@ class FFlCMASS : public FFlElementBase
 {
 public:
   FFlCMASS(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlCMASS() {}
 
   static void init();
 
@@ -35,8 +34,7 @@ public:
   FFL_TYPE_INFO(FFlCMASS);
 
   virtual double getMassDensity() const { return 1.0; }
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-				   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 private:
   static bool RtMR(const std::vector<double>& M, double R[6][6], double II[6][6]);

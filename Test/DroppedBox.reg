@@ -7,7 +7,7 @@ Parsing <discretization>
 Parsing <geometry>
   Parsing <patchfile>
 	Reading data file Q4box.nas
-Parsing Nastran bulk data file succceeded.
+Parsing Nastran bulk data file succeeded.
 Total number of nodes:          8
 Number of shell elements:       6
 Number of constraint elements:  0

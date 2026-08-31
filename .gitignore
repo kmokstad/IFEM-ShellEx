@@ -2,4 +2,5 @@
 Test/*.log
 Test/*.vtf
 Test/dump?.dat
+Test/*-Nmat.dat
 Test/genplate

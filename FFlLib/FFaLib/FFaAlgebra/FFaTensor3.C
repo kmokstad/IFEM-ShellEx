@@ -11,7 +11,6 @@
 #include "FFaLib/FFaAlgebra/FFaMat33.H"
 #include "FFaLib/FFaAlgebra/FFaMat34.H"
 #include "FFaLib/FFaAlgebra/FFaTensorTransforms.H"
-#include <cctype>
 
 
 FFaTensor3::FFaTensor3(const FFaTensor2& t)
@@ -71,22 +70,22 @@ FFaTensor3& FFaTensor3::operator= (const FFaTensor1& t)
 
 FFaTensor3& FFaTensor3::rotate(const FaMat33& rotMx)
 {
-  FFaTensorTransforms::rotate(myT,
+  FFaTensorTransforms::rotate(myT.data(),
                               rotMx[0].getPt(),
                               rotMx[1].getPt(),
                               rotMx[2].getPt(),
-                              myT);
+                              myT.data());
   return *this;
 }
 
 
 FFaTensor3& FFaTensor3::rotate(const FaMat34& rotMx)
 {
-  FFaTensorTransforms::rotate(myT,
+  FFaTensorTransforms::rotate(myT.data(),
                               rotMx[0].getPt(),
                               rotMx[1].getPt(),
                               rotMx[2].getPt(),
-                              myT);
+                              myT.data());
   return *this;
 }
 
@@ -174,7 +173,7 @@ double FFaTensor3::maxShear() const
 void FFaTensor3::maxShear(FaVec3& v) const
 {
   double values[3], max[3], middle[3], min[3];
-  if (FFaTensorTransforms::principalDirs(myT,values,max,middle,min) == 0)
+  if (FFaTensorTransforms::principalDirs(myT.data(),values,max,middle,min) == 0)
   {
     FFaTensorTransforms::maxShearDir(3,max,min,v.getPt());
     v *= FFaTensorTransforms::maxShearValue(values[0],values[2]);
@@ -258,7 +257,7 @@ void FFaTensor3::prinsipalValues(double& max, double& middle, double& min) const
 
 void FFaTensor3::prinsipalValues(FaVec3& values, FaMat33& rotation) const
 {
-  if (FFaTensorTransforms::principalDirs(myT,
+  if (FFaTensorTransforms::principalDirs(myT.data(),
                                          values.getPt(),
                                          rotation[0].getPt(),
                                          rotation[1].getPt(),
@@ -355,16 +354,18 @@ bool operator!= (const FFaTensor3& a, const FFaTensor3& b)
 FFaTensor3 operator* (const FFaTensor3& a, const FaMat33& m)
 {
   FFaTensor3 result;
-  FFaTensorTransforms::rotate(a.myT, m[0].getPt(), m[1].getPt(), m[2].getPt(),
-                              result.myT);
+  FFaTensorTransforms::rotate(a.myT.data(),
+                              m[0].getPt(), m[1].getPt(), m[2].getPt(),
+                              result.myT.data());
   return result;
 }
 
 FFaTensor3 operator* (const FFaTensor3& a, const FaMat34& m)
 {
   FFaTensor3 result;
-  FFaTensorTransforms::rotate(a.myT, m[0].getPt(), m[1].getPt(), m[2].getPt(),
-                              result.myT);
+  FFaTensorTransforms::rotate(a.myT.data(),
+                              m[0].getPt(), m[1].getPt(), m[2].getPt(),
+                              result.myT.data());
   return result;
 }
 
