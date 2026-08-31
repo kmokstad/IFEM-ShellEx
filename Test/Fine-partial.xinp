@@ -40,6 +40,8 @@
   <postprocessing>
     <resultpoints printmapping="true" vtfsize="0.0002">
       <elements patch="1">10 20 30</elements>
+      <point patch="1">0.1  0  0.01</point>
+      <point patch="1">0.12 0 -0.01</point>
     </resultpoints>
     <vonMises_only/>
   </postprocessing>
