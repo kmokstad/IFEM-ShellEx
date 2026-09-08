@@ -87,7 +87,7 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] time The time from which this (new) geometry applies
   //! \param[in] append If \e true, append new blocks to existing ones, if any
-  virtual bool writeGlvG(int& nBlock, double time, bool append);
+  virtual int writeGlvG(int& nBlock, double time, bool append);
   //! \brief Writes current sea surface elevation to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier

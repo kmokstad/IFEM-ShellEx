@@ -606,13 +606,13 @@ bool SIMAndesShell::writeGlvNormal (int& geoBlk, int& nBlock) const
   This method is overridden to also write out the sea surface, if any.
 */
 
-bool SIMAndesShell::writeGlvG (int& nBlock, double time, bool append)
+int SIMAndesShell::writeGlvG (int& nBlock, double time, bool append)
 {
-  if (!this->Parent::writeGlvG(nBlock,time,append))
-    return false;
+  int ret = this->Parent::writeGlvG(nBlock,time,append);
+  if (ret <= 0) return ret;
 
   if (seaGridSize < 1.0e-8 || seaLx < seaGridSize || seaLy < seaGridSize)
-    return true; // No sea surface visuzlization
+    return ret; // No sea surface visualization
 
   const size_t nx = seaLx / seaGridSize;
   const size_t ny = seaLy / seaGridSize;
@@ -637,13 +637,14 @@ bool SIMAndesShell::writeGlvG (int& nBlock, double time, bool append)
     }
 
   seaBlock = ++nBlock;
-  return this->getVTF()->writeGrid(seaSurf,"Sea surface",seaBlock);
+  return this->getVTF()->writeGrid(seaSurf,"Sea surface",seaBlock) ? ret+1 : -2;
 }
 
 
 bool SIMAndesShell::writeGlvA (int& nBlock, int iStep, double time, int) const
 {
-  if (seaBlock < 1 || !seasurf) return true; // no sea surface visualization
+  if (seaBlock < 1 || !seasurf)
+    return true; // no sea surface visualization
 
   VTF* vtf = this->getVTF();
   const ElementBlock* sea = vtf ? vtf->getBlock(seaBlock) : nullptr;
