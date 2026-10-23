@@ -96,8 +96,10 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integr Object with problem-specific data and methods
   //! \param[in] elements List of elements to evaluate at (all if empty)
+  //! \param[in] lpar Local parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integr,
-                            const IntVec& elements) const;
+                            const IntVec& elements,
+                            const RealArray* lpar) const;
 
   //! \brief Evaluates the primary solution at immersed geometry points.
   //! \param[out] field Solution field values at immersed geometry points
@@ -146,8 +148,10 @@ protected:
   //! \param[in] integr Object with problem-specific data and methods
   //! \param[in] atNodes If \e true, evaluate at all nodal points instead
   //! \param[in] elements List of elements to evaluate at (all if empty)
+  //! \param[in] lpar Local parameter values of the result sampling points
   bool evalSecSolution(Matrix& sField, const IntegrandBase& integr,
-                       bool atNodes, const IntVec& elements = {}) const;
+                       bool atNodes, const IntVec& elements = {},
+                       const RealArray* lpar = nullptr) const;
 
 public:
   //! \brief Data type for shell element properties.
