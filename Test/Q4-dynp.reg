@@ -8,7 +8,7 @@ Parsing <geometry>
   Parsing <patchfile>
 	Reading data file CQUAD04_.nas
 	Nastran bulk data starting at line 31
-Parsing Nastran bulk data file succceeded.
+Parsing Nastran bulk data file succeeded.
 Total number of nodes:          27
 Number of shell elements:       16
 Number of constraint elements:  2

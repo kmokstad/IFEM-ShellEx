@@ -8,7 +8,6 @@
 #include "FFaLib/FFaAlgebra/FFaTensor1.H"
 #include "FFaLib/FFaAlgebra/FFaTensor2.H"
 #include "FFaLib/FFaAlgebra/FFaTensor3.H"
-#include <cctype>
 #include <cmath>
 
 

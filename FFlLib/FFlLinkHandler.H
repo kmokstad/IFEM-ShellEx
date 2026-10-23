@@ -96,10 +96,11 @@ public:
   bool addGroup(FFlGroup* group, bool silence = false);
   void addLoad(FFlLoadBase* load, bool sortOnInsert = false);
   bool addAttribute(FFlAttributeBase* attr, bool silence = false);
-  bool addAttribute(FFlAttributeBase* attr, bool silence, const std::string& name);
+  bool addAttribute(FFlAttributeBase* attr, bool silence,
+                    const std::string& name);
   int  addUniqueAttribute(FFlAttributeBase* attr, bool silence = false);
   int  addUniqueAttributeCS(FFlAttributeBase*& attr);
-  bool removeAttribute(const std::string& typeName, int ID, bool silence = false);
+  bool removeAttribute(const std::string& name, int ID, bool silence = false);
 #ifdef FT_USE_VISUALS
   void addVisual(FFlVisualBase* visual, bool sortOnInsert = false);
   void setRunningIdxOnAppearances();
@@ -138,10 +139,12 @@ public:
   bool getLoads(int ID, LoadsVec& loads) const;
   void getLoadCases(std::set<int>& IDs) const;
 
-  // External-to-internal node and (finite) element number mapping
+  //! \brief External-to-internal node number mapping.
   int getIntNodeID(int extID) const;
+  //! \brief External-to-internal (finite) element number mapping.
   int getIntElementID(int extID) const;
 
+  //! \brief Removes the given elements from the myElements container.
   void removeElements(const ElementsVec& elms);
 
   int getNewElmID() const;
@@ -197,12 +200,10 @@ public:
   const FFlrVxToElmMap& getVxToElementMapping();
 
   using WindowTester = bool(*)(const FaVec3&);
-
   void findWindowedNodes(std::map<int,FaVec3>& nodes,
                          const std::vector<int>& indices,
                          const FaMat34& lCS, bool lFirst,
                          WindowTester isInsideWindow) const;
-
 #endif
 
   void getAllInternalCoordSys(std::vector<FaMat34>& mxes) const;
@@ -274,13 +275,15 @@ public:
   void initiateCalculationFlag(bool status = false);
   bool updateCalculationFlag(int groupId, bool status = true);
   bool updateCalculationFlag(FFlPartBase* part, bool status = true);
-  bool updateCalculationFlag(const std::string& attType, int id, bool status = true);
+  bool updateCalculationFlag(const std::string& attType, int id,
+                             bool status = true);
 
 #ifdef FT_USE_VISUALS
   // Visual settings
   bool setVisDetail(const FFlVDetail* det); // on all elements
   bool setVisDetail(FFlPartBase* part, const FFlVDetail* det);
-  bool setVisDetail(const std::vector<FFlPartBase*>& parts, const FFlVDetail* det);
+  bool setVisDetail(const std::vector<FFlPartBase*>& parts,
+                    const FFlVDetail* det);
   bool setVisAppearance(FFlPartBase* partSpec, const FFlVAppearance* app);
   void updateGroupVisibilityStatus();
 
@@ -297,7 +300,7 @@ public:
   const Strings& getOP2files() const { return myOP2files; }
   size_t getNumberOfGenDofs() const { return nGenDofs; }
 
-  void dump() const;
+  void dump(const std::string& heading = "") const;
 
 #ifdef FT_USE_CONNECTORS
   int createConnector(const FFaCompoundGeometry& compound,

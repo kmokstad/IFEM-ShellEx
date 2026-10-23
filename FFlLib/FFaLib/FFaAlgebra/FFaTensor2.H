@@ -8,6 +8,7 @@
 #ifndef FFA_TENSOR2_H
 #define FFA_TENSOR2_H
 
+#include <array>
 #include <iostream>
 
 class FaVec3;
@@ -25,21 +26,21 @@ class FFaTensor3;
 
 class FFaTensor2
 {
-  double myT[3];
+  std::array<double,3> myT;
 
 public:
 
   // Constructors
 
-  FFaTensor2()                    { myT[0] = myT[1] = myT[2] = 0.0; }
-  FFaTensor2(double d)            { myT[0] = myT[1] = myT[2] = d; }
+  FFaTensor2(double d = 0.0)      { myT.fill(d); }
   FFaTensor2(const float* t)      { for (int i=0; i<3; i++) myT[i] = t[i]; }
   FFaTensor2(const double* t)     { for (int i=0; i<3; i++) myT[i] = t[i]; }
   FFaTensor2(const FFaTensor2& t) { for (int i=0; i<3; i++) myT[i] = t.myT[i]; }
   FFaTensor2(const FFaTensor1& t);
   FFaTensor2(const FFaTensor3& t);
-  FFaTensor2(double t11, double t22, double t12 = 0.0)
-  { myT[0] = t11; myT[1] = t22; myT[2] = t12; }
+  FFaTensor2(double t11, double t22, double t12 = 0.0) { myT = {t11,t22,t12}; }
+
+  void fill(double d) { myT.fill(d); }
 
   // Local operators
 
@@ -73,8 +74,8 @@ public:
 
   // Access to internal array
 
-  const double* getPt() const { return myT; }
-  double*       getPt()       { return myT; }
+  const double* getPt() const { return myT.data(); }
+  double*       getPt()       { return myT.data(); }
 
   // Indexing
 
@@ -122,8 +123,8 @@ inline const double& FFaTensor2::operator[] (int i) const
 {
 #ifdef FFA_INDEXCHECK
   if (i < 0 || i > 2)
-    std::cerr <<"FFaTensor2::operator[]: index i="<< i <<" is out of range [0,2]"
-	      << std::endl;
+    std::cerr <<"FFaTensor2::operator[]: index i="<< i
+              <<" is out of range [0,2]"<< std::endl;
 #endif
   return myT[i];
 }
@@ -132,8 +133,8 @@ inline double& FFaTensor2::operator[] (int i)
 {
 #ifdef FFA_INDEXCHECK
   if (i < 0 || i > 2)
-    std::cerr <<"FFaTensor2::operator[]: index i="<< i <<" is out of range [0,2]"
-	      << std::endl;
+    std::cerr <<"FFaTensor2::operator[]: index i="<< i
+              <<" is out of range [0,2]"<< std::endl;
 #endif
   return myT[i];
 }

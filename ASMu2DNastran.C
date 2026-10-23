@@ -25,20 +25,19 @@
 
 namespace ASM {
   char useBeam = 1; //!< If nonzero, include beam elements as a separate patch
-  char skipMass = 0; //!< 1: ignore one-noded mass elements, 2: no VTF output
-  bool skipRBE2 = false; //!< If \e true, ignore all RBE2 elements
   bool replRBE3 = false; //!< If \e true, convert RBE3 elements to RBE2 elements
   bool skipLoad = false; //!< If \e true, ignore all FE surface loads
-  bool readSets = true; //!< If \e true, read pre-bulk Nastran SET definitions
   double Ktra = 0.0; //!< Translation stiffness for added springs in slave nodes
   double Krot = 0.0; //!< Rotation stiffness for added sprins in slave nodes
   IntVec fixRBE3; //!< List of RBE3 elements to be constrained
-  IntVec ignoredElms; //!< List of elements to ignore
+#ifdef HAS_FFLLIB
+  extern char skipMass;
+#endif
 }
 
 #ifdef HAS_FFLLIB
+#include "IFEMNastranReader.h"
 #include "FFlLinkHandler.H"
-#include "FFlNastranReader.H"
 #include "FFlElementBase.H"
 #include "FFlLoadBase.H"
 #include "FFlGroup.H"
@@ -58,60 +57,6 @@ namespace ASM {
 namespace FFlNastran {
   extern std::string mainPath;
 }
-
-
-/*!
-  \brief Class for reading Nastran bulk data into a FFlLinkHandler object.
-*/
-
-class MyNastranReader : public FFlNastranReader
-{
-  int nPreBulk; //!< Number of lines before BEGIN BULK
-
-public:
-  //! \brief The constructor forwards to the parent class constructor.
-  MyNastranReader(FFlLinkHandler& fePart, int lCount)
-    : FFlNastranReader(&fePart,lCount), nPreBulk(lCount) {}
-
-  //! \brief Reads the FE model from the Nastran file stream.
-  bool readFE(std::istream& is, std::istream& iset)
-  {
-    PROFILE("Nastran file parser");
-
-    if (!this->resolve(this->read(is)))
-      myLink->deleteGeometry(); // Parsing failure, delete all FE data
-    else if (nWarnings+nNotes > 0)
-      IFEM::cout <<"\n  ** Parsing FE data succeeded."
-                 <<"\n     However, "<< nWarnings
-                 <<" warning(s) and "<< nNotes <<" note(s) were reported.\n"
-                 <<"     Review the messages and check the FE data file.\n"
-                 << std::endl;
-    if (!myLink->hasGeometry())
-      return false;
-
-    // Remove all solid elements (not yet supported),
-    // and (optionally) all the mass and beam elements, and ...
-    ElementsVec toBeErased;
-    ElementsCIter it;
-    for (it = myLink->elementsBegin(); it != myLink->elementsEnd(); ++it)
-      if ((*it)->getCathegory() == FFlTypeInfoSpec::SOLID_ELM ||
-          utl::findIndex(ASM::ignoredElms,(*it)->getID()) >= 0 ||
-          (ASM::skipRBE2 && (*it)->getTypeName() == "RGD") ||
-          (ASM::skipMass == 1 && (*it)->getTypeName() == "CMASS") ||
-          (!ASM::useBeam && (*it)->getCathegory() == FFlTypeInfoSpec::BEAM_ELM))
-        toBeErased.push_back(*it);
-    if (!toBeErased.empty())
-    {
-      IFEM::cout <<"  ** Erasing "<< toBeErased.size()
-                 <<" elements from the model."<< std::endl;
-      myLink->removeElements(toBeErased);
-    }
-
-    // Now parse the element set definitions, if any
-    lastComment = { 0, "" };
-    return iset ? this->processAllSets(iset,nPreBulk) : true;
-  }
-};
 #endif
 
 
@@ -155,38 +100,21 @@ bool ASMu2DNastran::read (std::istream& is)
   int nErr = 0;
   int iErr = 0;
 
-  // Fast-forward until "BEGIN BULK"
-  int lCount = 0;
-  char cline[256];
-  std::stringstream sets;
-  while (is.getline(cline,255))
-    if (!strncmp(cline,"BEGIN BULK",10))
-      break;
-    else
-    {
-      ++lCount;
-      // Copy element SET definitions to a second stream,
-      // since they have to be parsed after the FE model is loaded
-      if (ASM::readSets && (!strncmp(cline,"SET ",4) || sets.tellp() > 0))
-        sets << cline << '\n';
-    }
-
-  if (!is) return false; // No bulk data file
-
-  if (lCount > 0)
-    IFEM::cout <<"\tNastran bulk data starting at line "
-               << lCount+1 << std::endl;
-
 #ifdef HAS_FFLLIB
+  std::stringstream sets;
+  int lCount = IFEMNastranReader::parseSets(is,sets);
+  if (lCount < 0) return false; // No bulk data file
+
   bool ok = false;
   FFlLinkHandler fem;
-  if (MyNastranReader reader(fem,lCount); reader.readFE(is,sets))
+  if (IFEMNastranReader reader(fem,lCount);
+      reader.readFE(is,sets,!ASM::useBeam))
   {
     PROFILE("Resolve cross references");
     ok = fem.resolve();
   }
   if (ok)
-    IFEM::cout <<"\nParsing Nastran bulk data file succceeded."<< std::endl;
+    IFEM::cout <<"\nParsing Nastran bulk data file succeeded."<< std::endl;
   else
   {
     std::cerr <<"\n *** Parsing/resolving FE data failed.\n"
@@ -1001,7 +929,10 @@ void ASMu2DNastran::addBlock (int idx, ElementBlock* blk)
 ElementBlock* ASMu2DNastran::immersedGeometry (char* name) const
 {
   ElementBlock* geo = nullptr;
-  if (myMass.empty() || ASM::skipMass) return geo;
+  if (myMass.empty()) return geo;
+#ifdef HAS_FFLLIB
+  if (ASM::skipMass) return geo;
+#endif
 
   // Let the largest point mass be visualized as a sphere
   // with diameter ~5% of the total length of the structure

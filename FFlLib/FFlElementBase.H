@@ -73,8 +73,7 @@ public:
 
   // Structural properties:
   virtual double getMassDensity() const;
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-				   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inert = NULL) const;
   bool getMassProperties(double& mass, FaVec3& cog, FFaTensor3& inertia) const;
 
   // Geometrical mapping:

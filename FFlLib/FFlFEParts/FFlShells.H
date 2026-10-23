@@ -25,7 +25,6 @@ class FFlShellElementBase : public FFlElementBase
 {
 public:
   FFlShellElementBase(int ID) : FFlElementBase(ID) {}
-  virtual ~FFlShellElementBase() {}
 
   double getThickness() const;
 
@@ -39,7 +38,6 @@ class FFlTRI3 : public FFlShellElementBase
 {
 public:
   FFlTRI3(int ID) : FFlShellElementBase(ID) {}
-  virtual ~FFlTRI3() {}
 
   static void init();
 
@@ -52,8 +50,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
   virtual FaVec3 mapping(double xi, double eta, double) const;
   virtual bool invertMapping(const FaVec3& X, double* Xi) const;
@@ -69,7 +66,6 @@ class FFlTRI6 : public FFlShellElementBase
 {
 public:
   FFlTRI6(int ID) : FFlShellElementBase(ID) {}
-  virtual ~FFlTRI6() {}
 
   static void init();
 
@@ -85,8 +81,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
   virtual int getNodalCoor(double* X, double* Y, double* Z) const;
 
 #ifdef FT_USE_MEMPOOL
@@ -99,7 +94,6 @@ class FFlQUAD4 : public FFlShellElementBase
 {
 public:
   FFlQUAD4(int ID) : FFlShellElementBase(ID) {}
-  virtual ~FFlQUAD4() {}
 
   static void init();
 
@@ -112,8 +106,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
   virtual FaVec3 mapping(double xi, double eta, double = 0.0) const;
   virtual bool invertMapping(const FaVec3& X, double* Xi) const;
@@ -129,7 +122,6 @@ class FFlQUAD8 : public FFlShellElementBase
 {
 public:
   FFlQUAD8(int ID) : FFlShellElementBase(ID) {}
-  virtual ~FFlQUAD8() {}
 
   static void init();
 
@@ -145,8 +137,7 @@ public:
   virtual bool getFaceNormals(std::vector<FaVec3>& normals, short int face = 1,
                               bool switchNormal = false) const;
 
-  virtual bool getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const;
+  virtual double getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const;
 
 #ifdef FT_USE_MEMPOOL
   FFA_MAKE_MEMPOOL;
