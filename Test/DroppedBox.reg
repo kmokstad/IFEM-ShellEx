@@ -19,7 +19,13 @@ Parsing <elasticity>
   Parsing <gravity>
 	Gravitation vector: 0 0 -9.81
   Parsing <seasurface>
-	Sea surface function (expression): wavel=4.0; waveh=0.1; wavespeed=-4.0; tstart=1.0; refx=3.0+wavespeed\*(t-tstart); if(above(x+ux,refx),0.5\*waveh\*sin((x+ux-refx)\*2\*PI/wavel),0.0)
+	Sea surface function (expression):
+		wavel=4.0;
+		waveh=0.1;
+		wavespeed=-4.0;
+		tstart=1.0;
+		refx=3.0+wavespeed\*(t-tstart);
+		if(above(x+ux,refx),0.5\*waveh\*sin((x+ux-refx)\*2\*PI/wavel),0.0);
   Parsing <pressure>
 	Pressure code 1 (hydrostatic): z0 = 0.1 rhow = 1000
 Parsing <newmarksolver>
