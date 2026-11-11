@@ -8,7 +8,7 @@ Parsing <geometry>
   Parsing <patchfile>
 	Reading data file sykkelhjul.nas
 	Nastran bulk data starting at line 2
-Parsing Nastran bulk data file succceeded.
+Parsing Nastran bulk data file succeeded.
 Total number of nodes:          31
 Number of shell elements:       20
 Number of constraint elements:  1

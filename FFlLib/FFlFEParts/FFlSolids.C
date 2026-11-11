@@ -59,19 +59,20 @@ bool FFlTET4::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlTET4::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                  FFaTensor3& inertia) const
+double FFlTET4::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
   FaVec3 v3(this->getNode(3)->getPos());
   FaVec3 v4(this->getNode(4)->getPos());
 
+  double volume = 0.0;
   FFaVolume::tetVolume(v1,v2,v3,v4,volume);
   FFaVolume::tetCenter(v1,v2,v3,v4,cog);
-  FFaVolume::tetMoment(v1,v2,v3,v4,inertia);
+  if (inertia)
+    FFaVolume::tetMoment(v1,v2,v3,v4,*inertia);
 
-  return true;
+  return volume;
 }
 
 
@@ -147,8 +148,7 @@ bool FFlWEDG6::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlWEDG6::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlWEDG6::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
@@ -157,11 +157,13 @@ bool FFlWEDG6::getVolumeAndInertia(double& volume, FaVec3& cog,
   FaVec3 v5(this->getNode(5)->getPos());
   FaVec3 v6(this->getNode(6)->getPos());
 
+  double volume = 0.0;
   FFaVolume::wedVolume(v1,v2,v3,v4,v5,v6,volume);
   FFaVolume::wedCenter(v1,v2,v3,v4,v5,v6,cog);
-  FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,inertia);
+  if (inertia)
+    FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,*inertia);
 
-  return true;
+  return volume;
 }
 
 
@@ -211,8 +213,7 @@ bool FFlHEX8::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlHEX8::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                  FFaTensor3& inertia) const
+double FFlHEX8::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(2)->getPos());
@@ -223,11 +224,13 @@ bool FFlHEX8::getVolumeAndInertia(double& volume, FaVec3& cog,
   FaVec3 v7(this->getNode(7)->getPos());
   FaVec3 v8(this->getNode(8)->getPos());
 
+  double volume = 0.0;
   FFaVolume::hexVolume(v1,v2,v3,v4,v5,v6,v7,v8,volume);
   FFaVolume::hexCenter(v1,v2,v3,v4,v5,v6,v7,v8,cog);
-  FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,inertia);
+  if (inertia)
+    FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,*inertia);
 
-  return true;
+  return volume;
 }
 
 
@@ -266,8 +269,7 @@ bool FFlTET10::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlTET10::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlTET10::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   //TODO: Account for possibly curved edges
   FaVec3 v1(this->getNode(1)->getPos());
@@ -275,11 +277,13 @@ bool FFlTET10::getVolumeAndInertia(double& volume, FaVec3& cog,
   FaVec3 v3(this->getNode(5)->getPos());
   FaVec3 v4(this->getNode(10)->getPos());
 
+  double volume = 0.0;
   FFaVolume::tetVolume(v1,v2,v3,v4,volume);
   FFaVolume::tetCenter(v1,v2,v3,v4,cog);
-  FFaVolume::tetMoment(v1,v2,v3,v4,inertia);
+  if (inertia)
+    FFaVolume::tetMoment(v1,v2,v3,v4,*inertia);
 
-  return true;
+  return volume;
 }
 
 
@@ -353,8 +357,7 @@ bool FFlWEDG15::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlWEDG15::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                    FFaTensor3& inertia) const
+double FFlWEDG15::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   FaVec3 v1(this->getNode(1)->getPos());
   FaVec3 v2(this->getNode(3)->getPos());
@@ -363,11 +366,13 @@ bool FFlWEDG15::getVolumeAndInertia(double& volume, FaVec3& cog,
   FaVec3 v5(this->getNode(12)->getPos());
   FaVec3 v6(this->getNode(14)->getPos());
 
+  double volume = 0.0;
   FFaVolume::wedVolume(v1,v2,v3,v4,v5,v6,volume);
   FFaVolume::wedCenter(v1,v2,v3,v4,v5,v6,cog);
-  FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,inertia);
+  if (inertia)
+    FFaVolume::wedMoment(v1,v2,v3,v4,v5,v6,*inertia);
 
-  return true;
+  return volume;
 }
 
 
@@ -407,8 +412,7 @@ bool FFlHEX20::getFaceNormals(std::vector<FaVec3>& normals, short int face,
 }
 
 
-bool FFlHEX20::getVolumeAndInertia(double& volume, FaVec3& cog,
-                                   FFaTensor3& inertia) const
+double FFlHEX20::getVolumeAndCoG(FaVec3& cog, FFaTensor3* inertia) const
 {
   //TODO: Account for possibly curved egdges
   FaVec3 v1(this->getNode(1)->getPos());
@@ -420,11 +424,13 @@ bool FFlHEX20::getVolumeAndInertia(double& volume, FaVec3& cog,
   FaVec3 v7(this->getNode(17)->getPos());
   FaVec3 v8(this->getNode(19)->getPos());
 
+  double volume = 0.0;
   FFaVolume::hexVolume(v1,v2,v3,v4,v5,v6,v7,v8,volume);
   FFaVolume::hexCenter(v1,v2,v3,v4,v5,v6,v7,v8,cog);
-  FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,inertia);
+  if (inertia)
+    FFaVolume::hexMoment(v1,v2,v3,v4,v5,v6,v7,v8,*inertia);
 
-  return true;
+  return volume;
 }
 
 #ifdef FF_NAMESPACE

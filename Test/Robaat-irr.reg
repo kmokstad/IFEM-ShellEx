@@ -9,7 +9,7 @@ Parsing <geometry>
   Parsing <patchfile>
 	Reading data file Small_Boat.dat
 	Nastran bulk data starting at line 71
-Parsing Nastran bulk data file succceeded.
+Parsing Nastran bulk data file succeeded.
 Total number of nodes:          518
 Number of shell elements:       504
 Number of constraint elements:  0
