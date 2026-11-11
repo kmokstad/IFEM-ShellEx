@@ -31,8 +31,10 @@
 #include "tinyxml2.h"
 #include <fstream>
 
+//! \cond DO_NOT_DOCUMENT
 namespace ASM { extern char useBeam; extern IntVec fixRBE3; }
 namespace Elastic { extern double time; }
+//! \endcond
 
 using Parent = SIMElasticity<SIM2D>; //!< Convenience type alias
 
