@@ -36,6 +36,8 @@ Parsing <newmarksolver>
 Parsing <timestepping>
 Parsing <postprocessing>
   Parsing <resultpoints>
+	Point 1: P1 X = 0.1 0 0.01
+	Point 2: P1 X = 0.12 0 -0.01
 	Element center output: P1 ( 10 20 30 )
   Parsing <vonMises_only>
 Parsing input file succeeded.
@@ -50,9 +52,11 @@ Newmark predictor/multicorrector: beta = 0.25 gamma = 0.5
 Stiffness-proportional damping (alpha2): 0.001
 Resolving Dirichlet boundary conditions
 	Constraining P1 in direction(s) 123
-Result point #1: patch #1, element #10, X = 0.0997554 0 -0.000461024
-Result point #2: patch #1, element #20, X = 0.097439 0 0.0007217
-Result point #3: patch #1, element #30, X = 0.100119 0 -0.000118269
+Result point #1: patch #1 (u,v)=(-0.707848,0.899836), element #295, X = 0.1 0 0.01
+Result point #2: patch #1 (u,v)=(-0.778653,-0.0495981), element #820, X = 0.12 0 -0.01
+Result point #3: patch #1, element #10, X = 0.0997554 0 -0.000461024
+Result point #4: patch #1, element #20, X = 0.097439 0 0.0007217
+Result point #5: patch #1, element #30, X = 0.100119 0 -0.000118269
  >>> SAM model summary <<<
 Number of elements    902
 Number of nodes       951
@@ -73,6 +77,8 @@ Total element set size: 232
                Max x-acceleration : 1.66974
                Max y-acceleration : 2.8856e-05
                Max z-acceleration : 1.77093
+  Element #295:	sol2 =  7.271784e+03  7.271925e+03
+  Element #820:	sol2 =  5.304758e+03  5.304521e+03
   Element #10:	sol2 =  2.088539e+04  2.088584e+04
   Element #20:	sol2 =  1.398276e+04  1.398308e+04
   Element #30:	sol2 =  1.962440e+04  1.962474e+04
@@ -90,6 +96,8 @@ Total element set size: 232
                Max x-acceleration : 4.5377
                Max y-acceleration : 6.92505e-05
                Max z-acceleration : 4.81681
+  Element #295:	sol2 =  9.285845e+03  9.286071e+03
+  Element #820:	sol2 =  6.793741e+03  6.793355e+03
   Element #10:	sol2 =  2.670551e+04  2.670624e+04
   Element #20:	sol2 =  1.782234e+04  1.782286e+04
   Element #30:	sol2 =  2.510074e+04  2.510128e+04
@@ -107,6 +115,8 @@ Total element set size: 232
                Max x-acceleration : 7.13419
                Max y-acceleration : 0.000101994
                Max z-acceleration : 7.57463
+  Element #295:	sol2 =  1.011699e+04  1.011726e+04
+  Element #820:	sol2 =  7.419933e+03  7.419459e+03
   Element #10:	sol2 =  2.912809e+04  2.912898e+04
   Element #20:	sol2 =  1.938505e+04  1.938568e+04
   Element #30:	sol2 =  2.738499e+04  2.738566e+04
@@ -124,6 +134,8 @@ Total element set size: 232
                Max x-acceleration : 9.58564
                Max y-acceleration : 0.000128926
                Max z-acceleration : 10.1782
+  Element #295:	sol2 =  1.158360e+04  1.158394e+04
+  Element #820:	sol2 =  8.508824e+03  8.508214e+03
   Element #10:	sol2 =  3.337093e+04  3.337208e+04
   Element #20:	sol2 =  2.217254e+04  2.217334e+04
   Element #30:	sol2 =  3.137879e+04  3.137964e+04
@@ -141,6 +153,8 @@ Total element set size: 232
                Max x-acceleration : 11.7832
                Max y-acceleration : 0.000146587
                Max z-acceleration : 12.5127
+  Element #295:	sol2 =  1.194654e+04  1.194692e+04
+  Element #820:	sol2 =  8.790639e+03  8.789968e+03
   Element #10:	sol2 =  3.444212e+04  3.444337e+04
   Element #20:	sol2 =  2.283829e+04  2.283917e+04
   Element #30:	sol2 =  3.239223e+04  3.239316e+04
@@ -158,6 +172,8 @@ Total element set size: 232
                Max x-acceleration : 13.8751
                Max y-acceleration : 0.000161631
                Max z-acceleration : 14.7347
+  Element #295:	sol2 =  1.277367e+04  1.277410e+04
+  Element #820:	sol2 =  9.410203e+03  9.409450e+03
   Element #10:	sol2 =  3.684149e+04  3.684289e+04
   Element #20:	sol2 =  2.440082e+04  2.440180e+04
   Element #30:	sol2 =  3.465264e+04  3.465368e+04
@@ -175,6 +191,8 @@ Total element set size: 232
                Max x-acceleration : 15.7325
                Max y-acceleration : 0.000167175
                Max z-acceleration : 16.7085
+  Element #295:	sol2 =  1.258454e+04  1.258496e+04
+  Element #820:	sol2 =  9.284837e+03  9.284083e+03
   Element #10:	sol2 =  3.631837e+04  3.631976e+04
   Element #20:	sol2 =  2.401171e+04  2.40126.e+04
   Element #30:	sol2 =  3.416637e+04  3.416740e+04
@@ -192,6 +210,8 @@ Total element set size: 232
                Max x-acceleration : 17.5129
                Max y-acceleration : 0.000172255
                Max z-acceleration : 18.6
+  Element #295:	sol2 =  1.273570e+04  1.273612e+04
+  Element #820:	sol2 =  9.406759e+03  9.406001e+03
   Element #10:	sol2 =  3.676731e+04  3.676871e+04
   Element #20:	sol2 =  2.428214e+04  2.428312e+04
   Element #30:	sol2 =  3.459226e+04  3.459330e+04
@@ -209,6 +229,8 @@ Total element set size: 232
                Max x-acceleration : 19.0817
                Max y-acceleration : 0.000169339
                Max z-acceleration : 20.2676
+  Element #295:	sol2 =  1.197170e+04  1.197208e+04
+  Element #820:	sol2 =  8.856393e+03  8.855702e+03
   Element #10:	sol2 =  3.458266e+04  3.458392e+04
   Element #20:	sol2 =  2.279678e+04  2.279767e+04
   Element #30:	sol2 =  3.254263e+04  3.254357e+04
@@ -226,6 +248,8 @@ Total element set size: 232
                Max x-acceleration : 20.5913
                Max y-acceleration : 0.000166568
                Max z-acceleration : 21.8719
+  Element #295:	sol2 =  1.147034e+04  1.147067e+04
+  Element #820:	sol2 =  8.496615e+03  8.495993e+03
   Element #10:	sol2 =  3.314690e+04  3.314803e+04
   Element #20:	sol2 =  2.182223e+04  2.182302e+04
   Element #30:	sol2 =  3.119535e+04  3.119620e+04
@@ -243,6 +267,8 @@ Total element set size: 232
                Max x-acceleration : 21.9158
                Max y-acceleration : 0.000158829
                Max z-acceleration : 23.2807
+  Element #295:	sol2 =  1.017100e+04  1.017128e+04
+  Element #820:	sol2 =  7.549426e+03  7.548918e+03
   Element #10:	sol2 =  2.941297e+04  2.941389e+04
   Element #20:	sol2 =  1.931792e+04  1.931856e+04
   Element #30:	sol2 =  2.768755e+04  2.768823e+04
@@ -260,6 +286,8 @@ Total element set size: 232
                Max x-acceleration : 23.1893
                Max y-acceleration : 0.000150458
                Max z-acceleration : 24.6348
+  Element #295:	sol2 =  9.099152e+03  9.099362e+03
+  Element #820:	sol2 =  6.767260e+03  6.766863e+03
   Element #10:	sol2 =  2.632709e+04  2.632780e+04
   Element #20:	sol2 =  1.725689e+04  1.725739e+04
   Element #30:	sol2 =  2.478734e+04  2.478787e+04
@@ -277,6 +305,8 @@ Total element set size: 232
                Max x-acceleration : 24.308
                Max y-acceleration : 0.000140925
                Max z-acceleration : 25.8254
+  Element #295:	sol2 =  7.361883e+03  7.362026e+03
+  Element #820:	sol2 =  5.494254e+03  5.493979e+03
   Element #10:	sol2 =  2.132226e+04  2.132275e+04
   Element #20:	sol2 =  1.392052e+04  1.392086e+04
   Element #30:	sol2 =  2.008288e+04  2.008324e+04
@@ -294,6 +324,8 @@ Total element set size: 232
                Max x-acceleration : 25.3752
                Max y-acceleration : 0.000129311
                Max z-acceleration : 26.961
+  Element #295:	sol2 =  5.853423e+03  5.853507e+03
+  Element #820:	sol2 =  4.387504e+03  4.387336e+03
   Element #10:	sol2 =  1.696895e+04  1.696925e+04
   Element #20:	sol2 =  1.102905e+04  1.102925e+04
   Element #30:	sol2 =  1.598939e+04  1.598961e+04
@@ -311,6 +343,8 @@ Total element set size: 232
                Max x-acceleration : 26.3206
                Max y-acceleration : 0.000120067
                Max z-acceleration : 27.9681
+  Element #295:	sol2 =  3.825289e+03  3.825328e+03
+  Element #820:	sol2 =  2.896615e+03  2.896534e+03
   Element #10:	sol2 =  1.110842e+04  1.110856e+04
   Element #20:	sol2 =  7.138003e+03  7.138098e+03
   Element #30:	sol2 =  1.047861e+04  1.047871e+04
@@ -328,6 +362,8 @@ Total element set size: 232
                Max x-acceleration : 27.2078
                Max y-acceleration : 0.000107557
                Max z-acceleration : 28.913
+  Element #295:	sol2 =  2.061443e+03  2.061451e+03
+  Element #820:	sol2 =  1.598075e+03  1.598054e+03
   Element #10:	sol2 =  5.982991e+03  5.983024e+03
   Element #20:	sol2 =  3.748210e+03  3.748232e+03
   Element #30:	sol2 =  5.657544e+03  5.657569e+03
@@ -344,6 +380,8 @@ Total element set size: 232
                Max x-acceleration : 28.0074
                Max y-acceleration : 9.96853e-05
                Max z-acceleration : 29.7656
+  Element #295:	sol2 =  3.461054e+02  3.461063e+02
+  Element #820:	sol2 =  2.607127e+02  2.607114e+02
   Element #10:	sol2 =  2.266748e+02  2.266709e+02
   Element #20:	sol2 =  4.426779e+02  4.426774e+02
   Element #30:	sol2 =  1.855386e+02  1.855356e+02
@@ -361,6 +399,8 @@ Total element set size: 232
                Max x-acceleration : 28.7376
                Max y-acceleration : 8.84086e-05
                Max z-acceleration : 30.5444
+  Element #295:	sol2 =  1.990120e+03  1.990110e+03
+  Element #820:	sol2 =  1.395841e+03  1.395854e+03
   Element #10:	sol2 =  5.560534e+03  5.560504e+03
   Element #20:	sol2 =  3.899946e+03  3.899924e+03
   Element #30:	sol2 =  5.201834e+03  5.201812e+03
@@ -378,6 +418,8 @@ Total element set size: 232
                Max x-acceleration : 29.414
                Max y-acceleration : 8.22015e-05
                Max z-acceleration : 31.2666
+  Element #295:	sol2 =  4.055092e+03  4.055048e+03
+  Element #820:	sol2 =  2.919423e+03  2.919492e+03
   Element #10:	sol2 =  1.156060e+04  1.156046e+04
   Element #20:	sol2 =  7.858620e+03  7.858521e+03
   Element #30:	sol2 =  1.084689e+04  1.084679e+04
@@ -395,6 +437,8 @@ Total element set size: 232
                Max x-acceleration : 30.0083
                Max y-acceleration : 7.37996e-05
                Max z-acceleration : 31.9016
+  Element #295:	sol2 =  5.771244e+03  5.771155e+03
+  Element #820:	sol2 =  4.189016e+03  4.189161e+03
   Element #10:	sol2 =  1.653515e+04  1.653487e+04
   Element #20:	sol2 =  1.113091e+04  1.113070e+04
   Element #30:	sol2 =  1.552872e+04  1.552851e+04
